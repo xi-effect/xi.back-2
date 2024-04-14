@@ -36,3 +36,29 @@ services:
       interval: 10s
       timeout: 60s
       retries: 5
+
+  api:
+    profiles:
+      - app
+    depends_on:
+      mq:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command:
+      - "--reload"
+    ports:
+      - "5000:8000"
+    volumes:
+      - ./app:/backend/app
+      - ./tests:/backend/tests
+    environment:
+      WATCHFILES_FORCE_POLLING: true
+      DB_LINK: postgresql+asyncpg://test:test@db:5432/test
+      MQ_URL: amqp://guest:guest@mq
+      DB_SCHEMA: xi_back_2
+      # DATABASE_MIGRATED: "1"
