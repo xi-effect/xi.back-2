@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app import communities
 from app.common.config import (
     DATABASE_MIGRATED,
     PRODUCTION_MODE,
@@ -39,6 +40,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(communities.router)
 
 
 @app.middleware("http")
