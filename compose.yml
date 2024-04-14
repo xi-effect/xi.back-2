@@ -1,0 +1,38 @@
+services:
+  mq:
+    image: rabbitmq:3.12.10-management-alpine
+    volumes:
+      - type: tmpfs
+        target: /var/lib/rabbitmq/
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q check_port_connectivity
+      start_period: 60s
+      interval: 10s
+      timeout: 60s
+      retries: 5
+
+  db:
+    image: postgres:16.1-alpine
+    environment:
+      PGUSER: test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: test
+      # POSTGRES_EXTENSIONS: pg_trgm
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+      - type: bind
+        source: ./init-schema.sql
+        target: /docker-entrypoint-initdb.d/init-schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "test", "-U", "test"]
+      start_period: 60s
+      interval: 10s
+      timeout: 60s
+      retries: 5
