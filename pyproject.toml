@@ -42,6 +42,11 @@ flake8-use-fstring = "1.4"
 flake8-use-pathlib = "0.3.0"
 flake8-test-name = "^0.1.5"
 wemake-python-styleguide = "0.18.0"
+httpx = "^0.27.0"
+pydantic-marshals = {extras = ["assert-contains"], version = "^0.3.12"}
+rstr = "^3.2.2"
+faker = "^24.9.0"
+polyfactory = "^2.15.0"
 
 [tool.isort]
 profile = "black"
