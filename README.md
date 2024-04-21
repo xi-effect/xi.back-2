@@ -32,6 +32,25 @@ docker compose down
 - [`http://localhost:15672`](http://localhost:15672): management-консоль для RabbitMQ (логин и пароль: guest)
 - [`http://localhost:5100`](http://localhost:5100/docs): автоматическая OpenAPI-документация основного приложения
 
+### Migrations
+После аппрува задачи, в которой были изменения в БД, нужно написать миграцию. В этом поможет автоматическая генерация миграций через alembic, описанная ниже
+
+Для начала нужно выключить приложение и отчистить базу данных:
+```sh
+docker compose down
+```
+
+Затем можно сбилдить и запустить контейнер для миграций:
+```sh
+docker compose run --build --rm -ti alembic
+```
+
+Должен открыться терминал (sh), в котором уже будет можно запускать команды alembic-а:
+```sh
+alembic upgrade head
+alembic revision --autogenerate -m "<message>" --rev-id "<issue>"
+```
+
 ## Info
 ### Stack
 - Python 3.12
@@ -72,19 +91,4 @@ docker compose ps -a
 # зайти в какой-то контейнер
 docker compose exec -ti <сервис> <shell-команда>
 docker compose exec -ti db psql -U test -d test  # пример
-```
-
-### Alembic
-Используется для автосоздания миграций БД. Запуск вспомогательного контейнера для миграций:
-```sh
-docker compose run --build --rm -ti alembic
-```
-Команды для самих миграций:
-```sh
-alembic upgrade head
-alembic revision --autogenerate -m "<message>" --rev-id "<issue>"
-```
-Сбросить базу или просто завершить работу с миграциями:
-```sh
-docker compose --profile migration down
 ```
