@@ -18,3 +18,13 @@ async def community(
 ) -> Community:
     async with active_session():
         return await Community.create(**community_data)
+
+
+@pytest.fixture()
+async def deleted_community_id(
+    active_session: ActiveSession,
+    community: Community,
+) -> int:
+    async with active_session():
+        await community.delete()
+    return community.id
