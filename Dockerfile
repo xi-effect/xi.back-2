@@ -10,5 +10,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-interaction --no-ansi --only main
 
 COPY ./app /backend/app
+COPY ./alembic.ini /backend/alembic.ini
+COPY ./alembic /backend/alembic
 
 ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
