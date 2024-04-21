@@ -5,8 +5,12 @@ services:
       - type: tmpfs
         target: /var/lib/rabbitmq/
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - target: 5672
+        host_ip: 127.0.0.1
+        published: 5672
+      - target: 15672
+        host_ip: 127.0.0.1
+        published: 15672
     healthcheck:
       test: rabbitmq-diagnostics -q check_port_connectivity
       start_period: 60s
@@ -29,7 +33,9 @@ services:
         source: ./init-schema.sql
         target: /docker-entrypoint-initdb.d/init-schema.sql
     ports:
-      - "5432:5432"
+      - target: 5432
+        host_ip: 127.0.0.1
+        published: 5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d", "test", "-U", "test"]
       start_period: 60s
@@ -73,10 +79,16 @@ services:
     command:
       - "--reload"
     ports:
-      - "5000:8000"
+      - target: 8000
+        host_ip: 127.0.0.1
+        published: 5000
     volumes:
-      - ./app:/backend/app
-      - ./tests:/backend/tests
+      - type: bind
+        source: ./app
+        target: /backend/app
+      - type: bind
+        source: ./tests
+        target: /backend/tests
     environment:
       WATCHFILES_FORCE_POLLING: true
       DB_LINK: postgresql+asyncpg://test:test@db:5432/test
