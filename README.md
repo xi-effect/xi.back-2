@@ -32,6 +32,28 @@ docker compose down
 - [`http://localhost:15672`](http://localhost:15672): management-консоль для RabbitMQ (логин и пароль: guest)
 - [`http://localhost:5100`](http://localhost:5100/docs): автоматическая OpenAPI-документация основного приложения
 
+### Tests
+#### Terminal
+Запуск тестов локально (в виртуальном окружении):
+```sh
+pytest tests
+```
+С проверкой покрытия:
+```sh
+pytest tests --cov=.
+```
+
+#### PyCharm
+1. Создать новую конфигурацию: Edit Configurations > + > pytest
+2. Настроить путь: Script Path > Выбор папки (выбрать папку tests)
+3. Настроить рабочую директорию: Environment > Working directory > Выбор папки (выбрать корень проекта)
+4. (опционально) В Additional Arguments добавить `--cov=.` для проверки покрытия
+
+Отчёт о покрытии кода можно получить командой:
+```sh
+coverage report
+```
+
 ### Migrations
 После аппрува задачи, в которой были изменения в БД, нужно написать миграцию. В этом поможет автоматическая генерация миграций через alembic, описанная ниже
 
