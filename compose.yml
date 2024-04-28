@@ -89,6 +89,9 @@ services:
       - type: bind
         source: ./tests
         target: /backend/tests
+      - type: bind
+        source: ./community_avatars
+        target: /backend/community_avatars
     environment:
       WATCHFILES_FORCE_POLLING: true
       DB_LINK: postgresql+asyncpg://test:test@db:5432/test

@@ -1,6 +1,8 @@
 from collections.abc import Iterator
 
 import pytest
+from faker import Faker
+from faker_file.providers import webp_file  # type: ignore[import-untyped]
 from fastapi.testclient import TestClient
 from httpx import Headers
 
@@ -25,6 +27,11 @@ pytest_plugins = (
 @pytest.fixture(scope="session")
 def anyio_backend() -> str:
     return "asyncio"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _setup_faker(faker: Faker) -> None:
+    faker.add_provider(webp_file.GraphicWebpFileProvider)
 
 
 @pytest.fixture(scope="session")

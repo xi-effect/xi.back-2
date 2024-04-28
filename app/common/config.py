@@ -9,6 +9,8 @@ from app.common.sqlalchemy_ext import MappingBase
 
 current_directory: Path = Path.cwd()
 
+AVATARS_PATH: Path = current_directory / "community_avatars"
+
 PRODUCTION_MODE: bool = getenv("PRODUCTION", "0") == "1"
 
 DB_URL: str = getenv("DB_LINK", "postgresql+asyncpg://test:test@localhost:5432/test")
