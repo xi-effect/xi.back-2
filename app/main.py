@@ -7,6 +7,7 @@ from starlette.responses import Response
 
 from app import communities
 from app.common.config import (
+    AVATARS_PATH,
     DATABASE_MIGRATED,
     PRODUCTION_MODE,
     Base,
@@ -25,6 +26,8 @@ async def reinit_database() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    AVATARS_PATH.mkdir(exist_ok=True)
+
     if not PRODUCTION_MODE and not DATABASE_MIGRATED:
         await reinit_database()
 

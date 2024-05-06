@@ -1,8 +1,10 @@
+from pathlib import Path
+
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.common.config import Base
+from app.common.config import AVATARS_PATH, Base
 
 
 class Community(Base):
@@ -15,3 +17,7 @@ class Community(Base):
     FullInputSchema = MappedModel.create(columns=[name, description])
     FullPatchSchema = FullInputSchema.as_patch()
     FullResponseSchema = FullInputSchema.extend(columns=[id])
+
+    @property
+    def avatar_path(self) -> Path:
+        return AVATARS_PATH / f"{self.id}.webp"
