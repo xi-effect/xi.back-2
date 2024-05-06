@@ -3,17 +3,17 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.routes import communities_mub
 
-outside_router = APIRouterExt()
+outside_router = APIRouterExt(prefix="/api/public/community-service")
 
 authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
-    prefix="/api/communities",
+    prefix="/api/protected/community-service",
 )
 
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
-    prefix="/mub/communities",
+    prefix="/mub/community-service",
 )
 mub_router.include_router(communities_mub.router)
 
