@@ -1,7 +1,7 @@
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.communities.routes import communities_mub
+from app.communities.routes import communities_mub, participants_mub
 
 outside_router = APIRouterExt(prefix="/api/public/community-service")
 
@@ -16,6 +16,7 @@ mub_router = APIRouterExt(
     prefix="/mub/community-service",
 )
 mub_router.include_router(communities_mub.router)
+mub_router.include_router(participants_mub.router)
 
 
 router = APIRouterExt()
