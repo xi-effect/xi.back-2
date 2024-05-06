@@ -6,7 +6,7 @@ from app.common.config import Base
 
 
 class Community(Base):
-    __tablename__ = "community"
+    __tablename__ = "communities"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
