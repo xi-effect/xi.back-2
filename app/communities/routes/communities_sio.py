@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
@@ -128,3 +128,15 @@ async def retrieve_community(
 @router.on("close-community")
 async def close_community(community_id: int, socket: AsyncSocket) -> None:
     await socket.leave_room(f"community-{community_id}")
+
+
+@router.on("list-communities")
+async def list_communities(
+    socket: AsyncSocket,
+) -> Annotated[
+    Sequence[Community], PydanticPackager(list[Community.FullResponseSchema])
+]:
+    user_id = await user_id_dep(socket)
+
+    async with db_session():
+        return await Participant.find_all_communities_by_user_id(user_id=user_id)
