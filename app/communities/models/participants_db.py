@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import ForeignKey, Index
+from sqlalchemy import ForeignKey, Index, Select, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.communities.models.communities_db import Community
 
 
@@ -35,3 +36,11 @@ class Participant(Base):
     MUBBaseSchema = MappedModel.create(columns=[is_owner, created_at])
     MUBPatchSchema = MUBBaseSchema.as_patch()
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
+
+    @classmethod
+    def select_by_user_id(cls, user_id: int) -> Select[tuple[Community]]:
+        return select(Community).join(cls).filter(cls.user_id == user_id)
+
+    @classmethod
+    async def find_first_community_by_user_id(cls, user_id: int) -> Community | None:
+        return await db.get_first(cls.select_by_user_id(user_id).limit(1))
