@@ -1,3 +1,5 @@
+from tmexio import EventRouter
+
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
@@ -28,7 +30,10 @@ mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
 
-router = APIRouterExt()
-router.include_router(outside_router)
-router.include_router(authorized_router)
-router.include_router(mub_router)
+api_router = APIRouterExt()
+api_router.include_router(outside_router)
+api_router.include_router(authorized_router)
+api_router.include_router(mub_router)
+
+
+event_router = EventRouter()

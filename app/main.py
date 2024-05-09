@@ -28,6 +28,7 @@ tmex = TMEXIO(
     logger=True,
     engineio_logger=True,
 )
+tmex.include_router(communities.event_router)
 
 
 class NoPingPongFilter(logging.Filter):
@@ -78,7 +79,7 @@ app.add_middleware(
 )
 app.mount("/socket.io/", tmex.build_asgi_app())
 
-app.include_router(communities.router)
+app.include_router(communities.api_router)
 
 
 @app.middleware("http")

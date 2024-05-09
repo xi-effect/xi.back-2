@@ -31,6 +31,8 @@ extend-ignore =
   U100
   # fails to understand enums
   WPS115
+  # __init__
+  WPS410 WPS412
   # fails to understand overloading
   WPS428
   # fails to understand pipe-unions
