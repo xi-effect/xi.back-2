@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 
+from pydantic import NaiveDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import ForeignKey, Index, Select, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,7 +35,7 @@ class Participant(Base):
     )
 
     # models
-    MUBBaseSchema = MappedModel.create(columns=[is_owner, created_at])
+    MUBBaseSchema = MappedModel.create(columns=[is_owner, (created_at, NaiveDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
 
