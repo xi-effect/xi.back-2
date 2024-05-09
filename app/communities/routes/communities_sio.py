@@ -59,41 +59,6 @@ no_community_access = EventException(403, "No access to community")
 not_sufficient_permissions = EventException(403, "Not sufficient permissions")
 
 
-@router.on(
-    "update-community",
-    exceptions=[community_not_found, no_community_access, not_sufficient_permissions],
-)
-async def update_community(
-    community_id: int,
-    data: Community.FullPatchSchema,
-    socket: AsyncSocket,
-) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
-    user_id = await user_id_dep(socket)
-
-    async with db_session():
-        community = await Community.find_first_by_id(community_id)
-        if community is None:
-            raise community_not_found
-
-        participant = await Participant.find_first_by_kwargs(
-            community_id=community.id, user_id=user_id
-        )
-        if participant is None:
-            raise no_community_access
-        if not participant.is_owner:
-            raise not_sufficient_permissions
-
-        community.update(**data.model_dump(exclude_defaults=True))
-
-    await socket.emit(
-        "update-community",
-        Community.FullResponseSchema.model_validate(community).model_dump(mode="json"),
-        target=f"community-{community_id}",
-        exclude_self=True,
-    )
-    return community
-
-
 @router.on("retrieve-any-community", exceptions=[community_not_found])
 async def retrieve_any_community(
     socket: AsyncSocket,
@@ -215,5 +180,71 @@ async def leave_community(
         "leave-community",
         {"community_id": community_id},
         target=f"user-{user_id}",
+        exclude_self=True,
+    )
+
+
+@router.on(
+    "update-community",
+    exceptions=[community_not_found, no_community_access, not_sufficient_permissions],
+)
+async def update_community(
+    community_id: int,
+    data: Community.FullPatchSchema,
+    socket: AsyncSocket,
+) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+    user_id = await user_id_dep(socket)
+
+    async with db_session():
+        community = await Community.find_first_by_id(community_id)
+        if community is None:
+            raise community_not_found
+
+        participant = await Participant.find_first_by_kwargs(
+            community_id=community.id, user_id=user_id
+        )
+        if participant is None:
+            raise no_community_access
+        if not participant.is_owner:
+            raise not_sufficient_permissions
+
+        community.update(**data.model_dump(exclude_defaults=True))
+
+    await socket.emit(
+        "update-community",
+        Community.FullResponseSchema.model_validate(community).model_dump(mode="json"),
+        target=f"community-{community_id}",
+        exclude_self=True,
+    )
+    return community
+
+
+@router.on(
+    "delete-community",
+    exceptions=[community_not_found, not_sufficient_permissions],
+)
+async def delete_community(community_id: int, socket: AsyncSocket) -> None:
+    user_id = await user_id_dep(socket)
+
+    async with db_session():
+        community = await Community.find_first_by_id(community_id)
+        if community is None:
+            raise community_not_found
+
+        participant = await Participant.find_first_by_kwargs(
+            community_id=community.id, user_id=user_id
+        )
+        if participant is None:
+            raise no_community_access
+        if not participant.is_owner:
+            raise not_sufficient_permissions
+
+        await community.delete()
+
+    await socket.close_room(f"community-{community_id}")
+    await socket.emit(
+        "delete-community",
+        {"community_id": community_id},
+        target=f"community-{community_id}",
         exclude_self=True,
     )
