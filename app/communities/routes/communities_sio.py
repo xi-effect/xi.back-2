@@ -2,12 +2,19 @@ from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
-from tmexio import AsyncSocket, EventException, EventRouter, PydanticPackager
+from tmexio import (
+    AsyncServer,
+    AsyncSocket,
+    EventException,
+    EventRouter,
+    PydanticPackager,
+)
 
 from app.common.config import sessionmaker
 from app.common.sqlalchemy_ext import session_context
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
+from app.communities.store import user_id_to_sids
 
 router = EventRouter()
 
@@ -67,6 +74,7 @@ async def update_community(
         community = await Community.find_first_by_id(community_id)
         if community is None:
             raise community_not_found
+
         participant = await Participant.find_first_by_kwargs(
             community_id=community.id, user_id=user_id
         )
@@ -111,7 +119,6 @@ async def retrieve_community(
 
     async with db_session():
         community = await Community.find_first_by_id(community_id)
-
         if community is None:
             raise community_not_found
 
@@ -140,3 +147,73 @@ async def list_communities(
 
     async with db_session():
         return await Participant.find_all_communities_by_user_id(user_id=user_id)
+
+
+already_joined = EventException(409, "Already joined")
+
+
+@router.on("test-join-community", exceptions=[community_not_found, already_joined])
+async def test_join_community(
+    community_id: int,
+    socket: AsyncSocket,
+) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+    user_id = await user_id_dep(socket)
+
+    async with db_session():
+        community = await Community.find_first_by_id(community_id)
+        if community is None:
+            raise community_not_found
+
+        participant = await Participant.find_first_by_kwargs(
+            community_id=community.id, user_id=user_id
+        )
+        if participant is not None:
+            raise already_joined
+        await Participant.create(
+            community_id=community.id, user_id=user_id, is_owner=False
+        )
+
+    await socket.enter_room(f"community-{community.id}")
+    await socket.emit(
+        "join-community",
+        Community.FullResponseSchema.model_validate(community).model_dump(mode="json"),
+        target=f"user-{user_id}",
+        exclude_self=True,
+    )
+    return community
+
+
+owner_can_not_leave = EventException(409, "Owner can not leave")
+
+
+@router.on(
+    "leave-community",
+    exceptions=[community_not_found, no_community_access, owner_can_not_leave],
+)
+async def leave_community(
+    community_id: int, socket: AsyncSocket, server: AsyncServer
+) -> None:
+    user_id = await user_id_dep(socket)
+
+    async with db_session():
+        community = await Community.find_first_by_id(community_id)
+        if community is None:
+            raise community_not_found
+
+        participant = await Participant.find_first_by_kwargs(
+            community_id=community.id, user_id=user_id
+        )
+        if participant is None:
+            raise no_community_access
+        if participant.is_owner:
+            raise owner_can_not_leave
+        await participant.delete()
+
+    for sid in user_id_to_sids[user_id]:
+        await server.leave_room(sid=sid, room=f"community-{community.id}")
+    await socket.emit(
+        "leave-community",
+        {"community_id": community_id},
+        target=f"user-{user_id}",
+        exclude_self=True,
+    )
