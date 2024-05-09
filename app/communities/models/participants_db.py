@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -37,6 +38,7 @@ class Participant(Base):
     MUBPatchSchema = MUBBaseSchema.as_patch()
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
 
+    # repository
     @classmethod
     def select_by_user_id(cls, user_id: int) -> Select[tuple[Community]]:
         return select(Community).join(cls).filter(cls.user_id == user_id)
@@ -44,3 +46,7 @@ class Participant(Base):
     @classmethod
     async def find_first_community_by_user_id(cls, user_id: int) -> Community | None:
         return await db.get_first(cls.select_by_user_id(user_id).limit(1))
+
+    @classmethod
+    async def find_all_communities_by_user_id(cls, user_id: int) -> Sequence[Community]:
+        return await db.get_all(cls.select_by_user_id(user_id))
