@@ -13,6 +13,7 @@ from app.communities.routes import (
     categories_mub,
     channels_mub,
     communities_mub,
+    communities_sio,
     invitations_mub,
     participants_mub,
 )
@@ -43,6 +44,7 @@ api_router.include_router(mub_router)
 
 
 event_router = EventRouter()
+event_router.include_router(communities_sio.router)
 
 
 @asynccontextmanager
