@@ -141,9 +141,12 @@ async def test_join_community(
 
     await socket.emit(
         "create-participant",
-        Participant.FullResponseSchema.model_validate(participant).model_dump(
-            mode="json"
-        ),
+        {
+            "community_id": community.id,
+            "participant": Participant.ListItemSchema.model_validate(
+                participant
+            ).model_dump(mode="json"),
+        },
         target=participants_list_room(community.id),
         exclude_self=True,
     )
@@ -185,7 +188,7 @@ async def leave_community(
 
     await socket.emit(
         "delete-participant",
-        {"community_id": community.id, "participant_id": participant.id},
+        {"community_id": community.id, "user_id": participant.user_id},
         target=participants_list_room(community.id),
         exclude_self=True,
     )

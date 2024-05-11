@@ -56,7 +56,7 @@ async def participant(
 
 @pytest.fixture()
 def participant_data(participant: Participant) -> AnyJSON:
-    return Participant.FullResponseSchema.model_validate(
+    return Participant.MUBResponseSchema.model_validate(
         participant, from_attributes=True
     ).model_dump(mode="json")
 

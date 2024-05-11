@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from contextvars import ContextVar
 from typing import Any, Self, TypeVar
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Row, Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 session_context: ContextVar[AsyncSession | None] = ContextVar("session", default=None)
@@ -20,6 +20,9 @@ class DBController:
         if session is None:
             raise ValueError("Session not initialized")
         return session
+
+    async def get_first_row(self, stmt: Select[Any]) -> Row[Any] | None:
+        return (await self.session.execute(stmt)).first()
 
     async def get_first(self, stmt: Select[Any]) -> Any | None:
         return (await self.session.execute(stmt)).scalars().first()
