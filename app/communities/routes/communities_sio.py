@@ -6,6 +6,12 @@ from tmexio import AsyncServer, AsyncSocket, EventException, PydanticPackager
 from app.common.dependencies.authorization_dep import AuthorizedUser
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
+from app.communities.dependencies.communities_sio_dep import (
+    CommunityById,
+    CurrentParticipant,
+    community_not_found,
+    current_participant_dependency,
+)
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
 from app.communities.store import user_id_to_sids
@@ -35,18 +41,12 @@ async def create_community(
     return community
 
 
-community_not_found = EventException(404, "Community not found")
-no_community_access = EventException(403, "No access to community")
-not_sufficient_permissions = EventException(403, "Not sufficient permissions")
-
-
 @router.on("retrieve-any-community", exceptions=[community_not_found])
 async def retrieve_any_community(
     user: AuthorizedUser,
     socket: AsyncSocket,
 ) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
     community = await Participant.find_first_community_by_user_id(user_id=user.user_id)
-
     if community is None:
         raise community_not_found
 
@@ -54,22 +54,11 @@ async def retrieve_any_community(
     return community
 
 
-@router.on("retrieve-community", exceptions=[community_not_found, no_community_access])
+@router.on("retrieve-community", dependencies=[current_participant_dependency])
 async def retrieve_community(
-    community_id: int,
-    user: AuthorizedUser,
+    community: CommunityById,
     socket: AsyncSocket,
 ) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
-    community = await Community.find_first_by_id(community_id)
-    if community is None:
-        raise community_not_found
-
-    participant = await Participant.find_first_by_kwargs(
-        community_id=community.id, user_id=user.user_id
-    )
-    if participant is None:
-        raise no_community_access
-
     await socket.enter_room(f"community-{community.id}")
     return community
 
@@ -91,16 +80,12 @@ async def list_communities(
 already_joined = EventException(409, "Already joined")
 
 
-@router.on("test-join-community", exceptions=[community_not_found, already_joined])
-async def test_join_community(
-    community_id: int,
+@router.on("test-join-community", exceptions=[already_joined])
+async def join_community(
+    community: CommunityById,
     user: AuthorizedUser,
     socket: AsyncSocket,
 ) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
-    community = await Community.find_first_by_id(community_id)
-    if community is None:
-        raise community_not_found
-
     participant = await Participant.find_first_by_kwargs(
         community_id=community.id, user_id=user.user_id
     )
@@ -125,22 +110,14 @@ async def test_join_community(
 owner_can_not_leave = EventException(409, "Owner can not leave")
 
 
-@router.on(
-    "leave-community",
-    exceptions=[community_not_found, no_community_access, owner_can_not_leave],
-)
+@router.on("leave-community", exceptions=[owner_can_not_leave])
 async def leave_community(
-    community_id: int, user: AuthorizedUser, socket: AsyncSocket, server: AsyncServer
+    community: CommunityById,
+    participant: CurrentParticipant,
+    user: AuthorizedUser,
+    socket: AsyncSocket,
+    server: AsyncServer,
 ) -> None:
-    community = await Community.find_first_by_id(community_id)
-    if community is None:
-        raise community_not_found
-
-    participant = await Participant.find_first_by_kwargs(
-        community_id=community.id, user_id=user.user_id
-    )
-    if participant is None:
-        raise no_community_access
     if participant.is_owner:
         raise owner_can_not_leave
 
@@ -151,31 +128,22 @@ async def leave_community(
         await server.leave_room(sid=sid, room=f"community-{community.id}")
     await socket.emit(
         "leave-community",
-        {"community_id": community_id},
+        {"community_id": community.id},
         target=f"user-{user.user_id}",
         exclude_self=True,
     )
 
 
-@router.on(
-    "update-community",
-    exceptions=[community_not_found, no_community_access, not_sufficient_permissions],
-)
+not_sufficient_permissions = EventException(403, "Not sufficient permissions")
+
+
+@router.on("update-community", exceptions=[not_sufficient_permissions])
 async def update_community(
-    community_id: int,
     data: Community.FullPatchSchema,
-    user: AuthorizedUser,
+    community: CommunityById,
+    participant: CurrentParticipant,
     socket: AsyncSocket,
 ) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
-    community = await Community.find_first_by_id(community_id)
-    if community is None:
-        raise community_not_found
-
-    participant = await Participant.find_first_by_kwargs(
-        community_id=community.id, user_id=user.user_id
-    )
-    if participant is None:
-        raise no_community_access
     if not participant.is_owner:
         raise not_sufficient_permissions
 
@@ -185,38 +153,28 @@ async def update_community(
     await socket.emit(
         "update-community",
         Community.FullResponseSchema.model_validate(community).model_dump(mode="json"),
-        target=f"community-{community_id}",
+        target=f"community-{community.id}",
         exclude_self=True,
     )
     return community
 
 
-@router.on(
-    "delete-community",
-    exceptions=[community_not_found, not_sufficient_permissions],
-)
+@router.on("delete-community", exceptions=[not_sufficient_permissions])
 async def delete_community(
-    community_id: int, user: AuthorizedUser, socket: AsyncSocket
+    community: CommunityById,
+    participant: CurrentParticipant,
+    socket: AsyncSocket,
 ) -> None:
-    community = await Community.find_first_by_id(community_id)
-    if community is None:
-        raise community_not_found
-
-    participant = await Participant.find_first_by_kwargs(
-        community_id=community.id, user_id=user.user_id
-    )
-    if participant is None:
-        raise no_community_access
     if not participant.is_owner:
         raise not_sufficient_permissions
 
     await community.delete()
     await db.session.commit()
 
-    await socket.close_room(f"community-{community_id}")
+    await socket.close_room(f"community-{community.id}")
     await socket.emit(
         "delete-community",
-        {"community_id": community_id},
-        target=f"community-{community_id}",
+        {"community_id": community.id},
+        target=f"community-{community.id}",
         exclude_self=True,
     )
