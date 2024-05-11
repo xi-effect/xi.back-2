@@ -4,7 +4,7 @@ from typing import Self
 
 from pydantic import NaiveDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import ForeignKey, Index, select
+from sqlalchemy import ForeignKey, Index, Row, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
@@ -36,10 +36,11 @@ class Participant(Base):
     )
 
     # models
-    MUBBaseSchema = MappedModel.create(columns=[is_owner, (created_at, NaiveDatetime)])
+    CurrentSchema = MappedModel.create(columns=[is_owner])
+    MUBBaseSchema = CurrentSchema.extend(columns=[(created_at, NaiveDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
-    CurrentSchema = MappedModel.create(columns=[id, is_owner])
-    FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
+    MUBResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
+    ListItemSchema = MUBBaseSchema.extend(columns=[user_id])
 
     # participant repository
     @classmethod
@@ -53,12 +54,9 @@ class Participant(Base):
     @classmethod
     async def find_first_community_by_user_id(
         cls, user_id: int
-    ) -> tuple[Community, Self] | None:
-        return await db.get_first(
-            select(Community, Participant)
-            .join(cls)
-            .filter(cls.user_id == user_id)
-            .limit(1)
+    ) -> Row[tuple[Community, Self]] | None:
+        return await db.get_first_row(
+            select(Community, cls).join(cls).filter(cls.user_id == user_id).limit(1)
         )
 
     @classmethod

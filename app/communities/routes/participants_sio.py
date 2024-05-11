@@ -1,7 +1,13 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from tmexio import AsyncServer, AsyncSocket, EventException, PydanticPackager
+from tmexio import (
+    AsyncServer,
+    AsyncSocket,
+    EventException,
+    PydanticPackager,
+    register_dependency,
+)
 
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
@@ -26,7 +32,7 @@ async def list_participants(
     community: CommunityById,
     socket: AsyncSocket,
 ) -> Annotated[
-    Sequence[Participant], PydanticPackager(list[Participant.FullResponseSchema])
+    Sequence[Participant], PydanticPackager(list[Participant.MUBResponseSchema])
 ]:
     await socket.enter_room(participants_list_room(community.id))
     return await Participant.find_all_by_community_id(community_id=community.id)
@@ -42,23 +48,33 @@ participant_not_found = EventException(404, "Participant not found")
 owner_can_not_be_kicked = EventException(403, "Owner can not be kicked")
 
 
-@router.on(
-    "kick-participant",
-    exceptions=[target_is_the_source, participant_not_found, owner_can_not_be_kicked],
-)
-async def kick_participant(
-    participant_id: int,
+@register_dependency(exceptions=[target_is_the_source, participant_not_found])
+async def target_participant_dependency(
     community: CommunityById,
     current_participant: CurrentOwner,
+    target_user_id: int,
+) -> Participant:
+    if current_participant.user_id == target_user_id:
+        raise target_is_the_source
+
+    target_participant = await Participant.find_first_by_kwargs(
+        community_id=community.id, user_id=target_user_id
+    )
+    if target_participant is None:
+        raise participant_not_found
+    return target_participant
+
+
+TargetParticipant = Annotated[Participant, target_participant_dependency]
+
+
+@router.on("kick-participant", exceptions=[owner_can_not_be_kicked])
+async def kick_participant(
+    community: CommunityById,
+    target_participant: TargetParticipant,
     server: AsyncServer,
     socket: AsyncSocket,
 ) -> None:
-    if current_participant.id == participant_id:
-        raise target_is_the_source
-
-    target_participant = await Participant.find_first_by_id(participant_id)
-    if target_participant is None:
-        raise participant_not_found
     if target_participant.is_owner:
         raise owner_can_not_be_kicked
 
@@ -79,46 +95,58 @@ async def kick_participant(
 
     await socket.emit(
         "delete-participant",
-        {"community_id": community.id, "participant_id": target_participant.id},
+        {"community_id": community.id, "user_id": target_participant.user_id},
         target=participants_list_room(community.id),
         exclude_self=True,
     )
 
 
-@router.on(
-    "transfer-ownership",
-    exceptions=[target_is_the_source, participant_not_found],
-)
+@router.on("transfer-ownership")
 async def transfer_ownership(
-    participant_id: int,
     community: CommunityById,
     current_participant: CurrentOwner,
+    target_participant: TargetParticipant,
     socket: AsyncSocket,
 ) -> None:
-    if current_participant.id == participant_id:
-        raise target_is_the_source
-
-    target_participant = await Participant.find_first_by_id(participant_id)
-    if target_participant is None:
-        raise participant_not_found
-
     current_participant.is_owner = False
     target_participant.is_owner = True
     await db.session.commit()
 
     await socket.emit(
-        "receive-ownership",
-        {"community_id": community.id},
+        "update-participation",
+        {
+            "community_id": community.id,
+            "participant": Participant.CurrentSchema.model_validate(
+                current_participant
+            ).model_dump(mode="json"),
+        },
+        target=participant_room(community.id, current_participant.user_id),
+        exclude_self=True,
+    )
+    await socket.emit(
+        "update-participation",
+        {
+            "community_id": community.id,
+            "participant": Participant.CurrentSchema.model_validate(
+                target_participant
+            ).model_dump(mode="json"),
+        },
         target=participant_room(community.id, target_participant.user_id),
         exclude_self=True,
     )
 
     await socket.emit(
-        "transfer-ownership",
+        "update-participants",
         {
             "community_id": community.id,
-            "source_participant_id": current_participant.id,
-            "target_participant_id": target_participant.id,
+            "participants": [
+                Participant.ListItemSchema.model_validate(
+                    current_participant
+                ).model_dump(mode="json"),
+                Participant.ListItemSchema.model_validate(
+                    target_participant
+                ).model_dump(mode="json"),
+            ],
         },
         target=participants_list_room(community.id),
         exclude_self=True,
