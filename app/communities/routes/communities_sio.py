@@ -1,6 +1,7 @@
 from collections.abc import Sequence
-from typing import Annotated
+from typing import Annotated, Any
 
+from pydantic import BaseModel
 from tmexio import AsyncServer, AsyncSocket, EventException, PydanticPackager
 
 from app.common.dependencies.authorization_dep import AuthorizedUser
@@ -25,14 +26,19 @@ from app.communities.store import user_id_to_sids
 router = EventRouterExt()
 
 
+class ParticipationModel(BaseModel):
+    community: Community.FullResponseSchema
+    participant: Participant.CurrentSchema
+
+
 @router.on("create-community")
 async def create_community(
     data: Community.FullInputSchema,
     user: AuthorizedUser,
     socket: AsyncSocket,
-) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+) -> Annotated[dict[str, Any], PydanticPackager(ParticipationModel)]:
     community = await Community.create(**data.model_dump())
-    await Participant.create(
+    participant = await Participant.create(
         community_id=community.id, user_id=user.user_id, is_owner=True
     )
     await db.session.commit()
@@ -45,14 +51,18 @@ async def create_community(
         target=user_room(user.user_id),
         exclude_self=True,
     )
-    return community
+
+    return {
+        "community": community,
+        "participant": participant,
+    }
 
 
 @router.on("retrieve-any-community", exceptions=[community_not_found])
 async def retrieve_any_community(
     user: AuthorizedUser,
     socket: AsyncSocket,
-) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+) -> Annotated[dict[str, Any], PydanticPackager(ParticipationModel)]:
     result = await Participant.find_first_community_by_user_id(user_id=user.user_id)
     if result is None:
         raise community_not_found
@@ -61,7 +71,10 @@ async def retrieve_any_community(
 
     await socket.enter_room(community_room(community.id))
     await socket.enter_room(participant_room(community.id, user.user_id))
-    return community
+    return {
+        "community": community,
+        "participant": participant,
+    }
 
 
 @router.on("retrieve-community")
@@ -69,10 +82,13 @@ async def retrieve_community(
     community: CommunityById,
     participant: CurrentParticipant,
     socket: AsyncSocket,
-) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+) -> Annotated[dict[str, Any], PydanticPackager(ParticipationModel)]:
     await socket.enter_room(community_room(community.id))
     await socket.enter_room(participant_room(community.id, participant.user_id))
-    return community
+    return {
+        "community": community,
+        "participant": participant,
+    }
 
 
 @router.on("close-community")  # TODO no session here
@@ -101,7 +117,7 @@ async def test_join_community(
     community: CommunityById,
     user: AuthorizedUser,
     socket: AsyncSocket,
-) -> Annotated[Community, PydanticPackager(Community.FullResponseSchema)]:
+) -> Annotated[dict[str, Any], PydanticPackager(ParticipationModel)]:
     participant = await Participant.find_first_by_kwargs(
         community_id=community.id, user_id=user.user_id
     )
@@ -131,7 +147,11 @@ async def test_join_community(
         target=participants_list_room(community.id),
         exclude_self=True,
     )
-    return community
+
+    return {
+        "community": community,
+        "participant": participant,
+    }
 
 
 owner_can_not_leave = EventException(409, "Owner can not leave")

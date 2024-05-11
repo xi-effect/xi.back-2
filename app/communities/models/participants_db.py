@@ -38,6 +38,7 @@ class Participant(Base):
     # models
     MUBBaseSchema = MappedModel.create(columns=[is_owner, (created_at, NaiveDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
+    CurrentSchema = MappedModel.create(columns=[id, is_owner])
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
 
     # participant repository
