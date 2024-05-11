@@ -18,6 +18,7 @@ async def community_by_id_dependency(community_id: int) -> Community:
 
 
 CommunityById = Annotated[Community, community_by_id_dependency]
+
 no_community_access = EventException(403, "No access to community")
 
 
@@ -34,3 +35,15 @@ async def current_participant_dependency(
 
 
 CurrentParticipant = Annotated[Participant, current_participant_dependency]
+
+not_sufficient_permissions = EventException(403, "Not sufficient permissions")
+
+
+@register_dependency(exceptions=[not_sufficient_permissions])
+async def current_owner_dependency(participant: CurrentParticipant) -> Participant:
+    if not participant.is_owner:
+        raise not_sufficient_permissions
+    return participant
+
+
+CurrentOwner = Annotated[Participant, current_owner_dependency]

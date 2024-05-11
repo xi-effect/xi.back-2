@@ -1,9 +1,10 @@
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Self
 
 from pydantic import NaiveDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import ForeignKey, Index, Select, select
+from sqlalchemy import ForeignKey, Index, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
@@ -39,15 +40,28 @@ class Participant(Base):
     MUBPatchSchema = MUBBaseSchema.as_patch()
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
 
-    # repository
+    # participant repository
     @classmethod
-    def select_by_user_id(cls, user_id: int) -> Select[tuple[Community]]:
-        return select(Community).join(cls).filter(cls.user_id == user_id)
+    async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
+        # TODO pagination and search
+        return await cls.find_all_by_kwargs(
+            cls.created_at.desc(), community_id=community_id
+        )
 
+    # community-2-participant repository
     @classmethod
-    async def find_first_community_by_user_id(cls, user_id: int) -> Community | None:
-        return await db.get_first(cls.select_by_user_id(user_id).limit(1))
+    async def find_first_community_by_user_id(
+        cls, user_id: int
+    ) -> tuple[Community, Self] | None:
+        return await db.get_first(
+            select(Community, Participant)
+            .join(cls)
+            .filter(cls.user_id == user_id)
+            .limit(1)
+        )
 
     @classmethod
     async def find_all_communities_by_user_id(cls, user_id: int) -> Sequence[Community]:
-        return await db.get_all(cls.select_by_user_id(user_id))
+        return await db.get_all(
+            select(Community).join(cls).filter(cls.user_id == user_id)
+        )
