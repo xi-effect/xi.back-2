@@ -22,6 +22,7 @@ from app.common.dependencies.authorization_dep import authorize_from_wsgi_enviro
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
+from app.communities.rooms import user_room
 from app.communities.store import user_id_to_sids
 
 tmex = TMEXIO(
@@ -43,7 +44,7 @@ async def connect_user(socket: AsyncSocket) -> None:
         raise EventException(407, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
-    await socket.enter_room(f"user-{auth_data.user_id}")
+    await socket.enter_room(user_room(auth_data.user_id))
 
 
 @tmex.on_disconnect()
