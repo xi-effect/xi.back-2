@@ -1,6 +1,8 @@
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from typing import Any, ClassVar, Self
 
+from pydantic import FutureDatetime, PositiveInt
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import CHAR, DateTime, ForeignKey, Index, Row, or_, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,7 +50,7 @@ class Invitation(Base):
 
     # schemas
     FullInputSchema = MappedModel.create(
-        columns=[expiry, usage_limit, created_at, creator_id]
+        columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None), created_at, creator_id]
     )
     FullResponseSchema = FullInputSchema.extend(columns=[id, token, usage_count])
 
@@ -62,15 +64,31 @@ class Invitation(Base):
         return await super().create(**kwargs)
 
     @classmethod
+    def valid_only_filters(cls) -> Any:  # TODO SQLAlchemy uses private typing
+        return (
+            or_(cls.expiry.is_(None), cls.expiry >= func.now()),
+            or_(
+                cls.usage_limit.is_(None),
+                cls.usage_count < cls.usage_limit,
+            ),
+        )
+
+    @classmethod
     async def count_by_community_id(cls, community_id: int) -> int:
         return await db.get_count(
             select(count(cls.id)).filter(
                 cls.community_id == community_id,
-                or_(cls.expiry.is_(None), cls.expiry >= func.now()),
-                or_(
-                    cls.usage_limit.is_(None),
-                    cls.usage_count < cls.usage_limit,
-                ),
+                *cls.valid_only_filters(),
+            )
+        )
+
+    @classmethod
+    async def find_all_valid_by_community_id(cls, community_id: int) -> Sequence[Self]:
+        # TODO add sorting by creation time
+        return await db.get_all(
+            select(cls).filter(
+                cls.community_id == community_id,
+                *cls.valid_only_filters(),
             )
         )
 
