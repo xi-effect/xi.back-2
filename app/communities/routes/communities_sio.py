@@ -4,7 +4,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel
 from tmexio import AsyncServer, AsyncSocket, EventException, PydanticPackager
 
-from app.common.dependencies.authorization_dep import AuthorizedUser
+from app.common.dependencies.authorization_sio_dep import AuthorizedUser
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.communities_sio_dep import (
