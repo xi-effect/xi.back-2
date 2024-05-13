@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, DateTime, ForeignKey, Index, or_, select
+from sqlalchemy import CHAR, DateTime, ForeignKey, Index, Row, or_, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import count, func
 
@@ -22,7 +22,9 @@ class Invitation(Base):
     # invitation data
     id: Mapped[int] = mapped_column(primary_key=True)
     token: Mapped[str] = mapped_column(CHAR(invitation_token_generator.token_length))
+    # TODO rename back to code
     expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # TODO naming for timestamps should be consistent with Participants
     usage_count: Mapped[int] = mapped_column(default=0)
     usage_limit: Mapped[int | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
@@ -41,6 +43,7 @@ class Invitation(Base):
         Index(
             "hash_index_invitations_community_id", community_id, postgresql_using="hash"
         ),
+        Index("hash_index_invitations_token", token, postgresql_using="hash"),
     )
 
     # schemas
@@ -70,3 +73,16 @@ class Invitation(Base):
                 ),
             )
         )
+
+    @classmethod
+    async def find_with_community_by_code(
+        cls, code: str
+    ) -> Row[tuple[Community, Self]] | None:
+        return await db.get_first_row(
+            select(Community, cls).join(cls).filter(cls.token == code).limit(1)
+        )
+
+    def is_valid(self) -> bool:
+        return (
+            self.expiry is None or self.expiry >= datetime.now(tz=timezone.utc)
+        ) and (self.usage_limit is None or self.usage_limit > self.usage_count)

@@ -13,6 +13,7 @@ from app.communities.routes import (
     categories_mub,
     channels_mub,
     communities_mub,
+    communities_public_rst,
     communities_sio,
     invitations_mub,
     participants_mub,
@@ -20,6 +21,7 @@ from app.communities.routes import (
 )
 
 outside_router = APIRouterExt(prefix="/api/public/community-service")
+outside_router.include_router(communities_public_rst.router)
 
 authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
