@@ -3,6 +3,7 @@ from random import randint
 import pytest
 
 from app.communities.models.communities_db import Community
+from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON
@@ -66,3 +67,32 @@ async def deleted_participant_id(
     async with active_session():
         await participant.delete()
     return participant.id
+
+
+@pytest.fixture()
+async def invitation(
+    active_session: ActiveSession,
+    community: Community,
+) -> Invitation:
+    async with active_session():
+        return await Invitation.create(
+            community_id=community.id,
+            **factories.InvitationFullInputFactory.build_json()
+        )
+
+
+@pytest.fixture()
+def invitation_data(invitation: Invitation) -> AnyJSON:
+    return Invitation.FullResponseSchema.model_validate(
+        invitation, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_invitation_id(
+    active_session: ActiveSession,
+    invitation: Invitation,
+) -> int:
+    async with active_session():
+        await invitation.delete()
+    return invitation.id

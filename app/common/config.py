@@ -5,6 +5,7 @@ from sqlalchemy import MetaData, NullPool
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
+from app.common.cyptography import TokenGenerator
 from app.common.sqlalchemy_ext import MappingBase
 
 current_directory: Path = Path.cwd()
@@ -42,3 +43,6 @@ class Base(AsyncAttrs, DeclarativeBase, MappingBase):
     __abstract__: bool
 
     metadata = db_meta
+
+
+token_generator = TokenGenerator(randomness=40, length=50)
