@@ -19,6 +19,7 @@ class Participant(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     is_owner: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    # TODO mb change to `DateTime(timezone=True)`
 
     # user data
     user_id: Mapped[int] = mapped_column()
