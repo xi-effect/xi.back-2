@@ -2,7 +2,7 @@ from typing import Annotated
 
 from tmexio import EventException, register_dependency
 
-from app.common.dependencies.authorization_dep import AuthorizedUser
+from app.common.dependencies.authorization_sio_dep import AuthorizedUser
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
 

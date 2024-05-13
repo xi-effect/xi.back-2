@@ -16,7 +16,7 @@ from app.common.config import (
     engine,
     sessionmaker,
 )
-from app.common.dependencies.authorization_dep import authorize_from_wsgi_environ
+from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
