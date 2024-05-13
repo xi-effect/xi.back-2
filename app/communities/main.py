@@ -11,6 +11,7 @@ from app.communities.routes import (
     communities_public_rst,
     communities_sio,
     invitations_mub,
+    invitations_sio,
     participants_mub,
     participants_sio,
 )
@@ -42,3 +43,4 @@ api_router.include_router(mub_router)
 event_router = EventRouter()
 event_router.include_router(communities_sio.router)
 event_router.include_router(participants_sio.router)
+event_router.include_router(invitations_sio.router)
