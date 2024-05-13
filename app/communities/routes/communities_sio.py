@@ -13,7 +13,9 @@ from app.communities.dependencies.communities_sio_dep import (
     community_not_found,
     current_owner_dependency,
 )
+from app.communities.dependencies.invitations_sio_dep import invitation_not_found
 from app.communities.models.communities_db import Community
+from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
 from app.communities.rooms import (
     community_room,
@@ -113,7 +115,7 @@ already_joined = EventException(409, "Already joined")
 
 
 @router.on("test-join-community", exceptions=[already_joined])
-async def test_join_community(
+async def test_join_community(  # TODO delete this
     community: CommunityById,
     user: AuthorizedUser,
     socket: AsyncSocket,
@@ -127,6 +129,61 @@ async def test_join_community(
     participant = await Participant.create(
         community_id=community.id, user_id=user.user_id, is_owner=False
     )
+    await db.session.commit()
+
+    await socket.enter_room(community_room(community.id))
+    await socket.enter_room(participant_room(community.id, user.user_id))
+
+    await socket.emit(
+        "join-community",
+        Community.FullResponseSchema.model_validate(community).model_dump(mode="json"),
+        target=user_room(user.user_id),
+        exclude_self=True,
+    )
+
+    await socket.emit(
+        "create-participant",
+        {
+            "community_id": community.id,
+            "participant": Participant.ListItemSchema.model_validate(
+                participant
+            ).model_dump(mode="json"),
+        },
+        target=participants_list_room(community.id),
+        exclude_self=True,
+    )
+
+    return {
+        "community": community,
+        "participant": participant,
+    }
+
+
+@router.on("join-community", exceptions=[invitation_not_found, already_joined])
+async def join_community(
+    code: str,
+    user: AuthorizedUser,
+    socket: AsyncSocket,
+) -> Annotated[dict[str, Any], PydanticPackager(ParticipationModel)]:
+    result = await Invitation.find_with_community_by_code(code)
+    if result is None:
+        raise invitation_not_found
+    community, invitation = result
+
+    if not invitation.is_valid():
+        # TODO delete invitation (errors do a rollback)
+        raise invitation_not_found
+
+    participant = await Participant.find_first_by_kwargs(
+        community_id=community.id, user_id=user.user_id
+    )
+    if participant is not None:
+        raise already_joined
+
+    participant = await Participant.create(
+        community_id=community.id, user_id=user.user_id, is_owner=False
+    )
+    invitation.usage_count += 1
     await db.session.commit()
 
     await socket.enter_room(community_room(community.id))
