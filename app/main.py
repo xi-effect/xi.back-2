@@ -1,11 +1,12 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
-from tmexio import TMEXIO, AsyncSocket, EventException
+from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
 
 from app import communities
 from app.common.config import (
@@ -49,6 +50,13 @@ async def connect_user(socket: AsyncSocket) -> None:
 async def disconnect_user(socket: AsyncSocket) -> None:
     user_id = (await socket.get_session())["auth"].user_id
     user_id_to_sids[user_id].remove(socket.sid)
+
+
+@tmex.on_other()
+async def handle_other_events(
+    event_name: EventName,
+) -> Annotated[str, PydanticPackager(str, 404)]:
+    return f"Unknown event: '{event_name}'"
 
 
 async def reinit_database() -> None:
