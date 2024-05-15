@@ -1,4 +1,5 @@
 from app.communities.models.categories_db import Category
+from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -27,3 +28,11 @@ class CategoryInputFactory(BaseModelFactory[Category.InputSchema]):
 
 class CategoryPatchFactory(BasePatchModelFactory[Category.PatchSchema]):
     __model__ = Category.PatchSchema
+
+
+class ChannelInputFactory(BaseModelFactory[Channel.InputSchema]):
+    __model__ = Channel.InputSchema
+
+
+class ChannelPatchFactory(BasePatchModelFactory[Channel.PatchSchema]):
+    __model__ = Channel.PatchSchema

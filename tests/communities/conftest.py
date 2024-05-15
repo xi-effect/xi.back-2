@@ -3,6 +3,7 @@ from random import randint
 import pytest
 
 from app.communities.models.categories_db import Category
+from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -122,3 +123,28 @@ async def deleted_category_id(
     async with active_session():
         await category.delete()
     return category.id
+
+
+@pytest.fixture()
+async def channel_data() -> AnyJSON:
+    return factories.ChannelInputFactory.build_json()
+
+
+@pytest.fixture()
+async def channel(
+    active_session: ActiveSession,
+    community: Community,
+    channel_data: AnyJSON,
+) -> Channel:
+    async with active_session():
+        return await Channel.create(community_id=community.id, **channel_data)
+
+
+@pytest.fixture()
+async def deleted_channel_id(
+    active_session: ActiveSession,
+    channel: Channel,
+) -> int:
+    async with active_session():
+        await channel.delete()
+    return channel.id
