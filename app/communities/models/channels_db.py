@@ -1,6 +1,6 @@
 import enum
 from collections.abc import Sequence
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import Enum, ForeignKey, Index, String, Text, and_
@@ -20,6 +20,9 @@ class ChannelType(str, enum.Enum):
 
 class Channel(SpacedOrderedList[tuple[int, int | None]]):
     __tablename__ = "channels"
+
+    max_count_per_community: ClassVar[int] = 500
+    max_count_per_category: ClassVar[int] = 50
 
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
@@ -65,3 +68,21 @@ class Channel(SpacedOrderedList[tuple[int, int | None]]):
     @classmethod
     async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
         return await cls.find_all_by_kwargs(cls.position, community_id=community_id)
+
+    @classmethod
+    async def is_limit_per_community_reached(cls, community_id: int) -> bool:
+        return (
+            await cls.count_by_kwargs(cls.id, community_id=community_id)
+            >= cls.max_count_per_community
+        )
+
+    @classmethod
+    async def is_limit_per_category_reached(
+        cls, community_id: int, category_id: int | None
+    ) -> bool:
+        return (
+            await cls.count_by_kwargs(
+                cls.id, community_id=community_id, category_id=category_id
+            )
+            >= cls.max_count_per_category
+        )

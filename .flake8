@@ -47,6 +47,8 @@ extend-ignore =
   WPS237 WPS305
   # python 2.x is deprecated
   WPS306
+  # multiline conditions
+  WPS337
   # multiline loops
   WPS352
   # noqa exists for a reason

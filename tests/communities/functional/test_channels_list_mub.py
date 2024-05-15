@@ -9,15 +9,10 @@ from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.common.types import AnyJSON, PytestRequest
+from tests.common.types import AnyJSON
 from tests.communities.factories import ChannelInputFactory
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture(params=[False, True], ids=["without_category", "with_category"])
-def is_by_category(request: PytestRequest[bool]) -> bool:
-    return request.param
 
 
 async def test_reindexing_channels(
@@ -25,16 +20,16 @@ async def test_reindexing_channels(
     active_session: ActiveSession,
     community: Community,
     category: Category,
-    is_by_category: bool,
+    channel_parent_category_id: int | None,
+    channel_parent_path: str,
 ) -> None:
     channels_count = 3
-    category_id = category.id if is_by_category else None
 
     async with active_session() as db_session:
         db_session.add_all(
             Channel(
                 community_id=community.id,
-                category_id=category_id,
+                category_id=channel_parent_category_id,
                 position=i,
                 **ChannelInputFactory.build_json(),
             )
@@ -43,15 +38,15 @@ async def test_reindexing_channels(
 
     assert_nodata_response(
         mub_client.put(
-            f"/mub/community-service/categories/{category.id}/channels/positions/"
-            if is_by_category
-            else f"/mub/community-service/communities/{community.id}/channels/positions/"
+            f"/mub/community-service/{channel_parent_path}/channels/positions/"
         )
     )
 
     async with active_session():
         channels = await Channel.find_all_by_kwargs(
-            Channel.position, community_id=community.id, category_id=category_id
+            Channel.position,
+            community_id=community.id,
+            category_id=channel_parent_category_id,
         )
         positions = [channel.position for channel in channels]
         assert_contains(positions, [i * Channel.spacing for i in range(channels_count)])
@@ -168,16 +163,18 @@ async def test_channel_moving(
     active_session: ActiveSession,
     community: Community,
     category: Category,
-    is_by_category: bool,
+    is_channel_with_category: bool,
+    channel_parent_category_id: int | None,
     channels_without_category: list[Channel],
     channels_with_category: list[Channel],
     target: int,
     after: int | None,
     before: int | None,
 ) -> None:
-    category_id = category.id if is_by_category else None
     channels = list(
-        channels_with_category if is_by_category else channels_without_category
+        channels_with_category
+        if is_channel_with_category
+        else channels_without_category
     )
     channel_ids = [channel.id for channel in channels]
 
@@ -185,7 +182,7 @@ async def test_channel_moving(
         mub_client.put(
             f"/mub/community-service/channels/{channel_ids[target]}/position/",
             json={
-                "category_id": category_id,
+                "category_id": channel_parent_category_id,
                 "after_id": None if after is None else channel_ids[after],
                 "before_id": None if before is None else channel_ids[before],
             },
@@ -203,6 +200,8 @@ async def test_channel_moving(
         assert [  # noqa: WPS309  # WPS bug
             channel.id
             for channel in await Channel.find_all_by_kwargs(
-                Channel.position, community_id=community.id, category_id=category_id
+                Channel.position,
+                community_id=community.id,
+                category_id=channel_parent_category_id,
             )
         ] == channel_ids
