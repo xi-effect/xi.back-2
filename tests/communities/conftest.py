@@ -2,6 +2,7 @@ from random import randint
 
 import pytest
 
+from app.communities.models.categories_db import Category
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -96,3 +97,28 @@ async def deleted_invitation_id(
     async with active_session():
         await invitation.delete()
     return invitation.id
+
+
+@pytest.fixture()
+async def category_data() -> AnyJSON:
+    return factories.CategoryInputFactory.build_json()
+
+
+@pytest.fixture()
+async def category(
+    active_session: ActiveSession,
+    community: Community,
+    category_data: AnyJSON,
+) -> Category:
+    async with active_session():
+        return await Category.create(community_id=community.id, **category_data)
+
+
+@pytest.fixture()
+async def deleted_category_id(
+    active_session: ActiveSession,
+    category: Category,
+) -> int:
+    async with active_session():
+        await category.delete()
+    return category.id
