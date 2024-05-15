@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: xi.back-2
-  version: v0.0.4
+  version: v0.0.5
 paths:
 # community-participation
   /!SUB!/user-room/create-community/:
@@ -107,14 +107,13 @@ paths:
         content:
           application/json:
             schema:
-              title: CommunityAndParticipantIds
               type: object
               properties:
                 community_id:
                   $ref: '#/components/schemas/CommunityId'
               required:
               - community_id
-  /!SUB!/participant-room/loose-ownership/:
+  /!SUB!/participant-room/update-participation/:
     head:
       tags:
         - community-participation
@@ -123,29 +122,15 @@ paths:
         content:
           application/json:
             schema:
-              title: CommunityAndParticipantIds
               type: object
               properties:
                 community_id:
                   $ref: '#/components/schemas/CommunityId'
+                participant:
+                  $ref: '#/components/schemas/Participant.CurrentSchema'
               required:
               - community_id
-  /!SUB!/participant-room/receive-ownership/:
-    head:
-      tags:
-        - community-participation
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              title: CommunityAndParticipantIds
-              type: object
-              properties:
-                community_id:
-                  $ref: '#/components/schemas/CommunityId'
-              required:
-              - community_id
+              - participant
   /!SUB!/participant-room/leave-community/:
     head:
       tags:
@@ -420,7 +405,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Participant.ListItemSchema'
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                participant:
+                  $ref: '#/components/schemas/Participant.ListItemSchema'
+              required:
+              - community_id
+              - participant
   /!SUB!/participants-list-room/delete-participant/:
     head:
       tags:
