@@ -673,6 +673,299 @@ paths:
           description: No access to community
         '403  ':
           description: Not sufficient permissions
+# categories-list
+  /!PUB!/list-categories/:
+    trace:
+      tags:
+        - categories-list
+      operationId: pub-list-categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/tmexio_tmexio__handler_builders__Model__16"
+      responses:
+        '200 ':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/tmexio_Category.ResponseSchema"
+        '404 ':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Community not found
+              example: Community not found
+        '403 ':
+          description: No access to community
+          content:
+            application/json:
+              schema:
+                type: string
+                const: No access to community
+              example: No access to community
+        '422 ':
+          description: Event expects one argument
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Event expects one argument
+              example: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/tmexio_ValidationErrorModel"
+  /!SUB!/community-room/create-category/:
+    head:
+      tags:
+        - categories-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                category:
+                  $ref: '#/components/schemas/tmexio_Category.ResponseSchema'
+              required:
+                - community_id
+                - category
+  /!PUB!/create-category/:
+    trace:
+      tags:
+        - categories-list
+      operationId: "pub-create-category"
+      requestBody:
+        required: "true"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/tmexio_tmexio__handler_builders__Model__17"
+      responses:
+        '201 ':
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tmexio_Category.ResponseSchema"
+        "403 ":
+          description: "No access to community"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                const: "No access to community"
+              example: "No access to community"
+        "403  ":
+          description: "Not sufficient permissions"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                const: "Not sufficient permissions"
+              example: "Not sufficient permissions"
+        "404 ":
+          description: "Community not found"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                const: "Community not found"
+              example: "Community not found"
+        "409 ":
+          description: "Quantity limit exceeded"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                const: "Quantity limit exceeded"
+              example: "Quantity limit exceeded"
+        "422 ":
+          description: "Event expects one argument"
+          content:
+            application/json:
+              schema:
+                type: "string"
+                const: "Event expects one argument"
+              example: "Event expects one argument"
+        "422  ":
+          description: "Validation Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/tmexio_ValidationErrorModel"
+  /!SUB!/community-room/update-category/:
+    head:
+      tags:
+        - categories-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                category:
+                  $ref: '#/components/schemas/tmexio_Category.ResponseSchema'
+              required:
+                - community_id
+                - category
+  /!PUB!/update-category/:
+    trace:
+      tags:
+        - categories-list
+      operationId: pub-update-category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__18'
+      responses:
+        '200 ':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_Category.ResponseSchema'
+        '404 ':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Community not found
+              example: Community not found
+        '404  ':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Category not found
+              example: Category not found
+        '403 ':
+          description: No access to community
+          content:
+            application/json:
+              schema:
+                type: string
+                const: No access to community
+              example: No access to community
+        '403  ':
+          description: Not sufficient permissions
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Not sufficient permissions
+              example: Not sufficient permissions
+        '422 ':
+          description: Event expects one argument
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Event expects one argument
+              example: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/delete-category/:
+    head:
+      tags:
+        - categories-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                category_id:
+                  type: integer
+              required:
+                - community_id
+                - category_id
+  /!PUB!/delete-category/:
+    trace:
+      tags:
+        - categories-list
+      operationId: pub-delete-category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__19'
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Community not found
+              example: Community not found
+        '404  ':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Category not found
+              example: Category not found
+        '403 ':
+          description: No access to community
+          content:
+            application/json:
+              schema:
+                type: string
+                const: No access to community
+              example: No access to community
+        '403  ':
+          description: Not sufficient permissions
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Not sufficient permissions
+              example: Not sufficient permissions
+        '422 ':
+          description: Event expects one argument
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Event expects one argument
+              example: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
 components:
   errors:
     CommunityNotFound:
@@ -849,21 +1142,152 @@ components:
         - token
       title: Invitation.FullResponseSchema
       type: object
-  Invitation.FullInputSchema:
-    properties:
-      expiry:
-        anyOf:
-          - format: date-time
-            type: string
-          - type: 'null'
-        default: null
-        title: Expiry
-      usage_limit:
-        anyOf:
-          - exclusiveMinimum: 0
-            type: integer
-          - type: 'null'
-        default: null
-        title: Usage Limit
-    title: Invitation.FullInputSchema
-    type: object
+    Invitation.FullInputSchema:
+      properties:
+        expiry:
+          anyOf:
+            - format: date-time
+              type: string
+            - type: 'null'
+          default: null
+          title: Expiry
+        usage_limit:
+          anyOf:
+            - exclusiveMinimum: 0
+              type: integer
+            - type: 'null'
+          default: null
+          title: Usage Limit
+      title: Invitation.FullInputSchema
+      type: object
+    tmexio_ErrorDetailsModel:
+      properties:
+        type:
+          title: "Type"
+          type: "string"
+        loc:
+          items:
+            anyOf:
+              - type: "integer"
+              - type: "string"
+          title: "Loc"
+          type: "array"
+        msg:
+          title: "Msg"
+          type: "string"
+      required:
+        - "type"
+        - "loc"
+        - "msg"
+      title: "ErrorDetailsModel"
+      type: "object"
+    tmexio_ValidationErrorModel:
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/tmexio_ErrorDetailsModel"
+          title: "Detail"
+          type: "array"
+      required:
+        - "detail"
+      title: "ValidationErrorModel"
+      type: "object"
+    tmexio_tmexio__handler_builders__Model__16:
+      properties:
+        community_id:
+          title: "Community Id"
+          type: "integer"
+      required:
+        - "community_id"
+      title: "Model"
+      type: "object"
+    tmexio_Category.ResponseSchema:
+      properties:
+        id:
+          title: "Id"
+          type: "integer"
+        name:
+          maxLength: "100"
+          title: "Name"
+          type: "string"
+        description:
+          anyOf:
+            - type: "string"
+            - type: "null"
+          default:
+          title: "Description"
+      required:
+        - "id"
+        - "name"
+      title: "Category.ResponseSchema"
+      type: "object"
+    tmexio_InputSchema:
+      properties:
+        name:
+          maxLength: "100"
+          title: "Name"
+          type: "string"
+        description:
+          anyOf:
+            - type: "string"
+            - type: "null"
+          default:
+          title: "Description"
+      required:
+        - "name"
+      title: "Category.InputSchema"
+      type: "object"
+    tmexio_tmexio__handler_builders__Model__17:
+      properties:
+        community_id:
+          title: "Community Id"
+          type: "integer"
+        data:
+          $ref: "#/components/schemas/tmexio_InputSchema"
+      required:
+        - "community_id"
+        - "data"
+      title: "Model"
+      type: "object"
+    tmexio_PatchSchema:
+      properties:
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Description
+      title: Category.PatchSchema
+      type: object
+    tmexio_tmexio__handler_builders__Model__18:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        category_id:
+          title: Category Id
+          type: integer
+        data:
+          $ref: '#/components/schemas/tmexio_PatchSchema'
+      required:
+        - community_id
+        - category_id
+        - data
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__19:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        category_id:
+          title: Category Id
+          type: integer
+      required:
+        - community_id
+        - category_id
+      title: Model
+      type: object

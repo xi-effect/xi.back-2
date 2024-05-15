@@ -6,6 +6,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.communities.routes import (
     avatars_rst,
     categories_mub,
+    categories_sio,
     channels_mub,
     communities_mub,
     communities_public_rst,
@@ -42,5 +43,6 @@ api_router.include_router(mub_router)
 
 event_router = EventRouter()
 event_router.include_router(communities_sio.router)
-event_router.include_router(participants_sio.router)
 event_router.include_router(invitations_sio.router)
+event_router.include_router(participants_sio.router)
+event_router.include_router(categories_sio.router)
