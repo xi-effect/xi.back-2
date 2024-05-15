@@ -7,6 +7,7 @@ from app.communities.models.categories_db import Category
 from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.communities.factories import CategoryPatchFactory
@@ -33,6 +34,23 @@ async def test_category_creation(
         category = await Category.find_first_by_id(category_id)
         assert category is not None
         await category.delete()
+
+
+async def test_category_creation_quantity_exceed(
+    mock_stack: MockStack,
+    mub_client: TestClient,
+    community: Community,
+    category_data: AnyJSON,
+) -> None:
+    mock_stack.enter_mock(Category, "max_count_per_community", property_value=0)
+    assert_response(
+        mub_client.post(
+            f"/mub/community-service/communities/{community.id}/categories/",
+            json=category_data,
+        ),
+        expected_code=409,
+        expected_json={"detail": "Quantity exceeded"},
+    )
 
 
 async def test_category_retrieving(

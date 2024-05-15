@@ -8,7 +8,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.categories_dep import CategoryById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.categories_db import Category
-from app.communities.responses import MoveResponses
+from app.communities.responses import LimitedListResponses, MoveResponses
 
 router = APIRouterExt(tags=["categories mub"])
 
@@ -35,11 +35,14 @@ async def reindex_categories(community: CommunityById) -> None:
     "/communities/{community_id}/categories/",
     status_code=201,
     response_model=Category.ResponseSchema,
+    responses=LimitedListResponses.responses(),
     summary="Create a new category in the community (append to the end of the list)",
 )
 async def create_category(
     community: CommunityById, data: Category.InputSchema
 ) -> Category:
+    if await Category.is_limit_per_community_reached(community_id=community.id):
+        raise LimitedListResponses.QUANTITY_EXCEEDED
     return await Category.create(community_id=community.id, **data.model_dump())
 
 

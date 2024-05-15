@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import ForeignKey, Index, String, Text
@@ -14,6 +14,8 @@ from app.communities.models.communities_db import Community
 
 class Category(SpacedOrderedList[int]):
     __tablename__ = "categories"
+
+    max_count_per_community: ClassVar[int] = 50
 
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
@@ -48,6 +50,13 @@ class Category(SpacedOrderedList[int]):
     @classmethod
     async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
         return await cls.find_all_by_kwargs(cls.position, community_id=community_id)
+
+    @classmethod
+    async def is_limit_per_community_reached(cls, community_id: int) -> bool:
+        return (
+            await cls.count_by_kwargs(cls.id, community_id=community_id)
+            >= cls.max_count_per_community
+        )
 
     def validate_move_data(self, after_id: int | None, before_id: int | None) -> None:
         if after_id is None and before_id is None:
