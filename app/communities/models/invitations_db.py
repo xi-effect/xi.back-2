@@ -47,7 +47,7 @@ class Invitation(Base):
 
     @classmethod
     async def count_by_community_id(cls, community_id: int) -> int:
-        return await db.get_first(
+        return await db.get_count(
             select(count(cls.id)).filter(
                 cls.community_id == community_id,
                 or_(cls.expiry.is_(None), cls.expiry >= func.now()),
@@ -56,4 +56,4 @@ class Invitation(Base):
                     cls.usage_count < cls.usage_limit,
                 ),
             )
-        )  # type: ignore[return-value]
+        )
