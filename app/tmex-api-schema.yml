@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: xi.back-2
-  version: v0.0.3
+  version: v0.0.4
 paths:
 # community-participation
   /!SUB!/user-room/create-community/:
@@ -44,7 +44,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
+                $ref: '#/components/schemas/ParticipationModel'
   /!SUB!/user-room/join-community/:
     head:
       tags:
@@ -87,7 +87,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Community.FullResponseSchema'
+                  $ref: '#/components/schemas/ParticipationModel'
         '404':
           $ref: "#/components/errors/CommunityNotFound"
         '409':
@@ -99,6 +99,22 @@ paths:
                 const: "Already joined"
                 example: "Already joined"
   /!SUB!/participant-room/kicked-from-community/:
+    head:
+      tags:
+        - community-participation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CommunityAndParticipantIds
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+              - community_id
+  /!SUB!/participant-room/loose-ownership/:
     head:
       tags:
         - community-participation
@@ -230,7 +246,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
+                $ref: '#/components/schemas/ParticipationModel'
         '403':
           $ref: "#/components/errors/NoAccessToCommunity"
         '404':
@@ -254,7 +270,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
+                $ref: '#/components/schemas/ParticipationModel'
         '404':
           $ref: "#/components/errors/CommunityNotFound"
   /!PUB!/close-community/:
@@ -394,7 +410,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Participant.FullResponseSchema'
+                  $ref: '#/components/schemas/Participant.ListItemSchema'
   /!SUB!/participants-list-room/create-participant/:
     head:
       tags:
@@ -404,7 +420,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Participant.FullResponseSchema'
+              $ref: '#/components/schemas/Participant.ListItemSchema'
   /!SUB!/participants-list-room/delete-participant/:
     head:
       tags:
@@ -414,7 +430,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityAndParticipantIds'
+              $ref: '#/components/schemas/ParticipantIds'
   /!PUB!/kick-participant/:
     trace:
       tags:
@@ -424,7 +440,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityAndParticipantIds'
+              $ref: '#/components/schemas/ParticipantIds'
       responses:
         '204 ':
           description: Success
@@ -446,7 +462,7 @@ paths:
                 type: string
                 const: "Owner can be kicked"
                 example: "Owner can be kicked"
-  /!SUB!/participants-list-room/transfer-ownership/:
+  /!SUB!/participants-list-room/update-participants/:
     head:
       tags:
         - participants-list
@@ -455,19 +471,17 @@ paths:
         content:
           application/json:
             schema:
-              title: CommunityAndParticipantIds
               type: object
               properties:
                 community_id:
                   $ref: '#/components/schemas/CommunityId'
-                source_participant_id:
-                  $ref: '#/components/schemas/ParticipantId'
-                target_participant_id:
-                  $ref: '#/components/schemas/ParticipantId'
+                participants:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Participant.ListItemSchema'
               required:
               - community_id
-              - source_participant_id
-              - target_participant_id
+              - participants
   /!PUB!/transfer-ownership/:
     trace:
       tags:
@@ -477,7 +491,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityAndParticipantIds'
+              $ref: '#/components/schemas/ParticipantIds'
       responses:
         '204 ':
           description: Success
@@ -560,17 +574,17 @@ components:
     CommunityId:
       title: CommunityId
       type: integer
-    ParticipantId:
-      title: ParticipantId
+    UserId:
+      title: UserId
       type: integer
-    CommunityAndParticipantIds:
-      title: CommunityAndParticipantIds
+    ParticipantIds:
+      title: ParticipantIds
       type: object
       properties:
         community_id:
           $ref: '#/components/schemas/CommunityId'
-        participant_id:
-          $ref: '#/components/schemas/ParticipantId'
+        user_id:
+          $ref: '#/components/schemas/UserId'
       required:
       - community_id
       - participant_id
@@ -610,15 +624,12 @@ components:
        - name
       title: Community.FullInputSchema
       type: object
-    Participant.FullResponseSchema:
+    Participant.ListItemSchema:
       properties:
         created_at:
           format: date-time
           title: Created At
           type: string
-        id:
-          title: Id
-          type: integer
         is_owner:
           default: false
           title: Is Owner
@@ -634,9 +645,6 @@ components:
       type: object
     Participant.CurrentSchema:
       properties:
-        id:
-          title: Id
-          type: integer
         is_owner:
           default: false
           title: Is Owner
