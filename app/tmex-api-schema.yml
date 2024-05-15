@@ -888,6 +888,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/move-category/:
+    head:
+      tags:
+        - categories-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                category_id:
+                  type: integer
+                after_id:
+                  anyOf:
+                    - type: integer
+                    - type: 'null'
+                  title: After Id
+                before_id:
+                  anyOf:
+                    - type: integer
+                    - type: 'null'
+                  title: Before Id
+              required:
+                - community_id
+                - category_id
+                - after_id
+                - before_id
+  /!PUB!/move-category/:
+    trace:
+      tags:
+        - categories-list
+      operationId: pub-move-category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__20'
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          description: Community not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Community not found
+              example: Community not found
+        '404  ':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Category not found
+              example: Category not found
+        '409 ':
+          description: Invalid move
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Invalid move
+              example: Invalid move
+        '403 ':
+          description: Not sufficient permissions
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Not sufficient permissions
+              example: Not sufficient permissions
+        '403  ':
+          description: No access to community
+          content:
+            application/json:
+              schema:
+                type: string
+                const: No access to community
+              example: No access to community
+        '422 ':
+          description: Event expects one argument
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Event expects one argument
+              example: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
   /!SUB!/community-room/delete-category/:
     head:
       tags:
@@ -1289,5 +1387,30 @@ components:
       required:
         - community_id
         - category_id
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__20:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        category_id:
+          title: Category Id
+          type: integer
+        after_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: After Id
+        before_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Before Id
+      required:
+        - community_id
+        - category_id
+        - after_id
+        - before_id
       title: Model
       type: object
