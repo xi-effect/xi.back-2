@@ -1,19 +1,20 @@
 from collections.abc import Sequence
-from typing import Self
+from typing import Any, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.common.config import Base
+from app.common.abscract_models.ordered_lists_db import (
+    InvalidMoveException,
+    SpacedOrderedList,
+)
 from app.communities.models.communities_db import Community
 
 
-class Category(Base):
+class Category(SpacedOrderedList[int]):
     __tablename__ = "categories"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    position: Mapped[int] = mapped_column()
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
 
@@ -30,8 +31,25 @@ class Category(Base):
 
     InputSchema = MappedModel.create(columns=[name, description])
     PatchSchema = InputSchema.as_patch()
-    ResponseSchema = InputSchema.extend(columns=[id])
+    ResponseSchema = InputSchema.extend(columns=[(SpacedOrderedList.id, int)])
+
+    @property
+    def list_id(self) -> int:  # noqa: FNE002  # list is not a verb
+        return self.community_id
+
+    @list_id.setter
+    def list_id(self, list_id: int) -> None:
+        self.community_id = list_id
+
+    @classmethod
+    def list_id_filter(cls, list_id: int) -> Any:
+        return cls.community_id == list_id
 
     @classmethod
     async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
         return await cls.find_all_by_kwargs(cls.position, community_id=community_id)
+
+    def validate_move_data(self, after_id: int | None, before_id: int | None) -> None:
+        if after_id is None and before_id is None:
+            raise InvalidMoveException("after and before are both empty")
+        super().validate_move_data(after_id=after_id, before_id=before_id)

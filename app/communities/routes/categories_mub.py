@@ -1,9 +1,14 @@
 from collections.abc import Sequence
+from typing import Annotated
 
+from fastapi import Body, HTTPException
+
+from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.categories_dep import CategoryById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.categories_db import Category
+from app.communities.responses import MoveResponses
 
 router = APIRouterExt(tags=["categories mub"])
 
@@ -15,6 +20,15 @@ router = APIRouterExt(tags=["categories mub"])
 )
 async def list_categories(community: CommunityById) -> Sequence[Category]:
     return await Category.find_all_by_community_id(community_id=community.id)
+
+
+@router.put(
+    "/communities/{community_id}/categories/positions/",
+    status_code=204,
+    summary="Reindex categories in a community",
+)
+async def reindex_categories(community: CommunityById) -> None:
+    await Category.reindex_by_list_id(list_id=community.id)
 
 
 @router.post(
@@ -48,6 +62,27 @@ async def patch_category(
 ) -> Category:
     category.update(**data.model_dump(exclude_defaults=True))
     return category
+
+
+@router.put(
+    "/categories/{category_id}/position/",
+    status_code=204,
+    responses=MoveResponses.responses(),
+    summary="Move category to a new position",
+)
+async def move_category(
+    category: CategoryById,
+    after_id: Annotated[int | None, Body()] = None,
+    before_id: Annotated[int | None, Body()] = None,
+) -> None:
+    try:
+        await category.validate_and_move(
+            list_id=category.list_id,
+            after_id=after_id,
+            before_id=before_id,
+        )
+    except InvalidMoveException as e:
+        raise HTTPException(409, e.message)
 
 
 @router.delete(
