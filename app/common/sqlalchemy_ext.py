@@ -24,6 +24,12 @@ class DBController:
     async def get_first(self, stmt: Select[Any]) -> Any | None:
         return (await self.session.execute(stmt)).scalars().first()
 
+    async def is_absent(self, stmt: Select[Any]) -> bool:
+        return (await self.get_first(stmt)) is None
+
+    async def is_present(self, stmt: Select[Any]) -> bool:
+        return not await self.is_absent(stmt)
+
     async def get_all(self, stmt: Select[Any]) -> Sequence[Any]:
         return (await self.session.execute(stmt)).scalars().all()
 
