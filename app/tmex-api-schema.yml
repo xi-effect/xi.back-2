@@ -1,0 +1,179 @@
+openapi: 3.0.1
+info:
+  title: xi.back-2
+  version: v0.0.1
+paths:
+  /!SUB!/create-community/:
+    head:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!PUB!/create-community/:
+    trace:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/Community.FullInputSchema'
+              required:
+                - data
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!SUB!/update-community/:
+    head:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!PUB!/update-community/:
+    trace:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                data:
+                  $ref: '#/components/schemas/Community.FullInputSchema'
+              required:
+                - community_id
+                - data
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!PUB!/retrieve-community/:
+    trace:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!PUB!/retrieve-any-community/:
+    trace:
+      tags:
+        - community-meta
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!PUB!/close-community/:
+    trace:
+      tags:
+        - community-meta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '204':
+          description: Success
+components:
+  errors:
+    CommunityNotFound:
+      description: Community not found
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "Community not found"
+            example: "Community not found"
+  schemas:
+    CommunityId:
+      title: CommunityId
+      type: integer
+    Community.FullResponseSchema:
+      properties:
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          default: null
+          title: Description
+        id:
+          title: Id
+          type: integer
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+      required:
+        - id
+        - name
+      title: Community.FullResponseSchema
+      type: object
+    Community.FullInputSchema:
+      properties:
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Description
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+      required:
+       - name
+      title: Community.FullInputSchema
+      type: object
