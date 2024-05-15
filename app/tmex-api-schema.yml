@@ -1,7 +1,3 @@
-openapi: 3.0.1
-info:
-  title: xi.back-2
-  version: v0.0.5
 paths:
 # community-participation
   /!SUB!/user-room/create-community/:
@@ -55,8 +51,50 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!PUB!/join-community/:
+    trace:
+      tags:
+        - community-participation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+              required:
+                - code
+      responses:
+        '200':
+          description: Success
+          headers:
+            "Enter Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Enter Room ":
+              description: "participant-room"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipationModel'
+        '404':
+          description: Invitation not found
+        '409':
+          description: Already joined
+          content:
+            application/json:
+              schema:
+                type: string
+                const: "Already joined"
+                example: "Already joined"
   /!PUB!/test-join-community/:
     trace:
+      deprecated: true
       tags:
         - community-participation
       requestBody:
@@ -89,7 +127,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/ParticipationModel'
         '404':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
         '409':
           description: Already joined
           content:
@@ -176,9 +214,9 @@ paths:
               schema:
                 type: string
         '404':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
         '403':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '409':
           description: Owner can not leave
           content:
@@ -233,9 +271,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/ParticipationModel'
         '403':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '404':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
   /!PUB!/retrieve-any-community/:
     trace:
       tags:
@@ -257,7 +295,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ParticipationModel'
         '404':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
   /!PUB!/close-community/:
     trace:
       tags:
@@ -326,11 +364,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/Community.FullResponseSchema'
         '403 ':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '403  ':
-          $ref: "#/components/errors/NotSufficientPermissions"
+          description: Not sufficient permissions
         '404 ':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
   /!SUB!/community-room/delete-community/:
     head:
       tags:
@@ -372,16 +410,27 @@ paths:
               schema:
                 type: string
         '404 ':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
         '403 ':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '403  ':
-          $ref: "#/components/errors/NotSufficientPermissions"
+          description: Not sufficient permissions
 # participants-list
   /!PUB!/list-participants/:
     trace:
       tags:
         - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
       responses:
         '200':
           description: Success
@@ -438,17 +487,15 @@ paths:
         '204 ':
           description: Success
         '404 ':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
         '404  ':
-          $ref: "#/components/errors/ParticipantNotFound"
+          description: Participant not found
         '403 ':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '403  ':
-          $ref: "#/components/errors/NotSufficientPermissions"
-        '403   ':
-          $ref: "#/components/errors/NotSufficientPermissions"
+          description: Not sufficient permissions
         '409 ':
-          description: Owner can be kicked
+          description: Owner can not be kicked
           content:
             application/json:
               schema:
@@ -486,18 +533,16 @@ paths:
             schema:
               $ref: '#/components/schemas/ParticipantIds'
       responses:
-        '204 ':
+        '204':
           description: Success
         '404 ':
-          $ref: "#/components/errors/CommunityNotFound"
+          description: Community not found
         '404  ':
-          $ref: "#/components/errors/ParticipantNotFound"
+          description: Participant not found
         '403 ':
-          $ref: "#/components/errors/NoAccessToCommunity"
+          description: No access to community
         '403  ':
-          $ref: "#/components/errors/NotSufficientPermissions"
-        '403   ':
-          $ref: "#/components/errors/NotSufficientPermissions"
+          description: Not sufficient permissions
   /!PUB!/close-participants/:
     trace:
       tags:
@@ -521,6 +566,113 @@ paths:
               description: "participants-list-room"
               schema:
                 type: string
+# invitations-list
+  /!PUB!/list-invitations/:
+    trace:
+      tags:
+        - invitations-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invitation.FullResponseSchema'
+        '404 ':
+          description: Community not found
+        '404  ':
+          description: Participant not found
+        '403 ':
+          description: No access to community
+        '403  ':
+          description: Not sufficient permissions
+  /!PUB!/create-invitation/:
+    trace:
+      tags:
+        - invitations-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                data:
+                  $ref: '#/components/schemas/Invitation.FullInputSchema'
+              required:
+                - community_id
+                - data
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invitation.FullResponseSchema'
+        '404 ':
+          description: Community not found
+        '404  ':
+          description: Participant not found
+        '403 ':
+          description: No access to community
+        '403  ':
+          description: Not sufficient permissions
+        '409 ':
+          description: Quantity exceeded
+          content:
+            application/json:
+              schema:
+                type: string
+                const: "Quantity exceeded"
+                example: "Quantity exceeded"
+  /!PUB!/delete-invitation/:
+    trace:
+      tags:
+        - invitations-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                invitation_id:
+                  type: integer
+              required:
+              - community_id
+              - invitation_id
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          description: "Community not found"
+        '404  ':
+          description: Participant not found
+        '404   ':
+          description: Invitation not found
+        '403 ':
+          description: No access to community
+        '403  ':
+          description: Not sufficient permissions
 components:
   errors:
     CommunityNotFound:
@@ -531,6 +683,14 @@ components:
             type: string
             const: "Community not found"
             example: "Community not found"
+    InvitationNotFound:
+      description: Invitation not found
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "Invitation not found"
+            example: "Invitation not found"
     NoAccessToCommunity:
       description: No access to community
       content:
@@ -580,7 +740,7 @@ components:
           $ref: '#/components/schemas/UserId'
       required:
       - community_id
-      - participant_id
+      - user_id
     Community.FullResponseSchema:
       properties:
         description:
@@ -657,3 +817,53 @@ components:
       - participant
       title: ParticipationModel
       type: object
+    Invitation.FullResponseSchema:
+      properties:
+        expiry:
+          anyOf:
+            - format: date-time
+              type: string
+            - type: 'null'
+          default: null
+          title: Expiry
+        id:
+          title: Id
+          type: integer
+        token:
+          maxLength: 50
+          title: Token
+          type: string
+        usage_count:
+          default: 0
+          title: Usage Count
+          type: integer
+        usage_limit:
+          anyOf:
+            - exclusiveMinimum: 0
+              type: integer
+            - type: 'null'
+          default: null
+          title: Usage Limit
+      required:
+        - id
+        - token
+      title: Invitation.FullResponseSchema
+      type: object
+  Invitation.FullInputSchema:
+    properties:
+      expiry:
+        anyOf:
+          - format: date-time
+            type: string
+          - type: 'null'
+        default: null
+        title: Expiry
+      usage_limit:
+        anyOf:
+          - exclusiveMinimum: 0
+            type: integer
+          - type: 'null'
+        default: null
+        title: Usage Limit
+    title: Invitation.FullInputSchema
+    type: object
