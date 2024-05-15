@@ -33,6 +33,7 @@ async def test_channel_creation(
     async with active_session():
         channel = await Channel.find_first_by_id(channel_id)
         assert channel is not None
+        assert channel.list_id == (community.id, None)
         await channel.delete()
 
 
@@ -54,6 +55,7 @@ async def test_channel_in_category_creation(
     async with active_session():
         channel = await Channel.find_first_by_id(channel_id)
         assert channel is not None
+        assert channel.list_id == (category.community_id, category.id)
         await channel.delete()
 
 

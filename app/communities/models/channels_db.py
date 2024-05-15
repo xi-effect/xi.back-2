@@ -1,12 +1,12 @@
 import enum
 from collections.abc import Sequence
-from typing import Self
+from typing import Any, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import Enum, ForeignKey, Index, String, Text
+from sqlalchemy import Enum, ForeignKey, Index, String, Text, and_
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.common.config import Base
+from app.common.abscract_models.ordered_lists_db import SpacedOrderedList
 from app.communities.models.categories_db import Category
 from app.communities.models.communities_db import Community
 
@@ -18,11 +18,9 @@ class ChannelType(str, enum.Enum):
     VIDEO = "video"
 
 
-class Channel(Base):
+class Channel(SpacedOrderedList[tuple[int, int | None]]):
     __tablename__ = "channels"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    position: Mapped[int] = mapped_column()
     name: Mapped[str] = mapped_column(String(100))
     description: Mapped[str | None] = mapped_column(Text)
     kind: Mapped[ChannelType] = mapped_column(Enum(ChannelType))
@@ -41,13 +39,28 @@ class Channel(Base):
         Index(
             "hash_index_channels_community_id", community_id, postgresql_using="hash"
         ),
-        Index("hash_index_channels_category_id", community_id, postgresql_using="hash"),
+        Index("hash_index_channels_category_id", category_id, postgresql_using="hash"),
     )
 
     BaseInputSchema = MappedModel.create(columns=[name, description])
     InputSchema = BaseInputSchema.extend(columns=[kind])
     PatchSchema = BaseInputSchema.as_patch()
-    ResponseSchema = InputSchema.extend(columns=[id])
+    ResponseSchema = InputSchema.extend(columns=[(SpacedOrderedList.id, int)])
+
+    @property
+    def list_id(self) -> tuple[int, int | None]:  # noqa: FNE002  # list is not a verb
+        return self.community_id, self.category_id
+
+    @list_id.setter
+    def list_id(self, list_id: tuple[int, int | None]) -> None:
+        self.community_id, self.category_id = list_id
+
+    @classmethod
+    def list_id_filter(cls, list_id: tuple[int, int | None]) -> Any:
+        community_id, category_id = list_id
+        if category_id is None:
+            return and_(cls.community_id == community_id, cls.category_id.is_(None))
+        return cls.category_id == category_id
 
     @classmethod
     async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
