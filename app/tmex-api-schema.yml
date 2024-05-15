@@ -1,8 +1,9 @@
 openapi: 3.0.1
 info:
   title: xi.back-2
-  version: v0.0.2
+  version: v0.0.3
 paths:
+# community-participation
   /!SUB!/user-room/create-community/:
     head:
       tags:
@@ -31,6 +32,15 @@ paths:
       responses:
         '200':
           description: Success
+          headers:
+            "Enter Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Enter Room ":
+              description: "participant-room"
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -63,6 +73,15 @@ paths:
       responses:
         '200':
           description: Success
+          headers:
+            "Enter Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Enter Room ":
+              description: "participant-room"
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -79,7 +98,39 @@ paths:
                 type: string
                 const: "Already joined"
                 example: "Already joined"
-  /!SUB!/user-room/leave-community/:
+  /!SUB!/participant-room/kicked-from-community/:
+    head:
+      tags:
+        - community-participation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CommunityAndParticipantIds
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+              - community_id
+  /!SUB!/participant-room/receive-ownership/:
+    head:
+      tags:
+        - community-participation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CommunityAndParticipantIds
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+              - community_id
+  /!SUB!/participant-room/leave-community/:
     head:
       tags:
         - community-participation
@@ -110,6 +161,19 @@ paths:
       responses:
         '204':
           description: Success
+          headers:
+            "Leave Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Close Room ":
+              description: "participant-room"
+              schema:
+                type: string
+            "Leave Room  ":
+              description: "participants-list-room"
+              schema:
+                type: string
         '404':
           $ref: "#/components/errors/CommunityNotFound"
         '403':
@@ -122,6 +186,7 @@ paths:
                 type: string
                 const: "Owner can not leave"
                 example: "Owner can not leave"
+# communities-list
   /!PUB!/list-communities/:
     trace:
       tags:
@@ -153,6 +218,15 @@ paths:
       responses:
         '200':
           description: Success
+          headers:
+            "Enter Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Enter Room ":
+              description: "participant-room"
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -168,6 +242,15 @@ paths:
       responses:
         '200':
           description: Success
+          headers:
+            "Enter Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Enter Room ":
+              description: "participant-room"
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -192,6 +275,20 @@ paths:
       responses:
         '204':
           description: Success
+          headers:
+            "Leave Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Leave Room ":
+              description: "participant-room"
+              schema:
+                type: string
+            "Leave Room  ":
+              description: "participants-list-room"
+              schema:
+                type: string
+# community-meta-admin
   /!SUB!/community-room/update-community/:
     head:
       tags:
@@ -264,12 +361,159 @@ paths:
       responses:
         '204 ':
           description: Success
+          headers:
+            "Close Room":
+              description: "community-room"
+              schema:
+                type: string
+            "Close Room ":
+              description: "participant-list-room"
+              schema:
+                type: string
         '404 ':
           $ref: "#/components/errors/CommunityNotFound"
         '403 ':
           $ref: "#/components/errors/NoAccessToCommunity"
         '403  ':
           $ref: "#/components/errors/NotSufficientPermissions"
+# participants-list
+  /!PUB!/list-participants/:
+    trace:
+      tags:
+        - participants-list
+      responses:
+        '200':
+          description: Success
+          headers:
+            "Enter Room":
+              description: "participants-list-room"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Participant.FullResponseSchema'
+  /!SUB!/participants-list-room/create-participant/:
+    head:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Participant.FullResponseSchema'
+  /!SUB!/participants-list-room/delete-participant/:
+    head:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityAndParticipantIds'
+  /!PUB!/kick-participant/:
+    trace:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityAndParticipantIds'
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          $ref: "#/components/errors/CommunityNotFound"
+        '404  ':
+          $ref: "#/components/errors/ParticipantNotFound"
+        '403 ':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '403  ':
+          $ref: "#/components/errors/NotSufficientPermissions"
+        '403   ':
+          $ref: "#/components/errors/NotSufficientPermissions"
+        '409 ':
+          description: Owner can be kicked
+          content:
+            application/json:
+              schema:
+                type: string
+                const: "Owner can be kicked"
+                example: "Owner can be kicked"
+  /!SUB!/participants-list-room/transfer-ownership/:
+    head:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CommunityAndParticipantIds
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                source_participant_id:
+                  $ref: '#/components/schemas/ParticipantId'
+                target_participant_id:
+                  $ref: '#/components/schemas/ParticipantId'
+              required:
+              - community_id
+              - source_participant_id
+              - target_participant_id
+  /!PUB!/transfer-ownership/:
+    trace:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityAndParticipantIds'
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          $ref: "#/components/errors/CommunityNotFound"
+        '404  ':
+          $ref: "#/components/errors/ParticipantNotFound"
+        '403 ':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '403  ':
+          $ref: "#/components/errors/NotSufficientPermissions"
+        '403   ':
+          $ref: "#/components/errors/NotSufficientPermissions"
+  /!PUB!/close-participants/:
+    trace:
+      tags:
+        - participants-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '204':
+          description: Success
+          headers:
+            "Leave Room":
+              description: "participants-list-room"
+              schema:
+                type: string
 components:
   errors:
     CommunityNotFound:
@@ -296,10 +540,40 @@ components:
             type: string
             const: "Not sufficient permissions"
             example: "Not sufficient permissions"
+    ParticipantNotFound:
+      description: Participant not found
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "Participant not found"
+            example: "Participant not found"
+    TargetIsTheSource:
+      description: Target is the source
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "Target is the source"
+            example: "Target is the source"
   schemas:
     CommunityId:
       title: CommunityId
       type: integer
+    ParticipantId:
+      title: ParticipantId
+      type: integer
+    CommunityAndParticipantIds:
+      title: CommunityAndParticipantIds
+      type: object
+      properties:
+        community_id:
+          $ref: '#/components/schemas/CommunityId'
+        participant_id:
+          $ref: '#/components/schemas/ParticipantId'
+      required:
+      - community_id
+      - participant_id
     Community.FullResponseSchema:
       properties:
         description:
@@ -335,4 +609,50 @@ components:
       required:
        - name
       title: Community.FullInputSchema
+      type: object
+    Participant.FullResponseSchema:
+      properties:
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        id:
+          title: Id
+          type: integer
+        is_owner:
+          default: false
+          title: Is Owner
+          type: boolean
+        user_id:
+          title: User Id
+          type: integer
+      required:
+      - id
+      - user_id
+      - created_at
+      title: Participant.FullResponseSchema
+      type: object
+    Participant.CurrentSchema:
+      properties:
+        id:
+          title: Id
+          type: integer
+        is_owner:
+          default: false
+          title: Is Owner
+          type: boolean
+      required:
+      - id
+      title: Participant.CurrentSchema
+      type: object
+    ParticipationModel:
+      properties:
+        community:
+          $ref: '#/components/schemas/Community.FullResponseSchema'
+        participant:
+          $ref: '#/components/schemas/Participant.CurrentSchema'
+      required:
+      - community
+      - participant
+      title: ParticipationModel
       type: object
