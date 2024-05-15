@@ -1,12 +1,12 @@
 openapi: 3.0.1
 info:
   title: xi.back-2
-  version: v0.0.1
+  version: v0.0.2
 paths:
-  /!SUB!/create-community/:
+  /!SUB!/user-room/create-community/:
     head:
       tags:
-        - community-meta
+        - community-participation
       requestBody:
         required: true
         content:
@@ -16,7 +16,7 @@ paths:
   /!PUB!/create-community/:
     trace:
       tags:
-        - community-meta
+        - community-participation
       requestBody:
         required: true
         content:
@@ -35,47 +35,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Community.FullResponseSchema'
-  /!SUB!/update-community/:
+  /!SUB!/user-room/join-community/:
     head:
       tags:
-        - community-meta
+        - community-participation
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Community.FullResponseSchema'
-  /!PUB!/update-community/:
+  /!PUB!/test-join-community/:
     trace:
       tags:
-        - community-meta
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                community_id:
-                  $ref: '#/components/schemas/CommunityId'
-                data:
-                  $ref: '#/components/schemas/Community.FullInputSchema'
-              required:
-                - community_id
-                - data
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
-        '404':
-          $ref: "#/components/errors/CommunityNotFound"
-  /!PUB!/retrieve-community/:
-    trace:
-      tags:
-        - community-meta
+        - community-participation
       requestBody:
         required: true
         content:
@@ -93,26 +66,36 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Community.FullResponseSchema'
         '404':
           $ref: "#/components/errors/CommunityNotFound"
-  /!PUB!/retrieve-any-community/:
-    trace:
-      tags:
-        - community-meta
-      responses:
-        '200':
-          description: Success
+        '409':
+          description: Already joined
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community.FullResponseSchema'
-        '404':
-          $ref: "#/components/errors/CommunityNotFound"
-  /!PUB!/close-community/:
+                type: string
+                const: "Already joined"
+                example: "Already joined"
+  /!SUB!/user-room/leave-community/:
+    head:
+      tags:
+        - community-participation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+  /!PUB!/leave-community/:
     trace:
       tags:
-        - community-meta
+        - community-participation
       requestBody:
         required: true
         content:
@@ -127,6 +110,166 @@ paths:
       responses:
         '204':
           description: Success
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+        '403':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '409':
+          description: Owner can not leave
+          content:
+            application/json:
+              schema:
+                type: string
+                const: "Owner can not leave"
+                example: "Owner can not leave"
+  /!PUB!/list-communities/:
+    trace:
+      tags:
+        - communities-list
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!PUB!/retrieve-community/:
+    trace:
+      tags:
+        - communities-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '403':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!PUB!/retrieve-any-community/:
+    trace:
+      tags:
+        - communities-list
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '404':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!PUB!/close-community/:
+    trace:
+      tags:
+        - communities-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '204':
+          description: Success
+  /!SUB!/community-room/update-community/:
+    head:
+      tags:
+        - community-meta-admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Community.FullResponseSchema'
+  /!PUB!/update-community/:
+    trace:
+      tags:
+        - community-meta-admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                data:
+                  $ref: '#/components/schemas/Community.FullInputSchema'
+              required:
+                - community_id
+                - data
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Community.FullResponseSchema'
+        '403 ':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '403  ':
+          $ref: "#/components/errors/NotSufficientPermissions"
+        '404 ':
+          $ref: "#/components/errors/CommunityNotFound"
+  /!SUB!/community-room/delete-community/:
+    head:
+      tags:
+        - community-meta-admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+  /!PUB!/delete-community/:
+    trace:
+      tags:
+        - community-meta-admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+              required:
+                - community_id
+      responses:
+        '204 ':
+          description: Success
+        '404 ':
+          $ref: "#/components/errors/CommunityNotFound"
+        '403 ':
+          $ref: "#/components/errors/NoAccessToCommunity"
+        '403  ':
+          $ref: "#/components/errors/NotSufficientPermissions"
 components:
   errors:
     CommunityNotFound:
@@ -137,6 +280,22 @@ components:
             type: string
             const: "Community not found"
             example: "Community not found"
+    NoAccessToCommunity:
+      description: No access to community
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "No access to community"
+            example: "No access to community"
+    NotSufficientPermissions:
+      description: Not sufficient permissions
+      content:
+        application/json:
+          schema:
+            type: string
+            const: "Not sufficient permissions"
+            example: "Not sufficient permissions"
   schemas:
     CommunityId:
       title: CommunityId
