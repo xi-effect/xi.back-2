@@ -8,6 +8,7 @@ from app.communities.routes import (
     categories_mub,
     categories_sio,
     channels_mub,
+    channels_sio,
     communities_mub,
     communities_public_rst,
     communities_sio,
@@ -46,3 +47,4 @@ event_router.include_router(communities_sio.router)
 event_router.include_router(invitations_sio.router)
 event_router.include_router(participants_sio.router)
 event_router.include_router(categories_sio.router)
+event_router.include_router(channels_sio.router)
