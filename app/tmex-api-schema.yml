@@ -1064,6 +1064,270 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+# channels-list
+  /!PUB!/list-channels/:
+    trace:
+      tags:
+        - channels-list
+      operationId: pub-list-channels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__21'
+      responses:
+        '200 ':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/tmexio_ChannelCategoryListItemSchema'
+        '404 ':
+          description: Community not found
+        '403 ':
+          description: No access to community
+        '422 ':
+          description: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/create-channel/:
+    head:
+      tags:
+        - channels-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                category_id:
+                  type: integer
+                channel:
+                  $ref: '#/components/schemas/tmexio_pydantic_marshals__base__models__Channel__ResponseSchema'
+              required:
+                - community_id
+                - category_id
+                - channel
+  /!PUB!/create-channel/:
+    trace:
+      tags:
+        - channels-list
+      operationId: pub-create-channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__22'
+      responses:
+        '201 ':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/tmexio_pydantic_marshals__base__models__Channel__ResponseSchema
+        '409 ':
+          description: Quantity limit per category exceeded
+        '409  ':
+          description: Quantity limit per community exceeded
+        '404 ':
+          description: Category not found
+        '404  ':
+          description: Community not found
+        '403 ':
+          description: Not sufficient permissions
+        '403  ':
+          description: No access to community
+        '422 ':
+          description: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/update-channel/:
+    head:
+      tags:
+        - channels-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                channel:
+                  $ref: '#/components/schemas/tmexio_pydantic_marshals__base__models__Channel__ResponseSchema'
+              required:
+                - community_id
+                - channel
+  /!PUB!/update-channel/:
+    trace:
+      tags:
+        - channels-list
+      operationId: pub-update-channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__23'
+      responses:
+        '200 ':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: >-
+                  #/components/schemas/tmexio_pydantic_marshals__base__models__Channel__ResponseSchema
+        '403 ':
+          description: Not sufficient permissions
+        '403  ':
+          description: No access to community
+        '404 ':
+          description: Channel not found
+        '404  ':
+          description: Community not found
+        '422 ':
+          description: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/move-channel/:
+    head:
+      tags:
+        - channels-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                channel_id:
+                  type: integer
+                category_id:
+                  anyOf:
+                    - type: integer
+                    - type: 'null'
+                  title: Category Id
+                after_id:
+                  anyOf:
+                    - type: integer
+                    - type: 'null'
+                  title: After Id
+                before_id:
+                  anyOf:
+                    - type: integer
+                    - type: 'null'
+                  title: Before Id
+              required:
+                - community_id
+                - channel_id
+                - category_id
+                - after_id
+                - before_id
+  /!PUB!/move-channel/:
+    trace:
+      tags:
+        - channels-list
+      operationId: pub-move-channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__24'
+      responses:
+        '204 ':
+          description: Success
+        '409 ':
+          description: Quantity limit per category exceeded
+        '409  ':
+          description: Invalid move
+        '403 ':
+          description: Not sufficient permissions
+        '403  ':
+          description: No access to community
+        '404 ':
+          description: Community not found
+        '404  ':
+          description: Channel not found
+        '422 ':
+          description: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
+  /!SUB!/community-room/delete-channel/:
+    head:
+      tags:
+        - channels-list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                community_id:
+                  $ref: '#/components/schemas/CommunityId'
+                channel_id:
+                  type: integer
+              required:
+                - community_id
+                - channel_id
+  /!PUB!/delete-channel/:
+    trace:
+      tags:
+        - channels-list
+      operationId: pub-delete-channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tmexio_tmexio__handler_builders__Model__25'
+      responses:
+        '204 ':
+          description: Success
+        '403 ':
+          description: Not sufficient permissions
+        '403  ':
+          description: No access to community
+        '404 ':
+          description: Channel not found
+        '404  ':
+          description: Community not found
+        '422 ':
+          description: Event expects one argument
+        '422  ':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tmexio_ValidationErrorModel'
 components:
   errors:
     CommunityNotFound:
@@ -1413,4 +1677,175 @@ components:
         - after_id
         - before_id
       title: Model
+      type: object
+    tmexio_ChannelType:
+      enum:
+        - posts
+        - tasks
+        - chats
+        - video
+        - board
+      title: ChannelType
+      type: string
+    tmexio_pydantic_marshals__base__models__Channel__InputSchema:
+      properties:
+        kind:
+          $ref: '#/components/schemas/tmexio_ChannelType'
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          default: null
+          title: Description
+      required:
+        - kind
+        - name
+      title: Channel.InputSchema
+      type: object
+    tmexio_pydantic_marshals__base__models__Channel__PatchSchema:
+      properties:
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Description
+      title: Channel.PatchSchema
+      type: object
+    tmexio_pydantic_marshals__base__models__Channel__ResponseSchema:
+      properties:
+        id:
+          title: Id
+          type: integer
+        kind:
+          $ref: '#/components/schemas/tmexio_ChannelType'
+        name:
+          maxLength: 100
+          title: Name
+          type: string
+        description:
+          anyOf:
+            - type: string
+            - type: 'null'
+          default: null
+          title: Description
+      required:
+        - id
+        - kind
+        - name
+      title: Channel.ResponseSchema
+      type: object
+    tmexio_tmexio__handler_builders__Model__21:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+      required:
+        - community_id
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__22:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        category_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Category Id
+        data:
+          $ref: >-
+            #/components/schemas/tmexio_pydantic_marshals__base__models__Channel__InputSchema
+      required:
+        - community_id
+        - category_id
+        - data
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__23:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        channel_id:
+          title: Channel Id
+          type: integer
+        data:
+          $ref: >-
+            #/components/schemas/tmexio_pydantic_marshals__base__models__Channel__PatchSchema
+      required:
+        - community_id
+        - channel_id
+        - data
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__24:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        channel_id:
+          title: Channel Id
+          type: integer
+        category_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Category Id
+        after_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: After Id
+        before_id:
+          anyOf:
+            - type: integer
+            - type: 'null'
+          title: Before Id
+      required:
+        - community_id
+        - channel_id
+        - category_id
+        - after_id
+        - before_id
+      title: Model
+      type: object
+    tmexio_tmexio__handler_builders__Model__25:
+      properties:
+        community_id:
+          title: Community Id
+          type: integer
+        channel_id:
+          title: Channel Id
+          type: integer
+      required:
+        - community_id
+        - channel_id
+      title: Model
+      type: object
+    tmexio_ChannelCategoryListItemSchema:
+      properties:
+        category:
+          anyOf:
+            - $ref: >-
+                #/components/schemas/tmexio_Category.ResponseSchema
+            - type: 'null'
+        channels:
+          items:
+            $ref: >-
+              #/components/schemas/tmexio_pydantic_marshals__base__models__Channel__ResponseSchema
+          title: Channels
+          type: array
+      required:
+        - category
+        - channels
+      title: ChannelCategoryListItemSchema
       type: object
