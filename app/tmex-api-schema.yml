@@ -1271,6 +1271,8 @@ paths:
         '404 ':
           description: Community not found
         '404  ':
+          description: Category not found
+        '404   ':
           description: Channel not found
         '422 ':
           description: Event expects one argument

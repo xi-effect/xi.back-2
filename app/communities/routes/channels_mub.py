@@ -5,10 +5,14 @@ from fastapi import Body, HTTPException
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.config_bdg import posts_bridge
 from app.common.fastapi_ext import APIRouterExt
-from app.communities.dependencies.categories_dep import CategoryById
+from app.communities.dependencies.categories_dep import (
+    CategoriesResponses,
+    CategoryById,
+)
 from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.board_channels_db import BoardChannel
+from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.responses import LimitedListResponses, MoveResponses
 from app.communities.utils.channel_list import (
@@ -127,7 +131,9 @@ async def patch_channel(channel: ChannelById, data: Channel.PatchSchema) -> Chan
 @router.put(
     "/channels/{channel_id}/position/",
     status_code=204,
-    responses=LimitedListResponses.responses(MoveResponses.responses()),
+    responses=CategoriesResponses.responses(
+        LimitedListResponses.responses(MoveResponses.responses())
+    ),
     summary="Move channel to a new position",
 )
 async def move_channel(
@@ -136,6 +142,13 @@ async def move_channel(
     after_id: Annotated[int | None, Body()] = None,
     before_id: Annotated[int | None, Body()] = None,
 ) -> None:
+    if category_id is not None:
+        category = await Category.find_first_by_kwargs(
+            id=category_id, community_id=channel.community_id
+        )
+        if category is None:
+            raise CategoriesResponses.CATEGORY_NOT_FOUND
+
     if await Channel.is_limit_per_category_reached(
         community_id=channel.community_id, category_id=category_id
     ):  # TODO (33602197) pragma: no cover
