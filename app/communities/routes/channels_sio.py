@@ -2,6 +2,7 @@ from typing import Annotated
 
 from tmexio import AsyncSocket, EventException, PydanticPackager
 
+from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.categories_sio_dep import category_not_found
@@ -111,6 +112,51 @@ async def update_channel(
         exclude_self=True,
     )
     return channel
+
+
+invalid_mode = EventException(409, "Invalid move")
+
+
+@router.on(
+    "move-channel",
+    exceptions=[quantity_limit_per_category_exceeded, invalid_mode],
+    dependencies=[current_owner_dependency],
+)
+async def move_channel(
+    channel: ChannelByIds,
+    category_id: int | None,
+    after_id: int | None,
+    before_id: int | None,
+    socket: AsyncSocket,
+) -> None:
+    if await Channel.is_limit_per_category_reached(
+        community_id=channel.community_id, category_id=category_id
+    ):
+        raise quantity_limit_per_category_exceeded
+    try:
+        await channel.validate_and_move(
+            list_id=(channel.community_id, category_id),
+            after_id=after_id,
+            before_id=before_id,
+        )
+    except InvalidMoveException as e:
+        # TODO warns as if the exception is not documented
+        raise EventException(409, e.message)
+
+    await db.session.commit()
+
+    await socket.emit(
+        "move-channel",
+        {
+            "community_id": channel.community_id,
+            "channel_id": channel.id,
+            "category_id": channel.category_id,
+            "after_id": after_id,
+            "before_id": before_id,
+        },
+        target=community_room(channel.community_id),
+        exclude_self=True,
+    )
 
 
 @router.on("delete-channel", dependencies=[current_owner_dependency])
