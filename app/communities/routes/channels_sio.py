@@ -129,6 +129,13 @@ async def move_channel(
     before_id: int | None,
     socket: AsyncSocket,
 ) -> None:
+    if category_id is not None:
+        category = await Category.find_first_by_kwargs(
+            id=category_id, community_id=channel.community_id
+        )
+        if category is None:
+            raise category_not_found
+
     if await Channel.is_limit_per_category_reached(
         community_id=channel.community_id, category_id=category_id
     ):
