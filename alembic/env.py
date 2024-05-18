@@ -66,7 +66,7 @@ def do_run_migrations(connection: Connection) -> None:
     )
 
     with context.begin_transaction():
-        context.execute(CreateSchema("xi_auth", if_not_exists=True))
+        context.execute(CreateSchema("xi_back_2", if_not_exists=True))
         context.run_migrations()
 
 
