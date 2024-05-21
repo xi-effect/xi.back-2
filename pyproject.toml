@@ -10,7 +10,7 @@ python = "^3.12"
 fastapi = "^0.110.1"
 uvicorn = {extras = ["standard"], version = "^0.29.0"}
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.29"}
-asyncpg = "^0.29.0"
+psycopg = {extras = ["binary"], version = "^3.1.19"}
 pydantic-marshals = {extras = ["sqlalchemy"], version = "^0.3.12"}
 alembic = "^1.13.1"
 pydantic-settings = "^2.2.1"
