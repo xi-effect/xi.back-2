@@ -15,19 +15,21 @@ async def test_role_assignment(
     participant: Participant,
     role: Role,
 ) -> None:
-    participant_role_id: int = assert_response(
+    assert_response(
         mub_client.post(
             f"/mub/community-service/participants/{participant.id}/roles/{role.id}/",
         ),
         expected_code=201,
         expected_json={
-            "id": int,
+            "participant_id": participant.id,
             "role_id": role.id,
         },
-    ).json()["id"]
+    )
 
     async with active_session():
-        participant_role = await ParticipantRole.find_first_by_id(participant_role_id)
+        participant_role = await ParticipantRole.find_first_by_kwargs(
+            participant_id=participant.id, role_id=role.id
+        )
         assert participant_role is not None
         await participant_role.delete()
 
@@ -43,11 +45,11 @@ async def test_role_assignment_already_assigned(
             f"/mub/community-service/participants/{participant.id}/roles/{role.id}/",
         ),
         expected_code=409,
-        expected_json={"detail": "Participant is already have this role"},
+        expected_json={"detail": "Role already assigned to the participant"},
     )
 
 
-async def test_role_removing(
+async def test_role_revoking(
     mub_client: TestClient,
     active_session: ActiveSession,
     participant: Participant,
@@ -61,10 +63,14 @@ async def test_role_removing(
     )
 
     async with active_session():
-        assert (await ParticipantRole.find_first_by_id(participant_role.id)) is None
+        assert (
+            await ParticipantRole.find_first_by_kwargs(
+                participant_id=participant.id, role_id=role.id
+            )
+        ) is None
 
 
-async def test_role_removing_already_removed(
+async def test_role_revoking_already_revoked(
     mub_client: TestClient,
     participant: Participant,
     role: Role,
@@ -73,6 +79,6 @@ async def test_role_removing_already_removed(
         mub_client.delete(
             f"/mub/community-service/participants/{participant.id}/roles/{role.id}/",
         ),
-        expected_code=409,
+        expected_code=404,
         expected_json={"detail": "Participant does not have this role"},
     )

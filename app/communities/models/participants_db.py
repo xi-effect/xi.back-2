@@ -41,10 +41,11 @@ class Participant(Base):
 class ParticipantRole(Base):
     __tablename__ = "participant_roles"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
     participant_id: Mapped[int] = mapped_column(
-        ForeignKey(Participant.id, ondelete="CASCADE")
+        ForeignKey(Participant.id, ondelete="CASCADE"), primary_key=True
     )
-    role_id: Mapped[int] = mapped_column(ForeignKey(Role.id, ondelete="CASCADE"))
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey(Role.id, ondelete="CASCADE"), primary_key=True
+    )
 
-    ResponseSchema = MappedModel.create(columns=[id, role_id])
+    FullResponseSchema = MappedModel.create(columns=[participant_id, role_id])

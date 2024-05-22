@@ -39,9 +39,9 @@ class ChannelPatchFactory(BasePatchModelFactory[Channel.PatchSchema]):
     __model__ = Channel.PatchSchema
 
 
-class RoleFullInputFactory(BasePatchModelFactory[Role.FullInputSchema]):
-    __model__ = Role.FullInputSchema
+class RoleInputFactory(BasePatchModelFactory[Role.InputSchema]):
+    __model__ = Role.InputSchema
 
 
-class RoleFullPatchFactory(BasePatchModelFactory[Role.FullPatchSchema]):
-    __model__ = Role.FullPatchSchema
+class RolePatchFactory(BasePatchModelFactory[Role.PatchSchema]):
+    __model__ = Role.PatchSchema

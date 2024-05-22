@@ -174,7 +174,7 @@ def channel_parent_path(
 
 @pytest.fixture()
 def role_data() -> AnyJSON:
-    return factories.RoleFullInputFactory.build_json()
+    return factories.RoleInputFactory.build_json()
 
 
 @pytest.fixture()

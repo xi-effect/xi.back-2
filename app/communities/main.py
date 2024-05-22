@@ -9,7 +9,6 @@ from app.communities.routes import (
     invitations_mub,
     participants_mub,
     participants_roles_mub,
-    permissions_mub,
     roles_mub,
 )
 
@@ -31,7 +30,6 @@ mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
 mub_router.include_router(roles_mub.router)
-mub_router.include_router(permissions_mub.router)
 mub_router.include_router(participants_roles_mub.router)
 
 

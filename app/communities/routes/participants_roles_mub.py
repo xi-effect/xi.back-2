@@ -5,21 +5,23 @@ from app.communities.dependencies.participants_dep import ParticipantById
 from app.communities.dependencies.roles_dep import RoleById
 from app.communities.models.participants_db import ParticipantRole
 
-router = APIRouterExt(tags=["participant roles meta mub"])
+router = APIRouterExt(tags=["participant roles mub"])
 
 
 class AssignRoleResponses(Responses):
-    ROLE_ALREADY_ASSIGNED = 409, "Participant is already have this role"
+    ROLE_ALREADY_ASSIGNED = 409, "Role already assigned to the participant"
 
 
 @router.post(
     "/participants/{participant_id}/roles/{role_id}/",
     status_code=201,
-    response_model=ParticipantRole.ResponseSchema,
+    response_model=ParticipantRole.FullResponseSchema,
     responses=AssignRoleResponses.responses(),
-    summary="Assign a new role to a participant",
+    summary="Assign a role to a participant",
 )
-async def assign_role(participant: ParticipantById, role: RoleById) -> ParticipantRole:
+async def assign_role_to_participant(
+    participant: ParticipantById, role: RoleById
+) -> ParticipantRole:
     participant_role = await ParticipantRole.find_first_by_kwargs(
         participant_id=participant.id, role_id=role.id
     )
@@ -33,7 +35,7 @@ async def assign_role(participant: ParticipantById, role: RoleById) -> Participa
 
 @router.get(
     "/participants/{participant_id}/roles/",
-    response_model=list[ParticipantRole.ResponseSchema],
+    response_model=list[ParticipantRole.FullResponseSchema],
     summary="List roles of the participant",
 )
 async def list_participant_roles(
@@ -42,20 +44,20 @@ async def list_participant_roles(
     return await ParticipantRole.find_all_by_kwargs(participant_id=participant.id)
 
 
-class RemoveRoleResponses(Responses):
-    ROLE_NOT_ASSIGNED = 409, "Participant does not have this role"
+class DepriveRoleResponses(Responses):
+    ROLE_NOT_ASSIGNED = 404, "Participant does not have this role"
 
 
 @router.delete(
     "/participants/{participant_id}/roles/{role_id}/",
     status_code=204,
-    responses=RemoveRoleResponses.responses(),
-    summary="Remove any participant's role by id",
+    responses=DepriveRoleResponses.responses(),
+    summary="Deprive any participant's role by id",
 )
-async def remove_role(participant: ParticipantById, role: RoleById) -> None:
+async def deprive_role(participant: ParticipantById, role: RoleById) -> None:
     participant_role = await ParticipantRole.find_first_by_kwargs(
         participant_id=participant.id, role_id=role.id
     )
     if participant_role is None:
-        raise RemoveRoleResponses.ROLE_NOT_ASSIGNED
+        raise DepriveRoleResponses.ROLE_NOT_ASSIGNED
     await participant_role.delete()
