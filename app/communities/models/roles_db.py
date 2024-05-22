@@ -62,12 +62,11 @@ class RolePermission(Base):
     )
 
     @classmethod
-    async def create_bulk(cls, role_id: int, permissions: list[Permission]) -> None:
+    async def update_role_permissions(
+        cls, role_id: int, permissions: list[Permission]
+    ) -> None:
+        await db.session.execute(delete(cls).where(cls.role_id == role_id))
         db.session.add_all(
             cls(role_id=role_id, permission=permission) for permission in permissions
         )
         await db.session.flush()
-
-    @classmethod
-    async def delete_all_by_id(cls, role_id: int) -> None:
-        await db.session.execute(delete(cls).where(cls.role_id == role_id))

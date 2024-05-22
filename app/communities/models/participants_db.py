@@ -26,6 +26,10 @@ class Participant(Base):
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
+    roles: Mapped[list["Role"]] = relationship(
+        passive_deletes=True, secondary="participant_roles", lazy="joined"
+    )
+
     # indexes
     __table_args__ = (
         Index("hash_index_user_id", user_id, postgresql_using="hash"),
@@ -47,5 +51,3 @@ class ParticipantRole(Base):
     role_id: Mapped[int] = mapped_column(
         ForeignKey(Role.id, ondelete="CASCADE"), primary_key=True
     )
-
-    FullResponseSchema = MappedModel.create(columns=[participant_id, role_id])

@@ -15,15 +15,10 @@ async def test_role_assignment(
     participant: Participant,
     role: Role,
 ) -> None:
-    assert_response(
+    assert_nodata_response(
         mub_client.post(
             f"/mub/community-service/participants/{participant.id}/roles/{role.id}/",
-        ),
-        expected_code=201,
-        expected_json={
-            "participant_id": participant.id,
-            "role_id": role.id,
-        },
+        )
     )
 
     async with active_session():
@@ -49,7 +44,7 @@ async def test_role_assignment_already_assigned(
     )
 
 
-async def test_role_revoking(
+async def test_role_depriving(
     mub_client: TestClient,
     active_session: ActiveSession,
     participant: Participant,
@@ -70,7 +65,7 @@ async def test_role_revoking(
         ) is None
 
 
-async def test_role_revoking_already_revoked(
+async def test_role_depriving_not_assigned(
     mub_client: TestClient,
     participant: Participant,
     role: Role,
@@ -80,5 +75,5 @@ async def test_role_revoking_already_revoked(
             f"/mub/community-service/participants/{participant.id}/roles/{role.id}/",
         ),
         expected_code=404,
-        expected_json={"detail": "Participant does not have this role"},
+        expected_json={"detail": "Participant is not assigned this role"},
     )

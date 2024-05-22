@@ -48,8 +48,9 @@ async def patch_role(
 ) -> Role:
     role.update(**role_data.model_dump(exclude_defaults=True))
     if permissions is not None:
-        await RolePermission.delete_all_by_id(role_id=role.id)
-        await RolePermission.create_bulk(role_id=role.id, permissions=permissions)
+        await RolePermission.update_role_permissions(
+            role_id=role.id, permissions=permissions
+        )
     return role
 
 
