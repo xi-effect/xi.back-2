@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.dependencies.participants_dep import ParticipantById
-from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
 
 router = APIRouterExt(tags=["participants meta mub"])
@@ -49,7 +48,7 @@ async def retrieve_participant(participant: ParticipantById) -> Participant:
     summary="Update any participant by id",
 )
 async def patch_participant(
-    participant: ParticipantById, data: Community.FullPatchSchema
+    participant: ParticipantById, data: Participant.MUBPatchSchema
 ) -> Participant:
     participant.update(**data.model_dump(exclude_defaults=True))
     return participant

@@ -3,6 +3,7 @@ from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.models.roles_db import Role
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
@@ -36,3 +37,11 @@ class ChannelInputFactory(BaseModelFactory[Channel.InputSchema]):
 
 class ChannelPatchFactory(BasePatchModelFactory[Channel.PatchSchema]):
     __model__ = Channel.PatchSchema
+
+
+class RoleFullInputFactory(BasePatchModelFactory[Role.FullInputSchema]):
+    __model__ = Role.FullInputSchema
+
+
+class RoleFullPatchFactory(BasePatchModelFactory[Role.FullPatchSchema]):
+    __model__ = Role.FullPatchSchema

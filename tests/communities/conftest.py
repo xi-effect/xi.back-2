@@ -6,7 +6,8 @@ from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
-from app.communities.models.participants_db import Participant
+from app.communities.models.participants_db import Participant, ParticipantRole
+from app.communities.models.roles_db import Role
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
 from tests.communities import factories
@@ -169,3 +170,40 @@ def channel_parent_path(
     if is_channel_with_category:
         return f"categories/{category.id}"
     return f"communities/{community.id}"
+
+
+@pytest.fixture()
+def role_data() -> AnyJSON:
+    return factories.RoleFullInputFactory.build_json()
+
+
+@pytest.fixture()
+async def role(
+    active_session: ActiveSession,
+    community: Community,
+    role_data: AnyJSON,
+) -> Role:
+    async with active_session():
+        return await Role.create(**role_data, community_id=community.id)
+
+
+@pytest.fixture()
+async def deleted_role_id(
+    active_session: ActiveSession,
+    role: Role,
+) -> int:
+    async with active_session():
+        await role.delete()
+    return role.id
+
+
+@pytest.fixture()
+async def participant_role(
+    active_session: ActiveSession,
+    participant: Participant,
+    role: Role,
+) -> ParticipantRole:
+    async with active_session():
+        return await ParticipantRole.create(
+            role_id=role.id, participant_id=participant.id
+        )
