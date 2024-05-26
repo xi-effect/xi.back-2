@@ -1,11 +1,12 @@
 import enum
+from typing import Annotated
 
+from pydantic import Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import Enum, ForeignKey, Index, String, delete
+from sqlalchemy import Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
-from app.common.sqlalchemy_ext import db
 from app.communities.models.communities_db import Community
 
 
@@ -23,29 +24,32 @@ class Role(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(32))
-    color: Mapped[str | None] = mapped_column(String(6))
+    color: Mapped[str] = mapped_column(String(6))
+
     community_id: Mapped[int] = mapped_column(
         ForeignKey(Community.id, ondelete="CASCADE")
     )
-
     community: Mapped[Community] = relationship(passive_deletes=True)
 
-    permissions_r: Mapped[list["RolePermission"]] = relationship(
-        passive_deletes=True, lazy="joined"
+    permissions: Mapped[list["RolePermission"]] = relationship(
+        passive_deletes=True, cascade="all, delete-orphan", lazy="selectin"
     )
 
     @property
-    def permissions(self) -> list[str]:
-        return [permission.permission for permission in self.permissions_r]
+    def permission_list(self) -> list[Permission]:  # noqa
+        return [permission.permission for permission in self.permissions]
 
     __table_args__ = (
         Index("hash_index_roles_community_id", community_id, postgresql_using="hash"),
     )
 
-    InputSchema = MappedModel.create(columns=[name, color])
-    ResponseSchema = InputSchema.extend(columns=[id])
+    NameType = Annotated[str, Field(min_length=1, max_length=32)]
+    ColorType = Annotated[str, Field(min_length=6, max_length=6)]
+
+    InputSchema = MappedModel.create(columns=[(name, NameType), (color, ColorType)])
     PatchSchema = InputSchema.as_patch()
-    PermissionsResponseSchema = ResponseSchema.extend(properties=[permissions])
+    ResponseSchema = InputSchema.extend(columns=[id])
+    ListPermissionsSchema = ResponseSchema.extend(properties=[permission_list])
 
 
 class RolePermission(Base):
@@ -60,13 +64,3 @@ class RolePermission(Base):
     __table_args__ = (
         Index("hash_index_role_permissions_role_id", role_id, postgresql_using="hash"),
     )
-
-    @classmethod
-    async def update_role_permissions(
-        cls, role_id: int, permissions: list[Permission]
-    ) -> None:
-        await db.session.execute(delete(cls).where(cls.role_id == role_id))
-        db.session.add_all(
-            cls(role_id=role_id, permission=permission) for permission in permissions
-        )
-        await db.session.flush()

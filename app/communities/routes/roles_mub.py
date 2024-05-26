@@ -29,27 +29,40 @@ async def list_roles(community: CommunityById) -> Sequence[Role]:
 
 @router.get(
     "/roles/{role_id}/",
-    response_model=Role.PermissionsResponseSchema,
+    response_model=Role.ListPermissionsSchema,
     summary="Retrieve any role by id",
 )
 async def retrieve_role(role: RoleById) -> Role:
     return role
 
 
+class UpdatePermissionsSchema(Role.PatchSchema):
+    permissions: list[Permission] | None
+
+
 @router.patch(
     "/roles/{role_id}/",
-    response_model=Role.ResponseSchema,
+    response_model=Role.ListPermissionsSchema,
     summary="Update any role by id",
 )
 async def patch_role(
     role: RoleById,
-    role_data: Role.PatchSchema,
-    permissions: list[Permission] | None,
+    role_data: UpdatePermissionsSchema,
 ) -> Role:
-    role.update(**role_data.model_dump(exclude_defaults=True))
-    if permissions is not None:
-        await RolePermission.update_role_permissions(
-            role_id=role.id, permissions=permissions
+    role.update(
+        **role_data.model_dump(
+            exclude={
+                "permissions",
+            }
+        )
+    )
+    if role_data.permissions:
+        role.permissions.clear()
+        role.permissions.extend(
+            [
+                RolePermission(role_id=role.id, permission=permission)
+                for permission in role_data.permissions
+            ]
         )
     return role
 

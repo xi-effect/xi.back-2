@@ -52,7 +52,7 @@ async def test_role_retrieving(
 
     assert_response(
         mub_client.get(f"/mub/community-service/roles/{role.id}/"),
-        expected_json={**role_data, "permissions": permission_list},
+        expected_json={**role_data, "permission_list": permission_list},
     )
 
 
@@ -61,14 +61,12 @@ async def test_role_updating(
     role: Role,
     role_data: AnyJSON,
 ) -> None:
-    role_patch_data = RolePatchFactory.build_json()
-
     assert_response(
         mub_client.patch(
             f"/mub/community-service/roles/{role.id}/",
-            json={"role_data": role_patch_data, "permissions": permission_list},
+            json={**role_data, "permissions": permission_list},
         ),
-        expected_json={**role_data, **role_patch_data},
+        expected_json={**role_data, "permission_list": permission_list},
     )
 
 
