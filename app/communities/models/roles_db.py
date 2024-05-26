@@ -30,7 +30,6 @@ class Role(Base):
         ForeignKey(Community.id, ondelete="CASCADE")
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
-
     permissions: Mapped[list["RolePermission"]] = relationship(
         passive_deletes=True, cascade="all, delete-orphan", lazy="selectin"
     )

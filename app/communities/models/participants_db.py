@@ -26,6 +26,7 @@ class Participant(Base):
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
+    # role data
     roles: Mapped[list[Role]] = relationship(
         passive_deletes=True, secondary="participant_roles", lazy="selectin"
     )
