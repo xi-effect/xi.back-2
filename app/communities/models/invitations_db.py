@@ -16,24 +16,34 @@ class Invitation(Base):
 
     max_count: ClassVar[int] = 50
 
+    # invitation data
     id: Mapped[int] = mapped_column(primary_key=True)
     token: Mapped[str] = mapped_column(CHAR(token_generator.token_length))
     expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     usage_count: Mapped[int] = mapped_column(default=0)
     usage_limit: Mapped[int | None] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
+    # creator data
+    creator_id: Mapped[int] = mapped_column()
+
+    # community data
     community_id: Mapped[int] = mapped_column(
         ForeignKey(Community.id, ondelete="CASCADE"), nullable=False
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
+    # indexes
     __table_args__ = (
         Index(
             "hash_index_invitations_community_id", community_id, postgresql_using="hash"
         ),
     )
 
-    FullInputSchema = MappedModel.create(columns=[expiry, usage_limit])
+    # schemas
+    FullInputSchema = MappedModel.create(
+        columns=[expiry, usage_limit, created_at, creator_id]
+    )
     FullResponseSchema = FullInputSchema.extend(columns=[id, token, usage_count])
 
     @classmethod

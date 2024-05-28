@@ -15,7 +15,10 @@ router = APIRouterExt(tags=["invitations mub"])
     summary="List invitations for the community",
 )
 async def list_invitations(community: CommunityById) -> Sequence[Invitation]:
-    return await Invitation.find_all_by_kwargs(community_id=community.id)
+    return await Invitation.find_all_by_kwargs(
+        Invitation.created_at,
+        community_id=community.id,
+    )
 
 
 @router.post(
