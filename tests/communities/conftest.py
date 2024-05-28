@@ -79,13 +79,13 @@ async def invitation(
     async with active_session():
         return await Invitation.create(
             community_id=community.id,
-            **factories.InvitationFullInputFactory.build_json(),
+            **factories.InvitationMUBInputFactory.build_json(),
         )
 
 
 @pytest.fixture()
 def invitation_data(invitation: Invitation) -> AnyJSON:
-    return Invitation.FullResponseSchema.model_validate(
+    return Invitation.ResponseSchema.model_validate(
         invitation, from_attributes=True
     ).model_dump(mode="json")
 
