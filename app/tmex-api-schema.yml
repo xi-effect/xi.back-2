@@ -1501,9 +1501,18 @@ components:
             - type: 'null'
           default: null
           title: Usage Limit
+        creator_id:
+          title: Creator Id
+          type: integer
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
       required:
         - id
         - token
+        - created_at
+        - creator_id
       title: Invitation.FullResponseSchema
       type: object
     Invitation.FullInputSchema:

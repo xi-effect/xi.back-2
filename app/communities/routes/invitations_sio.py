@@ -3,6 +3,7 @@ from typing import Annotated
 
 from tmexio import EventException, PydanticPackager
 
+from app.common.dependencies.authorization_sio_dep import AuthorizedUser
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.communities_sio_dep import (
@@ -20,9 +21,7 @@ router = EventRouterExt(dependencies=[current_owner_dependency])
 @router.on("list-invitations")
 async def list_invitations(
     community: CommunityById,
-) -> Annotated[
-    Sequence[Invitation], PydanticPackager(list[Invitation.FullResponseSchema])
-]:
+) -> Annotated[Sequence[Invitation], PydanticPackager(list[Invitation.ResponseSchema])]:
     return await Invitation.find_all_valid_by_community_id(community_id=community.id)
 
 
@@ -31,14 +30,16 @@ quantity_exceeded = EventException(409, "Quantity exceeded")
 
 @router.on("create-invitation", exceptions=[quantity_exceeded])
 async def create_invitation(
-    data: Invitation.FullInputSchema,
+    data: Invitation.InputSchema,
     community: CommunityById,
-) -> Annotated[Invitation, PydanticPackager(Invitation.FullResponseSchema)]:
+    user: AuthorizedUser,
+) -> Annotated[Invitation, PydanticPackager(Invitation.ResponseSchema)]:
     if await Invitation.count_by_community_id(community.id) >= Invitation.max_count:
         raise quantity_exceeded
 
     invitation = await Invitation.create(
         community_id=community.id,
+        creator_id=user.user_id,
         **data.model_dump(),
     )
     await db.session.commit()

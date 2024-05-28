@@ -49,10 +49,11 @@ class Invitation(Base):
     )
 
     # schemas
-    FullInputSchema = MappedModel.create(
-        columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None), created_at, creator_id]
+    InputSchema = MappedModel.create(
+        columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None)],
     )
-    FullResponseSchema = FullInputSchema.extend(columns=[id, token, usage_count])
+    MUBInputSchema = InputSchema.extend(columns=[created_at, creator_id])
+    ResponseSchema = MUBInputSchema.extend(columns=[id, token, usage_count])
 
     @classmethod
     async def create(cls, **kwargs: Any) -> Self:

@@ -11,7 +11,7 @@ router = APIRouterExt(tags=["invitations mub"])
 
 @router.get(
     "/communities/{community_id}/invitations/",
-    response_model=list[Invitation.FullResponseSchema],
+    response_model=list[Invitation.ResponseSchema],
     summary="List invitations for the community",
 )
 async def list_invitations(community: CommunityById) -> Sequence[Invitation]:
@@ -24,12 +24,12 @@ async def list_invitations(community: CommunityById) -> Sequence[Invitation]:
 @router.post(
     "/communities/{community_id}/invitations/",
     status_code=201,
-    response_model=Invitation.FullResponseSchema,
+    response_model=Invitation.ResponseSchema,
     responses=LimitedListResponses.responses(),
     summary="Create a new invitation for the community",
 )
 async def create_invitation(
-    community: CommunityById, data: Invitation.FullInputSchema
+    community: CommunityById, data: Invitation.MUBInputSchema
 ) -> Invitation:
     if await Invitation.count_by_community_id(community.id) >= Invitation.max_count:
         raise LimitedListResponses.QUANTITY_EXCEEDED
@@ -41,7 +41,7 @@ async def create_invitation(
 
 @router.get(
     "/invitations/{invitation_id}/",
-    response_model=Invitation.FullResponseSchema,
+    response_model=Invitation.ResponseSchema,
     summary="Retrieve any invitation by id",
 )
 async def retrieve_invitation(invitation: InvitationById) -> Invitation:
