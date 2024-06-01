@@ -7,7 +7,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
-from tests.communities.factories import InvitationFullInputFactory
+from tests.communities.factories import InvitationMUBInputFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -17,7 +17,7 @@ async def test_invitation_creation(
     active_session: ActiveSession,
     community: Community,
 ) -> None:
-    invitation_input_data = InvitationFullInputFactory.build_json()
+    invitation_input_data = InvitationMUBInputFactory.build_json()
 
     invitation_id: int = assert_response(
         mub_client.post(
@@ -47,7 +47,7 @@ async def test_invitation_creation_quantity_exceed(
     assert_response(
         mub_client.post(
             f"/mub/community-service/communities/{community.id}/invitations/",
-            json=InvitationFullInputFactory.build_json(),
+            json=InvitationMUBInputFactory.build_json(),
         ),
         expected_code=409,
         expected_json={"detail": "Quantity exceeded"},

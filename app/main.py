@@ -1,9 +1,12 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI
+from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import Response
+from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
 
 from app import communities
 from app.common.config import (
@@ -14,8 +17,46 @@ from app.common.config import (
     engine,
     sessionmaker,
 )
+from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
+from app.common.tmexio_ext import remove_ping_pong_logs
+from app.communities.rooms import user_room
+from app.communities.store import user_id_to_sids
+
+tmex = TMEXIO(
+    async_mode="asgi",
+    transports=["websocket"],
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=True,
+)
+tmex.include_router(communities.event_router)
+remove_ping_pong_logs()
+
+
+@tmex.on_connect()
+async def connect_user(socket: AsyncSocket) -> None:
+    try:
+        auth_data = await authorize_from_wsgi_environ(socket.get_environ())
+    except ValidationError:
+        raise EventException(407, "bad")
+    await socket.save_session({"auth": auth_data})
+    user_id_to_sids[auth_data.user_id].add(socket.sid)
+    await socket.enter_room(user_room(auth_data.user_id))
+
+
+@tmex.on_disconnect()
+async def disconnect_user(socket: AsyncSocket) -> None:
+    user_id = (await socket.get_session())["auth"].user_id
+    user_id_to_sids[user_id].remove(socket.sid)
+
+
+@tmex.on_other()
+async def handle_other_events(
+    event_name: EventName,
+) -> Annotated[str, PydanticPackager(str, 404)]:
+    return f"Unknown event: '{event_name}'"
 
 
 async def reinit_database() -> None:
@@ -43,8 +84,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/socket.io/", tmex.build_asgi_app())
 
-app.include_router(communities.router)
+app.include_router(communities.api_router)
 
 
 @app.middleware("http")

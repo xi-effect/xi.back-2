@@ -1,3 +1,3 @@
-from app.communities.main import router
+from app.communities.main import api_router, event_router
 
-__all__ = ["router"]
+__all__ = ["api_router", "event_router"]
