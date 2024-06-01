@@ -16,6 +16,7 @@ class ChannelType(str, enum.Enum):
     TASKS = "tasks"
     CHATS = "chats"
     VIDEO = "video"
+    BOARD = "board"
 
 
 class Channel(SpacedOrderedList[tuple[int, int | None]]):

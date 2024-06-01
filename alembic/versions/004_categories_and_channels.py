@@ -1,4 +1,4 @@
-"""categories-and-channels
+"""categories_and_channels
 
 Revision ID: 004
 Revises: 003
