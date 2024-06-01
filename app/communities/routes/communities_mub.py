@@ -6,7 +6,7 @@ router = APIRouterExt(tags=["communities meta mub"])
 
 
 @router.post(
-    "/",
+    "/communities/",
     status_code=201,
     response_model=Community.FullResponseSchema,
     summary="Create a new community",
@@ -16,7 +16,7 @@ async def create_community(data: Community.FullInputSchema) -> Community:
 
 
 @router.get(
-    "/{community_id}/",
+    "/communities/{community_id}/",
     response_model=Community.FullResponseSchema,
     summary="Retrieve any community by id",
 )
@@ -25,7 +25,7 @@ async def retrieve_community(community: CommunityById) -> Community:
 
 
 @router.patch(
-    "/{community_id}/",
+    "/communities/{community_id}/",
     response_model=Community.FullResponseSchema,
     summary="Update any community by id",
 )
@@ -37,7 +37,7 @@ async def patch_community(
 
 
 @router.delete(
-    "/{community_id}/",
+    "/communities/{community_id}/",
     status_code=204,
     summary="Delete any community by id",
 )

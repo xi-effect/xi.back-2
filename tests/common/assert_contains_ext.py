@@ -1,3 +1,5 @@
+from json import JSONDecodeError
+
 from httpx import Response
 from pydantic_marshals.contains import TypeChecker, assert_contains
 
@@ -9,14 +11,21 @@ def assert_nodata_response(
     expected_headers: dict[str, TypeChecker] | None = None,
     expected_cookies: dict[str, TypeChecker] | None = None,
 ) -> Response:
+    try:
+        json_data = response.json()
+    except JSONDecodeError:
+        json_data = None
+
     assert_contains(
         {
             "status_code": response.status_code,
+            "json_data": json_data,
             "headers": response.headers,
             "cookies": response.cookies,
         },
         {
             "status_code": expected_code,
+            "json_data": None,
             "headers": expected_headers or {},
             "cookies": expected_cookies or {},
         },
@@ -32,16 +41,17 @@ def assert_response(
     expected_headers: dict[str, TypeChecker] | None = None,
     expected_cookies: dict[str, TypeChecker] | None = None,
 ) -> Response:
+    try:
+        json_data = response.json()
+    except JSONDecodeError:
+        json_data = None
+
     expected_headers = expected_headers or {}
     expected_headers["Content-Type"] = "application/json"
     assert_contains(
         {
             "status_code": response.status_code,
-            "json_data": (
-                response.json()
-                if response.headers.get("Content-Type") == "application/json"
-                else None
-            ),
+            "json_data": json_data,
             "headers": response.headers,
             "cookies": response.cookies,
         },

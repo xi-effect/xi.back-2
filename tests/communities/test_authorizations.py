@@ -17,10 +17,10 @@ pytestmark = pytest.mark.anyio
 @pytest.mark.parametrize(
     ("method", "path"),
     [
-        pytest.param("POST", "/mub/communities/", id="create-community"),
-        pytest.param("GET", "/mub/communities/1/", id="retrieve-community"),
-        pytest.param("PATCH", "/mub/communities/1/", id="update-community"),
-        pytest.param("DELETE", "/mub/communities/1/", id="delete-community"),
+        pytest.param("POST", "/communities/", id="create-community"),
+        pytest.param("GET", "/communities/1/", id="retrieve-community"),
+        pytest.param("PATCH", "/communities/1/", id="update-community"),
+        pytest.param("DELETE", "/communities/1/", id="delete-community"),
     ],
 )
 async def test_requesting_mub_invalid_key(
@@ -32,7 +32,7 @@ async def test_requesting_mub_invalid_key(
 ) -> None:
     headers = {"X-MUB-Secret": faker.pystr()} if pass_token else None
     assert_response(
-        client.request(method, path, headers=headers),
+        client.request(method, f"/mub/community-service{path}", headers=headers),
         expected_code=401,
         expected_json={"detail": "Invalid key"},
     )
