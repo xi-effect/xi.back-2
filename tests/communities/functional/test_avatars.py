@@ -81,3 +81,15 @@ async def test_avatar_deletion(
     )
 
     assert not community.avatar_path.is_file()
+
+
+@pytest.mark.usefixtures("_create_avatar")
+async def test_mub_community_deletion_with_avatar(
+    mub_client: TestClient,
+    community: Community,
+) -> None:
+    assert_nodata_response(
+        mub_client.delete(f"/mub/community-service/communities/{community.id}/")
+    )
+
+    assert not community.avatar_path.is_file()
