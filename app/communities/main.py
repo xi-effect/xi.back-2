@@ -7,7 +7,9 @@ from app.communities.routes import (
     channels_mub,
     communities_mub,
     invitations_mub,
+    participant_roles_mub,
     participants_mub,
+    roles_mub,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/community-service")
@@ -27,6 +29,9 @@ mub_router.include_router(invitations_mub.router)
 mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
+mub_router.include_router(roles_mub.router)
+mub_router.include_router(participant_roles_mub.router)
+
 
 router = APIRouterExt()
 router.include_router(outside_router)

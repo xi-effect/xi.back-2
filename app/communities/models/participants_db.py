@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
 from app.communities.models.communities_db import Community
+from app.communities.models.roles_db import Role
 
 
 class Participant(Base):
@@ -25,6 +26,11 @@ class Participant(Base):
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
+    # role data
+    roles: Mapped[list[Role]] = relationship(
+        passive_deletes=True, secondary="participant_roles", lazy="selectin"
+    )
+
     # indexes
     __table_args__ = (
         Index("hash_index_user_id", user_id, postgresql_using="hash"),
@@ -35,3 +41,14 @@ class Participant(Base):
     MUBBaseSchema = MappedModel.create(columns=[is_owner, created_at])
     MUBPatchSchema = MUBBaseSchema.as_patch()
     FullResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
+
+
+class ParticipantRole(Base):
+    __tablename__ = "participant_roles"
+
+    participant_id: Mapped[int] = mapped_column(
+        ForeignKey(Participant.id, ondelete="CASCADE"), primary_key=True
+    )
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey(Role.id, ondelete="CASCADE"), primary_key=True
+    )
