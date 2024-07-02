@@ -43,3 +43,4 @@ async def patch_community(
 )
 async def delete_community(community: CommunityById) -> None:
     await community.delete()
+    community.avatar_path.unlink(missing_ok=True)
