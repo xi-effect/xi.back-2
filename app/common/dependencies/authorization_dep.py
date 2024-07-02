@@ -60,7 +60,7 @@ async def authorize_proxy(
     session_id_token: SessionIDHeader = None,
     user_id_token: UserIDHeader = None,
     username_token: UsernameHeader = None,
-) -> ProxyAuthData:
+) -> ProxyAuthData:  # TODO pragma: no cover (not used yet)
     try:  # using try-except to use pydantic's validation
         return ProxyAuthData(
             session_id=session_id_token,  # type: ignore[arg-type]

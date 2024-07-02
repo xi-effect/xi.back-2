@@ -159,7 +159,7 @@ async def move_channel(
 ) -> None:
     if await Channel.is_limit_per_category_reached(
         community_id=channel.community_id, category_id=category_id
-    ):
+    ):  # TODO (33602197) pragma: no cover
         raise LimitedListResponses.QUANTITY_EXCEEDED
     try:
         await channel.validate_and_move(
@@ -167,7 +167,7 @@ async def move_channel(
             after_id=after_id,
             before_id=before_id,
         )
-    except InvalidMoveException as e:
+    except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
         raise HTTPException(409, e.message)
 
 
