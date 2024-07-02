@@ -84,7 +84,7 @@ async def move_category(
             after_id=after_id,
             before_id=before_id,
         )
-    except InvalidMoveException as e:
+    except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
         raise HTTPException(409, e.message)
 
 

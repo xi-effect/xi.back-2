@@ -12,7 +12,7 @@ from app.common.sqlalchemy_ext import MappingBase
 
 current_directory: Path = Path.cwd()
 
-if sys.platform == "win32":
+if sys.platform == "win32":  # pragma: no cover
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 AVATARS_PATH: Path = current_directory / "community_avatars"

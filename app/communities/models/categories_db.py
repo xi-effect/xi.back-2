@@ -59,6 +59,6 @@ class Category(SpacedOrderedList[int]):
         )
 
     def validate_move_data(self, after_id: int | None, before_id: int | None) -> None:
-        if after_id is None and before_id is None:
+        if after_id is None and before_id is None:  # TODO (33602197) pragma: no cover
             raise InvalidMoveException("after and before are both empty")
         super().validate_move_data(after_id=after_id, before_id=before_id)
