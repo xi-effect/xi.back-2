@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app import communities
+from app import communities, files
 from app.common.config import (
     AVATARS_PATH,
     DATABASE_MIGRATED,
@@ -45,6 +45,7 @@ app.add_middleware(
 )
 
 app.include_router(communities.router)
+app.include_router(files.router)
 
 
 @app.middleware("http")

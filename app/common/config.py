@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from os import getenv
+from os import getcwd, getenv
 from pathlib import Path
 
 from sqlalchemy import MetaData
@@ -24,6 +24,23 @@ DB_SCHEMA: str | None = getenv("DB_SCHEMA", None)
 DATABASE_MIGRATED: bool = getenv("DATABASE_MIGRATED", "0") == "1"
 
 MUB_KEY: str = getenv("MUB_KEY", "local")
+
+FILE_STORAGE_PATH = Path(getcwd()) / "app/files/file_storage/"
+FILE_STORAGE_PATH_MUB = Path(getcwd()) / "app/files/file_storage_mub/"
+
+ALLOWED_FILE_EXTENSIONS = (
+    "zip",
+    "rar",
+    "png",
+    "pdf",
+    "jpg",
+    "gif",
+    "jpeg",
+    "docx",
+    "doc",
+    "txt",
+)
+MAX_FILE_SIZE = 8 * 1024 * 1024 * 4
 
 convention = {
     "ix": "ix_%(column_0_label)s",  # noqa: WPS323
