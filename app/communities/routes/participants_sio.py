@@ -1,9 +1,11 @@
 from collections.abc import Sequence
 from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict
 from tmexio import (
     AsyncServer,
     AsyncSocket,
+    Emitter,
     EventException,
     PydanticPackager,
     register_dependency,
@@ -16,6 +18,7 @@ from app.communities.dependencies.communities_sio_dep import (
     CurrentOwner,
     current_participant_dependency,
 )
+from app.communities.models.communities_db import CommunityIdSchema
 from app.communities.models.participants_db import Participant
 from app.communities.rooms import (
     community_room,
@@ -25,6 +28,75 @@ from app.communities.rooms import (
 from app.communities.store import user_id_to_sids
 
 router = EventRouterExt(tags=["participants-list"])
+
+
+class ParticipantSeverSchema(BaseModel):
+    community_id: int
+    participant: Participant.ListItemSchema
+
+
+class ParticipantPreSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    community_id: int
+    participant: Participant
+
+
+CreateParticipantEmitter = Annotated[
+    Emitter[ParticipantPreSchema],
+    router.register_server_emitter(
+        ParticipantSeverSchema, event_name="create-participant"
+    ),
+]
+
+UpdateParticipationEmitter = Annotated[
+    Emitter[ParticipantPreSchema],
+    router.register_server_emitter(
+        ParticipantSeverSchema,
+        event_name="update-participation",
+    ),
+]
+
+
+class UpdateParticipantsServerSchema(BaseModel):
+    community_id: int
+    participants: list[Participant.ListItemSchema]
+
+
+class UpdateParticipantsPreSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    community_id: int
+    participants: list[Participant]
+
+
+UpdateParticipantsEmitter = Annotated[
+    Emitter[UpdateParticipantsPreSchema],
+    router.register_server_emitter(
+        UpdateParticipantsServerSchema, event_name="update-participants"
+    ),
+]
+
+
+class DeleteParticipantServerSchema(BaseModel):
+    community_id: int
+    user_id: int
+
+
+DeleteParticipantEmitter = Annotated[
+    Emitter[DeleteParticipantServerSchema],
+    router.register_server_emitter(
+        DeleteParticipantServerSchema, event_name="delete-participant"
+    ),
+]
+
+KickedFromCommunityEmitter = Annotated[
+    Emitter[CommunityIdSchema],
+    router.register_server_emitter(
+        CommunityIdSchema,
+        event_name="kicked-from-community",
+    ),
+]
 
 
 @router.on("list-participants", dependencies=[current_participant_dependency])
@@ -73,7 +145,8 @@ async def kick_participant(
     community: CommunityById,
     target_participant: TargetParticipant,
     server: AsyncServer,
-    socket: AsyncSocket,
+    kicked_from_community_emitter: KickedFromCommunityEmitter,
+    delete_participant_emitter: DeleteParticipantEmitter,
 ) -> None:
     if target_participant.is_owner:
         raise owner_can_not_be_kicked
@@ -85,17 +158,18 @@ async def kick_participant(
         await server.leave_room(sid=sid, room=community_room(community.id))
         await server.leave_room(sid=sid, room=participants_list_room(community.id))
 
-    await socket.emit(
-        "kicked-from-community",
-        {"community_id": community.id},
+    await kicked_from_community_emitter.emit(
+        CommunityIdSchema(community_id=community.id),
         target=participant_room(community.id, target_participant.user_id),
         exclude_self=True,
     )
     await server.close_room(participant_room(community.id, target_participant.user_id))
 
-    await socket.emit(
-        "delete-participant",
-        {"community_id": community.id, "user_id": target_participant.user_id},
+    await delete_participant_emitter.emit(
+        DeleteParticipantServerSchema(
+            community_id=target_participant.community_id,
+            user_id=target_participant.user_id,
+        ),
         target=participants_list_room(community.id),
         exclude_self=True,
     )
@@ -106,48 +180,35 @@ async def transfer_ownership(
     community: CommunityById,
     current_participant: CurrentOwner,
     target_participant: TargetParticipant,
-    socket: AsyncSocket,
+    update_participation_emitter: UpdateParticipationEmitter,
+    update_participants_emitter: UpdateParticipantsEmitter,
 ) -> None:
     current_participant.is_owner = False
     target_participant.is_owner = True
     await db.session.commit()
 
-    await socket.emit(
-        "update-participation",
-        {
-            "community_id": community.id,
-            "participant": Participant.CurrentSchema.model_validate(
-                current_participant
-            ).model_dump(mode="json"),
-        },
+    await update_participation_emitter.emit(
+        ParticipantPreSchema(
+            community_id=current_participant.community_id,
+            participant=current_participant,
+        ),
         target=participant_room(community.id, current_participant.user_id),
         exclude_self=True,
     )
-    await socket.emit(
-        "update-participation",
-        {
-            "community_id": community.id,
-            "participant": Participant.CurrentSchema.model_validate(
-                target_participant
-            ).model_dump(mode="json"),
-        },
+    await update_participation_emitter.emit(
+        ParticipantPreSchema(
+            community_id=target_participant.community_id,
+            participant=target_participant,
+        ),
         target=participant_room(community.id, target_participant.user_id),
         exclude_self=True,
     )
 
-    await socket.emit(
-        "update-participants",
-        {
-            "community_id": community.id,
-            "participants": [
-                Participant.ListItemSchema.model_validate(
-                    current_participant
-                ).model_dump(mode="json"),
-                Participant.ListItemSchema.model_validate(
-                    target_participant
-                ).model_dump(mode="json"),
-            ],
-        },
+    await update_participants_emitter.emit(
+        UpdateParticipantsPreSchema(
+            community_id=community.id,
+            participants=[current_participant, target_participant],
+        ),
         target=participants_list_room(community.id),
         exclude_self=True,
     )

@@ -1,7 +1,8 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from tmexio import AsyncSocket, EventException, PydanticPackager
+from pydantic import BaseModel
+from tmexio import Emitter, EventException, PydanticPackager
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.sqlalchemy_ext import db
@@ -28,13 +29,25 @@ async def list_categories(
 quantity_limit_exceeded = EventException(409, "Quantity limit exceeded")
 
 
+class CategoryServerSchema(BaseModel):
+    community_id: int
+    category: Category.ResponseSchema
+
+
+class CategoryPreSchema(BaseModel):
+    community_id: int
+    category: Category
+
+
 @router.on(
     "create-category",
     exceptions=[quantity_limit_exceeded],
     dependencies=[current_owner_dependency],
 )
 async def create_category(
-    community: CommunityById, data: Category.InputSchema, socket: AsyncSocket
+    community: CommunityById,
+    data: Category.InputSchema,
+    duplex_emitter: Annotated[Emitter[CategoryPreSchema], CategoryServerSchema],
 ) -> Annotated[Category, PydanticPackager(Category.ResponseSchema, code=201)]:
     if await Category.is_limit_per_community_reached(community_id=community.id):
         raise quantity_limit_exceeded
@@ -42,14 +55,8 @@ async def create_category(
     category = await Category.create(community_id=community.id, **data.model_dump())
     await db.session.commit()
 
-    await socket.emit(
-        "create-category",
-        {
-            "community_id": category.community_id,
-            "category": Category.ResponseSchema.model_validate(category).model_dump(
-                mode="json"
-            ),
-        },
+    await duplex_emitter.emit(
+        CategoryPreSchema(community_id=category.community_id, category=category),
         target=community_room(category.community_id),
         exclude_self=True,
     )
@@ -60,23 +67,27 @@ async def create_category(
 async def update_category(
     category: CategoryByIds,
     data: Category.PatchSchema,
-    socket: AsyncSocket,
+    duplex_emitter: Annotated[Emitter[CategoryPreSchema], CategoryServerSchema],
 ) -> Annotated[Category, PydanticPackager(Category.ResponseSchema)]:
     category.update(**data.model_dump(exclude_defaults=True))
     await db.session.commit()
 
-    await socket.emit(
-        "update-category",
-        {
-            "community_id": category.community_id,
-            "category": Category.ResponseSchema.model_validate(category).model_dump(
-                mode="json"
-            ),
-        },
+    await duplex_emitter.emit(
+        CategoryPreSchema(community_id=category.community_id, category=category),
         target=community_room(category.community_id),
         exclude_self=True,
     )
     return category
+
+
+class CategoryIdsSchema(BaseModel):
+    community_id: int
+    category_id: int
+
+
+class MoveCategoryServerSchema(CategoryIdsSchema):
+    after_id: int | None
+    before_id: int | None
 
 
 invalid_move = EventException(409, "Invalid move")
@@ -91,7 +102,7 @@ async def move_category(
     category: CategoryByIds,
     after_id: int | None,
     before_id: int | None,
-    socket: AsyncSocket,
+    duplex_emitter: Emitter[MoveCategoryServerSchema],
 ) -> None:
     try:
         await category.validate_and_move(
@@ -105,27 +116,28 @@ async def move_category(
 
     await db.session.commit()
 
-    await socket.emit(
-        "move-category",
-        {
-            "community_id": category.community_id,
-            "category_id": category.id,
-            "after_id": after_id,
-            "before_id": before_id,
-        },
+    await duplex_emitter.emit(
+        MoveCategoryServerSchema(
+            community_id=category.community_id,
+            category_id=category.id,
+            after_id=after_id,
+            before_id=before_id,
+        ),
         target=community_room(category.community_id),
         exclude_self=True,
     )
 
 
 @router.on("delete-category", dependencies=[current_owner_dependency])
-async def delete_category(category: CategoryByIds, socket: AsyncSocket) -> None:
+async def delete_category(
+    category: CategoryByIds,
+    duplex_emitter: Emitter[CategoryIdsSchema],
+) -> None:
     await category.delete()
     await db.session.commit()
 
-    await socket.emit(
-        "delete-category",
-        {"community_id": category.community_id, "category_id": category.id},
+    await duplex_emitter.emit(
+        CategoryIdsSchema(community_id=category.community_id, category_id=category.id),
         target=community_room(category.community_id),
         exclude_self=True,
     )

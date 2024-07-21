@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from tmexio import AsyncSocket, EventException, PydanticPackager
+from pydantic import BaseModel
+from tmexio import Emitter, EventException, PydanticPackager
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.sqlalchemy_ext import db
@@ -42,6 +43,18 @@ quantity_limit_per_category_exceeded = EventException(
 )
 
 
+class ChannelServerSchema(BaseModel):
+    community_id: int
+    category_id: int | None
+    channel: Channel.ResponseSchema
+
+
+class ChannelPreSchema(BaseModel):
+    community_id: int
+    category_id: int | None
+    channel: Channel
+
+
 @router.on(
     "create-channel",
     exceptions=[
@@ -55,7 +68,7 @@ async def create_channel(
     community: CommunityById,
     category_id: int | None,
     data: Channel.InputSchema,
-    socket: AsyncSocket,
+    duplex_emitter: Annotated[Emitter[ChannelPreSchema], ChannelServerSchema],
 ) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema, code=201)]:
     if category_id is not None:
         category = await Category.find_first_by_kwargs(
@@ -76,15 +89,12 @@ async def create_channel(
     )
     await db.session.commit()
 
-    await socket.emit(
-        "create-channel",
-        {
-            "community_id": channel.community_id,
-            "category_id": channel.category_id,
-            "channel": Channel.ResponseSchema.model_validate(channel).model_dump(
-                mode="json"
-            ),
-        },
+    await duplex_emitter.emit(
+        ChannelPreSchema(
+            community_id=channel.community_id,
+            category_id=channel.category_id,
+            channel=channel,
+        ),
         target=community_room(channel.community_id),
         exclude_self=True,
     )
@@ -95,23 +105,32 @@ async def create_channel(
 async def update_channel(
     channel: ChannelByIds,
     data: Channel.PatchSchema,
-    socket: AsyncSocket,
+    duplex_emitter: Annotated[Emitter[ChannelPreSchema], ChannelServerSchema],
 ) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema)]:
     channel.update(**data.model_dump(exclude_defaults=True))
     await db.session.commit()
 
-    await socket.emit(
-        "update-channel",
-        {
-            "community_id": channel.community_id,
-            "channel": Channel.ResponseSchema.model_validate(channel).model_dump(
-                mode="json"
-            ),
-        },
+    await duplex_emitter.emit(
+        ChannelPreSchema(
+            community_id=channel.community_id,
+            category_id=channel.category_id,
+            channel=channel,
+        ),
         target=community_room(channel.community_id),
         exclude_self=True,
     )
     return channel
+
+
+class ChannelIdsSchema(BaseModel):
+    community_id: int
+    channel_id: int
+
+
+class MoveChannelServerSchema(ChannelIdsSchema):
+    category_id: int | None
+    after_id: int | None
+    before_id: int | None
 
 
 invalid_mode = EventException(409, "Invalid move")
@@ -127,7 +146,7 @@ async def move_channel(
     category_id: int | None,
     after_id: int | None,
     before_id: int | None,
-    socket: AsyncSocket,
+    duplex_emitter: Emitter[MoveChannelServerSchema],
 ) -> None:
     if category_id is not None:
         category = await Category.find_first_by_kwargs(
@@ -152,28 +171,29 @@ async def move_channel(
 
     await db.session.commit()
 
-    await socket.emit(
-        "move-channel",
-        {
-            "community_id": channel.community_id,
-            "channel_id": channel.id,
-            "category_id": channel.category_id,
-            "after_id": after_id,
-            "before_id": before_id,
-        },
+    await duplex_emitter.emit(
+        MoveChannelServerSchema(
+            community_id=channel.community_id,
+            category_id=channel.category_id,
+            channel_id=channel.id,
+            after_id=after_id,
+            before_id=before_id,
+        ),
         target=community_room(channel.community_id),
         exclude_self=True,
     )
 
 
 @router.on("delete-channel", dependencies=[current_owner_dependency])
-async def delete_channel(channel: ChannelByIds, socket: AsyncSocket) -> None:
+async def delete_channel(
+    channel: ChannelByIds,
+    duplex_emitter: Emitter[ChannelIdsSchema],
+) -> None:
     await channel.delete()
     await db.session.commit()
 
-    await socket.emit(
-        "delete-channel",
-        {"community_id": channel.community_id, "channel_id": channel.id},
+    await duplex_emitter.emit(
+        ChannelIdsSchema(community_id=channel.community_id, channel_id=channel.id),
         target=community_room(channel.community_id),
         exclude_self=True,
     )
