@@ -15,7 +15,10 @@ from app.communities.models.invitations_db import Invitation
 
 # TODO mb add invitations_list_room
 # TODO real permissions checks
-router = EventRouterExt(dependencies=[current_owner_dependency])
+router = EventRouterExt(
+    tags=["invitations-list"],
+    dependencies=[current_owner_dependency],
+)
 
 
 @router.on("list-invitations")

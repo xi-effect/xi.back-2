@@ -24,7 +24,7 @@ from app.communities.rooms import (
 )
 from app.communities.store import user_id_to_sids
 
-router = EventRouterExt()
+router = EventRouterExt(tags=["participants-list"])
 
 
 @router.on("list-participants", dependencies=[current_participant_dependency])

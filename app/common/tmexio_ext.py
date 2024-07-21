@@ -16,8 +16,12 @@ async def db_session() -> AsyncIterator[None]:
 
 
 class EventRouterExt(EventRouter):
-    def __init__(self, dependencies: list[Depends] | None = None) -> None:
-        super().__init__(dependencies=[db_session] + (dependencies or []))
+    def __init__(
+        self,
+        dependencies: list[Depends] | None = None,
+        tags: list[str] | None = None,
+    ) -> None:
+        super().__init__(dependencies=[db_session] + (dependencies or []), tags=tags)
 
 
 class NoPingPongFilter(logging.Filter):

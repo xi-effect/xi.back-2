@@ -25,7 +25,7 @@ from app.communities.rooms import (
 )
 from app.communities.store import user_id_to_sids
 
-router = EventRouterExt()
+router = EventRouterExt(tags=["communities-all"])  # TODO split community routers
 
 
 class ParticipationModel(BaseModel):

@@ -15,7 +15,7 @@ from app.communities.dependencies.communities_sio_dep import (
 from app.communities.models.categories_db import Category
 from app.communities.rooms import community_room
 
-router = EventRouterExt()
+router = EventRouterExt(tags=["categories-list"])
 
 
 @router.on("list-categories", dependencies=[current_participant_dependency])

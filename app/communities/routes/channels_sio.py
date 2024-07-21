@@ -21,7 +21,7 @@ from app.communities.utils.channel_list import (
     build_channels_and_categories_list,
 )
 
-router = EventRouterExt()
+router = EventRouterExt(tags=["channels-list"])
 
 
 @router.on("list-channels", dependencies=[current_participant_dependency])
