@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app import communities
+from app import communities, storage
 from app.common.config import (
     DATABASE_MIGRATED,
     PRODUCTION_MODE,
@@ -30,6 +30,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     async with AsyncExitStack() as stack:
         await stack.enter_async_context(communities.lifespan())
+        await stack.enter_async_context(storage.lifespan())
         yield
 
 
@@ -44,6 +45,7 @@ app.add_middleware(
 )
 
 app.include_router(communities.router)
+app.include_router(storage.router)
 
 
 @app.middleware("http")
