@@ -1,3 +1,7 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from app.common.config import AVATARS_PATH
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
@@ -32,3 +36,9 @@ router = APIRouterExt()
 router.include_router(outside_router)
 router.include_router(authorized_router)
 router.include_router(mub_router)
+
+
+@asynccontextmanager
+async def lifespan() -> AsyncIterator[None]:
+    AVATARS_PATH.mkdir(exist_ok=True)
+    yield

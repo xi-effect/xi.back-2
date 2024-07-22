@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
 from starlette.requests import Request
@@ -7,7 +7,6 @@ from starlette.responses import Response
 
 from app import communities
 from app.common.config import (
-    AVATARS_PATH,
     DATABASE_MIGRATED,
     PRODUCTION_MODE,
     Base,
@@ -26,12 +25,12 @@ async def reinit_database() -> None:  # pragma: no cover
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    AVATARS_PATH.mkdir(exist_ok=True)
-
     if not PRODUCTION_MODE and not DATABASE_MIGRATED:
         await reinit_database()
 
-    yield
+    async with AsyncExitStack() as stack:
+        await stack.enter_async_context(communities.lifespan())
+        yield
 
 
 app = FastAPI(lifespan=lifespan)
