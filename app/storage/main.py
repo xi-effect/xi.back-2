@@ -6,6 +6,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.storage.models.files_db import FILE_KIND_TO_FOLDER
+from app.storage.routers import files_rst
 
 outside_router = APIRouterExt(prefix="/api/public/storage-service")
 
@@ -13,6 +14,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/storage-service",
 )
+authorized_router.include_router(files_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

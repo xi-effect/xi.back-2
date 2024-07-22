@@ -2,7 +2,7 @@ import pytest
 import rstr
 from faker import Faker
 from faker.providers import BaseProvider, internet
-from faker_file.providers import webp_file  # type: ignore[import-untyped]
+from faker_file.providers import bin_file, webp_file  # type: ignore[import-untyped]
 
 
 class RegexGeneratorProvider(BaseProvider):
@@ -17,6 +17,7 @@ class RegexGeneratorProvider(BaseProvider):
 def _setup_faker(faker: Faker) -> None:
     faker.add_provider(internet)
     faker.add_provider(RegexGeneratorProvider)
+    faker.add_provider(bin_file.BinFileProvider)
     faker.add_provider(webp_file.GraphicWebpFileProvider)
 
 

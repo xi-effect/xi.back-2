@@ -60,14 +60,14 @@ async def authorize_proxy(
     session_id_token: SessionIDHeader = None,
     user_id_token: UserIDHeader = None,
     username_token: UsernameHeader = None,
-) -> ProxyAuthData:  # TODO pragma: no cover (not used yet)
+) -> ProxyAuthData:
     try:  # using try-except to use pydantic's validation
         return ProxyAuthData(
             session_id=session_id_token,  # type: ignore[arg-type]
             user_id=user_id_token,  # type: ignore[arg-type]
             username=username_token,  # type: ignore[arg-type]
         )
-    except ValidationError:  # noqa: WPS329  # linter bug
+    except ValidationError:  # noqa: WPS329  # bug  # TODO (36286438) pragma: no cover
         raise AuthorizedResponses.PROXY_AUTH_MISSING
 
 
