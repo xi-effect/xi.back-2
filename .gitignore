@@ -10,3 +10,4 @@ env/
 __pycache__/
 
 community_avatars/
+/storage/

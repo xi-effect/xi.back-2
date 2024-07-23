@@ -16,6 +16,7 @@ if sys.platform == "win32":  # pragma: no cover
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 AVATARS_PATH: Path = current_directory / "community_avatars"
+STORAGE_PATH: Path = current_directory / "storage"
 
 PRODUCTION_MODE: bool = getenv("PRODUCTION", "0") == "1"
 

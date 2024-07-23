@@ -92,6 +92,9 @@ services:
       - type: bind
         source: ./community_avatars
         target: /backend/community_avatars
+      - type: bind
+        source: ./storage
+        target: /backend/storage
     environment:
       WATCHFILES_FORCE_POLLING: true
       DB_LINK: postgresql+psycopg://test:test@db:5432/test

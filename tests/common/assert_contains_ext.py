@@ -13,7 +13,7 @@ def assert_nodata_response(
 ) -> Response:
     try:
         json_data = response.json()
-    except JSONDecodeError:
+    except (UnicodeDecodeError, JSONDecodeError):
         json_data = None
 
     assert_contains(
@@ -43,11 +43,11 @@ def assert_response(
 ) -> Response:
     try:
         json_data = response.json()
-    except JSONDecodeError:
+    except (UnicodeDecodeError, JSONDecodeError):
         json_data = None
 
     expected_headers = expected_headers or {}
-    expected_headers["Content-Type"] = "application/json"
+    expected_headers.setdefault("Content-Type", "application/json")
     assert_contains(
         {
             "status_code": response.status_code,
