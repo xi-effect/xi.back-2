@@ -1,5 +1,5 @@
-import enum
 from collections.abc import Sequence
+from enum import StrEnum
 from typing import Any, ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -11,11 +11,11 @@ from app.communities.models.categories_db import Category
 from app.communities.models.communities_db import Community
 
 
-class ChannelType(str, enum.Enum):
+class ChannelType(StrEnum):
     POSTS = "posts"
     TASKS = "tasks"
-    CHATS = "chats"
-    VIDEO = "video"
+    CHAT = "chat"
+    CALL = "call"
     BOARD = "board"
 
 
