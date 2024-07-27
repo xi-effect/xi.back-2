@@ -34,6 +34,7 @@ class Category(SpacedOrderedList[int]):
     InputSchema = MappedModel.create(columns=[name, description])
     PatchSchema = InputSchema.as_patch()
     ResponseSchema = InputSchema.extend(columns=[(SpacedOrderedList.id, int)])
+    ServerEventSchema = ResponseSchema.extend(columns=[community_id])
 
     @property
     def list_id(self) -> int:  # noqa: FNE002  # list is not a verb

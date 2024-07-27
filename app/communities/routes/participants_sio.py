@@ -30,29 +30,17 @@ from app.communities.store import user_id_to_sids
 router = EventRouterExt(tags=["participants-list"])
 
 
-class ParticipantSeverSchema(BaseModel):
-    community_id: int
-    participant: Participant.ListItemSchema
-
-
-class ParticipantPreSchema(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    community_id: int
-    participant: Participant
-
-
 CreateParticipantEmitter = Annotated[
-    Emitter[ParticipantPreSchema],
+    Emitter[Participant],
     router.register_server_emitter(
-        ParticipantSeverSchema, event_name="create-participant"
+        Participant.ServerEventSchema, event_name="create-participant"
     ),
 ]
 
 UpdateParticipationEmitter = Annotated[
-    Emitter[ParticipantPreSchema],
+    Emitter[Participant],
     router.register_server_emitter(
-        ParticipantSeverSchema,
+        Participant.ServerEventSchema,
         event_name="update-participation",
     ),
 ]
@@ -78,15 +66,10 @@ UpdateParticipantsEmitter = Annotated[
 ]
 
 
-class DeleteParticipantServerSchema(BaseModel):
-    community_id: int
-    user_id: int
-
-
 DeleteParticipantEmitter = Annotated[
-    Emitter[DeleteParticipantServerSchema],
+    Emitter[Participant],
     router.register_server_emitter(
-        DeleteParticipantServerSchema, event_name="delete-participant"
+        Participant.IDsSchema, event_name="delete-participant"
     ),
 ]
 
@@ -166,10 +149,7 @@ async def kick_participant(
     await server.close_room(participant_room(community.id, target_participant.user_id))
 
     await delete_participant_emitter.emit(
-        DeleteParticipantServerSchema(
-            community_id=target_participant.community_id,
-            user_id=target_participant.user_id,
-        ),
+        target_participant,
         target=participants_list_room(community.id),
         exclude_self=True,
     )
@@ -188,18 +168,12 @@ async def transfer_ownership(
     await db.session.commit()
 
     await update_participation_emitter.emit(
-        ParticipantPreSchema(
-            community_id=current_participant.community_id,
-            participant=current_participant,
-        ),
+        current_participant,
         target=participant_room(community.id, current_participant.user_id),
         exclude_self=True,
     )
     await update_participation_emitter.emit(
-        ParticipantPreSchema(
-            community_id=target_participant.community_id,
-            participant=target_participant,
-        ),
+        target_participant,
         target=participant_room(community.id, target_participant.user_id),
         exclude_self=True,
     )

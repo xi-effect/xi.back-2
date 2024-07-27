@@ -38,10 +38,12 @@ class Participant(Base):
 
     # models
     CurrentSchema = MappedModel.create(columns=[is_owner])
+    IDsSchema = MappedModel.create(columns=[community_id, user_id])
     MUBBaseSchema = CurrentSchema.extend(columns=[(created_at, NaiveDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
     MUBResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
     ListItemSchema = MUBBaseSchema.extend(columns=[user_id])
+    ServerEventSchema = ListItemSchema.extend(columns=[community_id])
 
     # participant repository
     @classmethod

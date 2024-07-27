@@ -50,6 +50,7 @@ class Channel(SpacedOrderedList[tuple[int, int | None]]):
     InputSchema = BaseInputSchema.extend(columns=[kind])
     PatchSchema = BaseInputSchema.as_patch()
     ResponseSchema = InputSchema.extend(columns=[(SpacedOrderedList.id, int)])
+    ServerEventSchema = ResponseSchema.extend(columns=[community_id, category_id])
 
     @property
     def list_id(self) -> tuple[int, int | None]:  # noqa: FNE002  # list is not a verb

@@ -29,16 +29,6 @@ async def list_categories(
 quantity_limit_exceeded = EventException(409, "Quantity limit exceeded")
 
 
-class CategoryServerSchema(BaseModel):
-    community_id: int
-    category: Category.ResponseSchema
-
-
-class CategoryPreSchema(BaseModel):
-    community_id: int
-    category: Category
-
-
 @router.on(
     "create-category",
     exceptions=[quantity_limit_exceeded],
@@ -47,7 +37,7 @@ class CategoryPreSchema(BaseModel):
 async def create_category(
     community: CommunityById,
     data: Category.InputSchema,
-    duplex_emitter: Annotated[Emitter[CategoryPreSchema], CategoryServerSchema],
+    duplex_emitter: Annotated[Emitter[Category], Category.ServerEventSchema],
 ) -> Annotated[Category, PydanticPackager(Category.ResponseSchema, code=201)]:
     if await Category.is_limit_per_community_reached(community_id=community.id):
         raise quantity_limit_exceeded
@@ -56,7 +46,7 @@ async def create_category(
     await db.session.commit()
 
     await duplex_emitter.emit(
-        CategoryPreSchema(community_id=category.community_id, category=category),
+        category,
         target=community_room(category.community_id),
         exclude_self=True,
     )
@@ -67,13 +57,13 @@ async def create_category(
 async def update_category(
     category: CategoryByIds,
     data: Category.PatchSchema,
-    duplex_emitter: Annotated[Emitter[CategoryPreSchema], CategoryServerSchema],
+    duplex_emitter: Annotated[Emitter[Category], Category.ServerEventSchema],
 ) -> Annotated[Category, PydanticPackager(Category.ResponseSchema)]:
     category.update(**data.model_dump(exclude_defaults=True))
     await db.session.commit()
 
     await duplex_emitter.emit(
-        CategoryPreSchema(community_id=category.community_id, category=category),
+        category,
         target=community_room(category.community_id),
         exclude_self=True,
     )

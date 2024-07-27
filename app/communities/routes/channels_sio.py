@@ -43,18 +43,6 @@ quantity_limit_per_category_exceeded = EventException(
 )
 
 
-class ChannelServerSchema(BaseModel):
-    community_id: int
-    category_id: int | None
-    channel: Channel.ResponseSchema
-
-
-class ChannelPreSchema(BaseModel):
-    community_id: int
-    category_id: int | None
-    channel: Channel
-
-
 @router.on(
     "create-channel",
     exceptions=[
@@ -68,7 +56,7 @@ async def create_channel(
     community: CommunityById,
     category_id: int | None,
     data: Channel.InputSchema,
-    duplex_emitter: Annotated[Emitter[ChannelPreSchema], ChannelServerSchema],
+    duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
 ) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema, code=201)]:
     if category_id is not None:
         category = await Category.find_first_by_kwargs(
@@ -90,11 +78,7 @@ async def create_channel(
     await db.session.commit()
 
     await duplex_emitter.emit(
-        ChannelPreSchema(
-            community_id=channel.community_id,
-            category_id=channel.category_id,
-            channel=channel,
-        ),
+        channel,
         target=community_room(channel.community_id),
         exclude_self=True,
     )
@@ -105,17 +89,13 @@ async def create_channel(
 async def update_channel(
     channel: ChannelByIds,
     data: Channel.PatchSchema,
-    duplex_emitter: Annotated[Emitter[ChannelPreSchema], ChannelServerSchema],
+    duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
 ) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema)]:
     channel.update(**data.model_dump(exclude_defaults=True))
     await db.session.commit()
 
     await duplex_emitter.emit(
-        ChannelPreSchema(
-            community_id=channel.community_id,
-            category_id=channel.category_id,
-            channel=channel,
-        ),
+        channel,
         target=community_room(channel.community_id),
         exclude_self=True,
     )

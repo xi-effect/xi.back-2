@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from tmexio import AsyncServer, AsyncSocket, Emitter, EventException, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -26,8 +26,6 @@ from app.communities.rooms import (
 from app.communities.routes.participants_sio import (
     CreateParticipantEmitter,
     DeleteParticipantEmitter,
-    DeleteParticipantServerSchema,
-    ParticipantPreSchema,
 )
 from app.communities.store import user_id_to_sids
 
@@ -40,6 +38,8 @@ class ParticipationSchema(BaseModel):
 
 
 class ParticipationPreSchema(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     community: Community
     participant: Participant
 
@@ -155,10 +155,7 @@ async def join_community(
     )
 
     await create_participant_emitter.emit(
-        ParticipantPreSchema(
-            community_id=participant.community_id,
-            participant=participant,
-        ),
+        participant,
         target=participants_list_room(community.id),
         exclude_self=True,
     )
@@ -197,10 +194,7 @@ async def leave_community(
     await socket.close_room(participant_room(community.id, participant.user_id))
 
     await delete_participant_emitter.emit(
-        DeleteParticipantServerSchema(
-            community_id=participant.community_id,
-            user_id=participant.user_id,
-        ),
+        participant,
         target=participants_list_room(community.id),
         exclude_self=True,
     )
