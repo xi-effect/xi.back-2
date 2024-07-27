@@ -44,7 +44,11 @@ class ParticipationPreSchema(BaseModel):
     participant: Participant
 
 
-@router.on("create-community")
+@router.on(
+    "create-community",
+    summary="Create and open a new community",
+    server_summary="A community has been created by the current user",
+)
 async def create_community(
     data: Community.FullInputSchema,
     user: AuthorizedUser,
@@ -68,7 +72,11 @@ async def create_community(
     return ParticipationPreSchema(community=community, participant=participant)
 
 
-@router.on("retrieve-any-community", exceptions=[community_not_found])
+@router.on(
+    "retrieve-any-community",
+    summary="Retrieve and open any joined community",
+    exceptions=[community_not_found],
+)
 async def retrieve_any_community(
     user: AuthorizedUser,
     socket: AsyncSocket,
@@ -84,7 +92,7 @@ async def retrieve_any_community(
     return ParticipationPreSchema(community=community, participant=participant)
 
 
-@router.on("retrieve-community")
+@router.on("retrieve-community", summary="Retrieve and open a community by id")
 async def retrieve_community(
     community: CommunityById,
     participant: CurrentParticipant,
@@ -95,7 +103,7 @@ async def retrieve_community(
     return ParticipationPreSchema(community=community, participant=participant)
 
 
-@router.on("close-community")  # TODO no session here
+@router.on("close-community", summary="Close a community")  # TODO no session here
 async def close_community(
     community_id: int, user: AuthorizedUser, socket: AsyncSocket
 ) -> None:
@@ -104,7 +112,7 @@ async def close_community(
     await socket.leave_room(participant_room(community_id, user.user_id))
 
 
-@router.on("list-communities")
+@router.on("list-communities", summary="List all joined communities")
 async def list_communities(
     user: AuthorizedUser,
 ) -> Annotated[
@@ -116,7 +124,12 @@ async def list_communities(
 already_joined = EventException(409, "Already joined")
 
 
-@router.on("join-community", exceptions=[invitation_not_found, already_joined])
+@router.on(
+    "join-community",
+    summary="Join and open a community using an invitation",
+    server_summary="The current user has joined a community",
+    exceptions=[invitation_not_found, already_joined],
+)
 async def join_community(
     code: str,
     user: AuthorizedUser,
@@ -166,7 +179,12 @@ async def join_community(
 owner_can_not_leave = EventException(409, "Owner can not leave")
 
 
-@router.on("leave-community", exceptions=[owner_can_not_leave])
+@router.on(
+    "leave-community",
+    summary="Leave any community by id",
+    server_summary="The current participant has left the current community",
+    exceptions=[owner_can_not_leave],
+)
 async def leave_community(
     community: CommunityById,
     participant: CurrentParticipant,
@@ -200,7 +218,12 @@ async def leave_community(
     )
 
 
-@router.on("update-community", dependencies=[current_owner_dependency])
+@router.on(
+    "update-community",
+    summary="Update any community's metadata by id",
+    server_summary="Current community's metadata has been updated",
+    dependencies=[current_owner_dependency],
+)
 async def update_community(
     data: Community.FullPatchSchema,
     community: CommunityById,
@@ -217,7 +240,12 @@ async def update_community(
     return community
 
 
-@router.on("delete-community", dependencies=[current_owner_dependency])
+@router.on(
+    "delete-community",
+    summary="Delete any community by id",
+    server_summary="Current community has been deleted",
+    dependencies=[current_owner_dependency],
+)
 async def delete_community(
     community: CommunityById,
     socket: AsyncSocket,

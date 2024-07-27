@@ -19,7 +19,11 @@ from app.communities.rooms import community_room
 router = EventRouterExt(tags=["categories-list"])
 
 
-@router.on("list-categories", dependencies=[current_participant_dependency])
+@router.on(
+    "list-categories",
+    summary="List categories (without channels) in the community",
+    dependencies=[current_participant_dependency],
+)
 async def list_categories(
     community: CommunityById,
 ) -> Annotated[Sequence[Category], PydanticPackager(list[Category.ResponseSchema])]:
@@ -31,6 +35,8 @@ quantity_limit_exceeded = EventException(409, "Quantity limit exceeded")
 
 @router.on(
     "create-category",
+    summary="Create a new category in the community",
+    server_summary="A new category has been created in the current community",
     exceptions=[quantity_limit_exceeded],
     dependencies=[current_owner_dependency],
 )
@@ -53,7 +59,12 @@ async def create_category(
     return category
 
 
-@router.on("update-category", dependencies=[current_owner_dependency])
+@router.on(
+    "update-category",
+    summary="Update any category's metadata by id",
+    server_summary="Category's metadata has been updated in the current community",
+    dependencies=[current_owner_dependency],
+)
 async def update_category(
     category: CategoryByIds,
     data: Category.PatchSchema,
@@ -85,6 +96,8 @@ invalid_move = EventException(409, "Invalid move")
 
 @router.on(
     "move-category",
+    summary="Update ordering of a category in a community",
+    server_summary="Category's ordering has been updated in the current community",
     exceptions=[invalid_move],
     dependencies=[current_owner_dependency],
 )
@@ -118,7 +131,12 @@ async def move_category(
     )
 
 
-@router.on("delete-category", dependencies=[current_owner_dependency])
+@router.on(
+    "delete-category",
+    summary="Delete any category (with all of its channels) by id",
+    server_summary="A category (with all of its channels) has been deleted in the current community",
+    dependencies=[current_owner_dependency],
+)
 async def delete_category(
     category: CategoryByIds,
     duplex_emitter: Emitter[CategoryIdsSchema],

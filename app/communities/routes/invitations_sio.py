@@ -21,7 +21,7 @@ router = EventRouterExt(
 )
 
 
-@router.on("list-invitations")
+@router.on("list-invitations", summary="List invitations in the community")
 async def list_invitations(
     community: CommunityById,
 ) -> Annotated[Sequence[Invitation], PydanticPackager(list[Invitation.ResponseSchema])]:
@@ -31,7 +31,11 @@ async def list_invitations(
 quantity_exceeded = EventException(409, "Quantity exceeded")
 
 
-@router.on("create-invitation", exceptions=[quantity_exceeded])
+@router.on(
+    "create-invitation",
+    summary="Create a new invitation in the community",
+    exceptions=[quantity_exceeded],
+)
 async def create_invitation(
     data: Invitation.InputSchema,
     community: CommunityById,
@@ -52,6 +56,6 @@ async def create_invitation(
     return invitation
 
 
-@router.on("delete-invitation")
+@router.on("delete-invitation", summary="Delete any invitation by id")
 async def delete_invitation(invitation: InvitationByIds) -> None:
     await invitation.delete()

@@ -38,7 +38,7 @@ tmex.include_router(communities.event_router)
 remove_ping_pong_logs()
 
 
-@tmex.on_connect()
+@tmex.on_connect(summary="[special] Automatic event")
 async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
@@ -49,13 +49,13 @@ async def connect_user(socket: AsyncSocket) -> None:
     await socket.enter_room(user_room(auth_data.user_id))
 
 
-@tmex.on_disconnect()
+@tmex.on_disconnect(summary="[special] Automatic event")
 async def disconnect_user(socket: AsyncSocket) -> None:
     user_id = (await socket.get_session())["auth"].user_id
     user_id_to_sids[user_id].remove(socket.sid)
 
 
-@tmex.on_other()
+@tmex.on_other(summary="[special] Handler for non-existent events")
 async def handle_other_events(
     event_name: EventName,
 ) -> Annotated[str, PydanticPackager(str, 404)]:

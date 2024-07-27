@@ -33,7 +33,9 @@ router = EventRouterExt(tags=["participants-list"])
 CreateParticipantEmitter = Annotated[
     Emitter[Participant],
     router.register_server_emitter(
-        Participant.ServerEventSchema, event_name="create-participant"
+        Participant.ServerEventSchema,
+        event_name="create-participant",
+        summary="A user has joined the current community",
     ),
 ]
 
@@ -42,6 +44,7 @@ UpdateParticipationEmitter = Annotated[
     router.register_server_emitter(
         Participant.ServerEventSchema,
         event_name="update-participation",
+        summary="Current participant's data has been updated",
     ),
 ]
 
@@ -61,7 +64,9 @@ class UpdateParticipantsPreSchema(BaseModel):
 UpdateParticipantsEmitter = Annotated[
     Emitter[UpdateParticipantsPreSchema],
     router.register_server_emitter(
-        UpdateParticipantsServerSchema, event_name="update-participants"
+        UpdateParticipantsServerSchema,
+        event_name="update-participants",
+        summary="Participants' metadata has been updated in the current community",
     ),
 ]
 
@@ -69,7 +74,9 @@ UpdateParticipantsEmitter = Annotated[
 DeleteParticipantEmitter = Annotated[
     Emitter[Participant],
     router.register_server_emitter(
-        Participant.IDsSchema, event_name="delete-participant"
+        Participant.IDsSchema,
+        event_name="delete-participant",
+        summary="A user has left or has been kicked from the current community",
     ),
 ]
 
@@ -78,11 +85,16 @@ KickedFromCommunityEmitter = Annotated[
     router.register_server_emitter(
         CommunityIdSchema,
         event_name="kicked-from-community",
+        summary="Current participant has been kicked from the current community",
     ),
 ]
 
 
-@router.on("list-participants", dependencies=[current_participant_dependency])
+@router.on(
+    "list-participants",
+    summary="Open the list of participants of a community",
+    dependencies=[current_participant_dependency],
+)
 async def list_participants(
     community: CommunityById,
     socket: AsyncSocket,
@@ -93,7 +105,10 @@ async def list_participants(
     return await Participant.find_all_by_community_id(community_id=community.id)
 
 
-@router.on("close-participants")  # TODO no session here
+@router.on(
+    "close-participants",
+    summary="Close the list of participants of a community",
+)  # TODO no session here
 async def close_participants(community_id: int, socket: AsyncSocket) -> None:
     await socket.leave_room(participants_list_room(community_id))
 
@@ -123,7 +138,11 @@ async def target_participant_dependency(
 TargetParticipant = Annotated[Participant, target_participant_dependency]
 
 
-@router.on("kick-participant", exceptions=[owner_can_not_be_kicked])
+@router.on(
+    "kick-participant",
+    summary="Kick a participant from a community",
+    exceptions=[owner_can_not_be_kicked],
+)
 async def kick_participant(
     community: CommunityById,
     target_participant: TargetParticipant,
@@ -155,7 +174,7 @@ async def kick_participant(
     )
 
 
-@router.on("transfer-ownership")
+@router.on("transfer-ownership", summary="Transfer ownership of the community")
 async def transfer_ownership(
     community: CommunityById,
     current_participant: CurrentOwner,

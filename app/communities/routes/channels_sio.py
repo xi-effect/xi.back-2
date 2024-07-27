@@ -25,7 +25,11 @@ from app.communities.utils.channel_list import (
 router = EventRouterExt(tags=["channels-list"])
 
 
-@router.on("list-channels", dependencies=[current_participant_dependency])
+@router.on(
+    "list-channels",
+    summary="List categories and channels in the community",
+    dependencies=[current_participant_dependency],
+)
 async def list_channels(
     community: CommunityById,
 ) -> Annotated[
@@ -45,6 +49,8 @@ quantity_limit_per_category_exceeded = EventException(
 
 @router.on(
     "create-channel",
+    summary="Create a new channel in the community",
+    server_summary="A new channel has been created in the current community",
     exceptions=[
         category_not_found,
         quantity_limit_per_community_exceeded,
@@ -85,7 +91,12 @@ async def create_channel(
     return channel
 
 
-@router.on("update-channel", dependencies=[current_owner_dependency])
+@router.on(
+    "update-channel",
+    summary="Update any channel's metadata by id",
+    server_summary="Channel's metadata has been updated in the current community",
+    dependencies=[current_owner_dependency],
+)
 async def update_channel(
     channel: ChannelByIds,
     data: Channel.PatchSchema,
@@ -118,6 +129,8 @@ invalid_mode = EventException(409, "Invalid move")
 
 @router.on(
     "move-channel",
+    summary="Update parent category and/or ordering of a channel in a community",
+    server_summary="Channel's parent category and/or ordering has been updated in the current community",
     exceptions=[quantity_limit_per_category_exceeded, invalid_mode],
     dependencies=[current_owner_dependency],
 )
@@ -164,7 +177,12 @@ async def move_channel(
     )
 
 
-@router.on("delete-channel", dependencies=[current_owner_dependency])
+@router.on(
+    "delete-channel",
+    summary="Delete any channel by id",
+    server_summary="A channel has been deleted in the current community",
+    dependencies=[current_owner_dependency],
+)
 async def delete_channel(
     channel: ChannelByIds,
     duplex_emitter: Emitter[ChannelIdsSchema],
