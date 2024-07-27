@@ -2,8 +2,10 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.openapi.docs import get_swagger_ui_html
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
 
 from app import communities, storage
 from app.common.config import (
@@ -34,7 +36,30 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="xi.back-2",
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan,
+)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html() -> Response:
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="xi.back-2",
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+        swagger_favicon_url=(
+            '/static/favicon-for-light.svg">\n'
+            + '<link rel="icon" href="/static/favicon-for-dark.svg" '
+            + 'media="(prefers-color-scheme: dark)'
+        ),
+    )
+
 
 app.add_middleware(
     CorrectCORSMiddleware,
