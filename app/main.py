@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -9,6 +9,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
+from tmexio.documentation import OpenAPIBuilder
 
 from app import communities, posts, storage
 from app.common.config import (
@@ -119,6 +120,33 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 app.include_router(communities.api_router)
 app.include_router(posts.api_router)
 app.include_router(storage.api_router)
+
+old_openapi = app.openapi
+
+
+def custom_openapi() -> Any:
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = old_openapi()
+    openapi_schema["openapi"] = "3.0.1"
+    # for some reason other versions don't render generated TMEXIO refs properly
+    # but the handwritten api schema worked fine on 3.1.0
+    # also 204s without body are not rendered correctly on 3.1.0
+
+    builder = OpenAPIBuilder(tmex, model_prefix="tmexio_")
+    tmex_api_schema = builder.build_documentation()
+
+    openapi_schema["paths"].update(tmex_api_schema["paths"])
+    openapi_schema["components"]["schemas"].update(
+        tmex_api_schema["components"]["schemas"]
+    )
+
+    app.openapi_schema = openapi_schema
+    return openapi_schema
+
+
+app.openapi = custom_openapi  # type: ignore[method-assign]  # from fastapi docs (dumb)
 
 
 @app.middleware("http")
