@@ -150,3 +150,15 @@ class TMEXIOTestServer:
         await self.backend._handle_eio_disconnect(eio_sid=eio_sid)
 
         # TODO check client.packets for the DISCONNECT-type packet
+
+
+def assert_ack(
+    real_ack: tuple[int, Any],
+    expected_code: int = 200,
+    expected_data: TypeChecker = None,
+) -> tuple[int, Any]:
+    assert_contains(
+        {"code": real_ack[0], "data": real_ack[1]},
+        {"code": expected_code, "data": expected_data},
+    )
+    return real_ack
