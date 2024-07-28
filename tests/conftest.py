@@ -94,20 +94,22 @@ async def user_sio_environ(proxy_auth_data: ProxyAuthData) -> dict[str, str]:
 
 
 @pytest.fixture()
-async def tmexio_client_1(
+async def tmexio_actor_client(
     tmexio_server: TMEXIOTestServer,
     user_sio_environ: dict[str, str],
 ) -> AsyncIterator[TMEXIOTestClient]:
     async with tmexio_server.client(environ=user_sio_environ) as client:
+        await client.clear_rooms()
         yield client
 
 
 @pytest.fixture()
-async def tmexio_client_2(
+async def tmexio_listener_client(
     tmexio_server: TMEXIOTestServer,
     user_sio_environ: dict[str, str],
 ) -> AsyncIterator[TMEXIOTestClient]:
     async with tmexio_server.client(environ=user_sio_environ) as client:
+        await client.clear_rooms()
         yield client
 
 
