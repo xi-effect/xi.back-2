@@ -23,13 +23,19 @@ class TMEXIOTestClient:
     def __init__(self, tmexio: TMEXIO, eio_sid: SessionIDType) -> None:
         self.tmexio = tmexio
         self.eio_sid: SessionIDType = eio_sid
-        self.sio_sid: SessionIDType | None = None
+        self._sio_sid: SessionIDType | None = None
 
         self.eio_packets: list[eio_packet.Packet] = []
         self.sio_packets: list[sio_packet.Packet] = []
 
         self.events: list[TMEXIOEvent] = []
         self.event_iterator: Iterator[TMEXIOEvent] = iter(self.events)
+
+    @property
+    def sio_sid(self) -> SessionIDType:
+        if self._sio_sid is None:
+            raise ConnectionError("SocketIO is not connected")
+        return self._sio_sid
 
     def handle_sio_message(self, sio_pkt: sio_packet.Packet) -> None:
         self.sio_packets.append(sio_pkt)
@@ -38,9 +44,9 @@ class TMEXIOTestClient:
         # connected to eio via: `socketio.base_client.eio.on("message", ...)`
         match sio_pkt.packet_type:
             case sio_packet.CONNECT:
-                self.sio_sid = sio_pkt.data["sid"]
+                self._sio_sid = sio_pkt.data["sid"]
             case sio_packet.CONNECT_ERROR:
-                self.sio_sid = None
+                self._sio_sid = None
                 pass  # TODO
             case sio_packet.EVENT:
                 # save instead of calling `socketio.async_client.AsyncClient._handle_event`
@@ -48,7 +54,7 @@ class TMEXIOTestClient:
                     TMEXIOEvent(name=sio_pkt.data[0], data=sio_pkt.data[1])
                 )
             case sio_packet.DISCONNECT:
-                self.sio_sid = None
+                self._sio_sid = None
             case _:
                 raise RuntimeError(
                     f"Unhandled SIO packet ({sio_pkt.packet_type}): {sio_pkt.data}"
@@ -78,8 +84,6 @@ class TMEXIOTestClient:
         # `socketio.async_server.AsyncServer._handle_eio_message`
         # `socketio.async_server.AsyncServer._handle_event`
         # `socketio.async_server.AsyncServer._trigger_event`
-        if self.sio_sid is None:
-            raise ConnectionError("SocketIO is not connected")
         return await self.tmexio.server.backend._trigger_event(
             event_name, "/", self.sio_sid, *data
         )
@@ -88,7 +92,26 @@ class TMEXIOTestClient:
         # TMEXIO-typed version (doesn't actually check types, just assumes them)
         return cast(tuple[int, DataType], await self.raw_emit(event_name, kwargs))
 
-    def reset_iteration(self) -> None:
+    def _current_rooms(self) -> Iterator[str]:
+        for room_name in self.tmexio.server.rooms(self.sio_sid, namespace="/"):
+            if room_name == self.sio_sid:
+                continue
+            yield room_name
+
+    def current_rooms(self) -> set[str]:
+        return set(self._current_rooms())
+
+    async def enter_room(self, room_name: str) -> None:
+        await self.tmexio.server.enter_room(self.sio_sid, room_name)
+
+    async def leave_room(self, room_name: str) -> None:
+        await self.tmexio.server.leave_room(self.sio_sid, room_name)
+
+    async def clear_rooms(self) -> None:
+        for room_name in self._current_rooms():
+            await self.leave_room(room_name=room_name)
+
+    def reset_event_iteration(self) -> None:
         self.event_iterator = iter(self.events)
 
     def assert_next_event(self, expected_name: str, expected_data: TypeChecker) -> None:
