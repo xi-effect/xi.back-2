@@ -88,7 +88,7 @@ class TMEXIOTestClient:
             event_name, "/", self.sio_sid, *data
         )
 
-    async def emit(self, event_name: str, **kwargs: DataType) -> tuple[int, DataType]:
+    async def emit(self, event_name: str, **kwargs: Any) -> tuple[int, DataType]:
         # TMEXIO-typed version (doesn't actually check types, just assumes them)
         return cast(tuple[int, DataType], await self.raw_emit(event_name, kwargs))
 

@@ -109,6 +109,7 @@ async def tmexio_actor_client(
     tmexio_server: TMEXIOTestServer,
     user_sio_environ: dict[str, str],
 ) -> AsyncIterator[TMEXIOTestClient]:
+    # TODO connection tests
     async with tmexio_server.client(environ=user_sio_environ) as client:
         await client.clear_rooms()
         yield client
