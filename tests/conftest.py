@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
+from contextlib import AsyncExitStack
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,7 +15,11 @@ from app.common.dependencies.authorization_dep import (
 from app.common.dependencies.authorization_sio_dep import header_to_wsgi_var
 from app.main import app, tmex
 from tests.common.polyfactory_ext import BaseModelFactory
-from tests.common.tmexio_testing import TMEXIOTestClient, TMEXIOTestServer
+from tests.common.tmexio_testing import (
+    TMEXIOListenerFactory,
+    TMEXIOTestClient,
+    TMEXIOTestServer,
+)
 
 pytest_plugins = (
     "anyio",
@@ -39,6 +44,12 @@ def client() -> Iterator[TestClient]:
 @pytest.fixture(scope="session")
 def mub_client() -> Iterator[TestClient]:
     with TestClient(app, headers={"X-MUB-Secret": MUB_KEY}) as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
+def internal_client() -> Iterator[TestClient]:
+    with TestClient(app, headers={"X-Api-Key": API_KEY}) as client:
         yield client
 
 
@@ -104,16 +115,15 @@ async def tmexio_actor_client(
 
 
 @pytest.fixture()
-async def tmexio_listener_client(
+async def tmexio_listener_factory(
     tmexio_server: TMEXIOTestServer,
     user_sio_environ: dict[str, str],
-) -> AsyncIterator[TMEXIOTestClient]:
-    async with tmexio_server.client(environ=user_sio_environ) as client:
-        await client.clear_rooms()
-        yield client
+) -> AsyncIterator[TMEXIOListenerFactory]:
+    async with AsyncExitStack() as stack:
 
+        async def listener_factory(room_name: str | None = None) -> TMEXIOTestClient:
+            return await stack.enter_async_context(
+                tmexio_server.listener(room_name=room_name, environ=user_sio_environ)
+            )
 
-@pytest.fixture(scope="session")
-def internal_client() -> Iterator[TestClient]:
-    with TestClient(app, headers={"X-Api-Key": API_KEY}) as client:
-        yield client
+        yield listener_factory

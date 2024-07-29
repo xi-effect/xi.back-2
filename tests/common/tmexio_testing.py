@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Protocol, cast
 from unittest.mock import patch
 
 from engineio import async_socket, packet as eio_packet  # type: ignore[import-untyped]
@@ -173,6 +173,24 @@ class TMEXIOTestServer:
         await self.backend._handle_eio_disconnect(eio_sid=eio_sid)
 
         # TODO check client.packets for the DISCONNECT-type packet
+
+    @asynccontextmanager
+    async def listener(
+        self,
+        room_name: str | None = None,
+        data: Any = None,
+        environ: dict[str, str] | None = None,
+    ) -> AsyncIterator[TMEXIOTestClient]:
+        async with self.client(data=data, environ=environ) as client:
+            await client.clear_rooms()
+            if room_name is not None:
+                await client.enter_room(room_name=room_name)
+            yield client
+
+
+class TMEXIOListenerFactory(Protocol):
+    async def __call__(self, room_name: str | None = None) -> TMEXIOTestClient:
+        pass
 
 
 def assert_ack(
