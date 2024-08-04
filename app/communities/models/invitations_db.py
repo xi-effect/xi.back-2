@@ -6,9 +6,12 @@ from sqlalchemy import CHAR, DateTime, ForeignKey, Index, or_, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql.functions import count, func
 
-from app.common.config import Base, token_generator
+from app.common.config import Base
+from app.common.cyptography import TokenGenerator
 from app.common.sqlalchemy_ext import db
 from app.communities.models.communities_db import Community
+
+invitation_token_generator = TokenGenerator(randomness=8, length=10)
 
 
 class Invitation(Base):
@@ -18,7 +21,7 @@ class Invitation(Base):
 
     # invitation data
     id: Mapped[int] = mapped_column(primary_key=True)
-    token: Mapped[str] = mapped_column(CHAR(token_generator.token_length))
+    token: Mapped[str] = mapped_column(CHAR(invitation_token_generator.token_length))
     expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     usage_count: Mapped[int] = mapped_column(default=0)
     usage_limit: Mapped[int | None] = mapped_column()
@@ -49,7 +52,7 @@ class Invitation(Base):
     @classmethod
     async def create(cls, **kwargs: Any) -> Self:
         if kwargs.get("token") is None:
-            token = token_generator.generate_token()
+            token = invitation_token_generator.generate_token()
             if (await Invitation.find_first_by_kwargs(token=token)) is not None:
                 raise RuntimeError("Token collision happened (!wow!)")
             kwargs["token"] = token
