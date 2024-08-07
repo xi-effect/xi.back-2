@@ -3,10 +3,11 @@ from random import randint
 import pytest
 
 from app.communities.models.categories_db import Category
-from app.communities.models.channels_db import Channel
+from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.models.posts_db import Post
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
 from tests.communities import factories
@@ -169,3 +170,43 @@ def channel_parent_path(
     if is_channel_with_category:
         return f"categories/{category.id}"
     return f"communities/{community.id}"
+
+
+@pytest.fixture()
+async def post(
+    active_session: ActiveSession,
+    channel: Channel,
+) -> Post:
+    async with active_session():
+        return await Post.create(
+            channel_id=channel.id,
+            **factories.PostInputFactory.build_json(),
+        )
+
+
+@pytest.fixture()
+def post_data(post: Post) -> AnyJSON:
+    return Post.ResponseSchema.model_validate(post, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def deleted_post_id(
+    active_session: ActiveSession,
+    post: Post,
+) -> int:
+    async with active_session():
+        await post.delete()
+    return post.id
+
+
+async def change_channel_kind(
+    active_session: ActiveSession,
+    channel_id: int,
+    kind: ChannelType,
+) -> None:
+    async with active_session():
+        channel = await Channel.find_first_by_id(channel_id)
+        assert channel is not None
+        channel.update(kind=kind)
