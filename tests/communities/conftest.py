@@ -8,8 +8,13 @@ from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.rooms import community_room
 from tests.common.active_session import ActiveSession
-from tests.common.tmexio_testing import TMEXIOTestClient, TMEXIOTestServer
+from tests.common.tmexio_testing import (
+    TMEXIOListenerFactory,
+    TMEXIOTestClient,
+    TMEXIOTestServer,
+)
 from tests.common.types import AnyJSON, PytestRequest
 from tests.communities import factories
 from tests.conftest import ProxyAuthDataFactory
@@ -27,6 +32,14 @@ async def community(
 ) -> Community:
     async with active_session():
         return await Community.create(**community_data)
+
+
+@pytest.fixture()
+async def community_room_listener(
+    tmexio_listener_factory: TMEXIOListenerFactory,
+    community: Community,
+) -> TMEXIOTestClient:
+    return await tmexio_listener_factory(community_room(community.id))
 
 
 @pytest.fixture()
