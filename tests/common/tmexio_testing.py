@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from typing import Any, Protocol, cast
 from unittest.mock import patch
@@ -9,6 +9,14 @@ from pydantic_marshals.contains import TypeChecker, assert_contains
 from socketio import packet as sio_packet  # type: ignore[import-untyped]
 from tmexio import TMEXIO
 from tmexio.types import DataType
+
+from app.common.dependencies.authorization_dep import (
+    AUTH_SESSION_ID_HEADER_NAME,
+    AUTH_USER_ID_HEADER_NAME,
+    AUTH_USERNAME_HEADER_NAME,
+    ProxyAuthData,
+)
+from app.common.dependencies.authorization_sio_dep import header_to_wsgi_var
 
 SessionIDType = str
 
@@ -90,7 +98,8 @@ class TMEXIOTestClient:
 
     async def emit(self, event_name: str, **kwargs: Any) -> tuple[int, DataType]:
         # TMEXIO-typed version (doesn't actually check types, just assumes them)
-        return cast(tuple[int, DataType], await self.raw_emit(event_name, kwargs))
+        args = (kwargs,) if kwargs else ()
+        return cast(tuple[int, DataType], await self.raw_emit(event_name, *args))
 
     def _current_rooms(self) -> Iterator[str]:
         for room_name in self.tmexio.server.rooms(self.sio_sid, namespace="/"):
@@ -110,6 +119,9 @@ class TMEXIOTestClient:
     async def clear_rooms(self) -> None:
         for room_name in self._current_rooms():
             await self.leave_room(room_name=room_name)
+
+    def assert_rooms(self, required_rooms: str) -> None:  # TODO
+        pass
 
     def reset_event_iteration(self) -> None:
         self.event_iterator = iter(self.events)
@@ -187,6 +199,18 @@ class TMEXIOTestServer:
                 await client.enter_room(room_name=room_name)
             yield client
 
+    def authorized_client(  # xieffect specific
+        self, proxy_auth_data: ProxyAuthData
+    ) -> AbstractAsyncContextManager[TMEXIOTestClient]:
+        return self.client(environ=proxy_auth_data_to_sio_environ(proxy_auth_data))
+
+    def authorized_listener(  # xieffect specific
+        self, proxy_auth_data: ProxyAuthData, room_name: str | None = None
+    ) -> AbstractAsyncContextManager[TMEXIOTestClient]:
+        return self.listener(
+            room_name=room_name, environ=proxy_auth_data_to_sio_environ(proxy_auth_data)
+        )
+
 
 class TMEXIOListenerFactory(Protocol):
     async def __call__(self, room_name: str | None = None) -> TMEXIOTestClient:
@@ -203,3 +227,13 @@ def assert_ack(
         {"code": expected_code, "data": expected_data},
     )
     return real_ack
+
+
+def proxy_auth_data_to_sio_environ(proxy_auth_data: ProxyAuthData) -> dict[str, str]:
+    return {
+        header_to_wsgi_var(AUTH_SESSION_ID_HEADER_NAME): str(
+            proxy_auth_data.session_id
+        ),
+        header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME): str(proxy_auth_data.user_id),
+        header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME): proxy_auth_data.username,
+    }

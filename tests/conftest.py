@@ -12,7 +12,6 @@ from app.common.dependencies.authorization_dep import (
     AUTH_USERNAME_HEADER_NAME,
     ProxyAuthData,
 )
-from app.common.dependencies.authorization_sio_dep import header_to_wsgi_var
 from app.main import app, tmex
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.tmexio_testing import (
@@ -94,37 +93,18 @@ async def tmexio_server() -> AsyncIterator[TMEXIOTestServer]:
 
 
 @pytest.fixture()
-async def user_sio_environ(proxy_auth_data: ProxyAuthData) -> dict[str, str]:
-    return {
-        header_to_wsgi_var(AUTH_SESSION_ID_HEADER_NAME): str(
-            proxy_auth_data.session_id
-        ),
-        header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME): str(proxy_auth_data.user_id),
-        header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME): proxy_auth_data.username,
-    }
-
-
-@pytest.fixture()
-async def tmexio_actor_client(
-    tmexio_server: TMEXIOTestServer,
-    user_sio_environ: dict[str, str],
-) -> AsyncIterator[TMEXIOTestClient]:
-    # TODO connection tests
-    async with tmexio_server.client(environ=user_sio_environ) as client:
-        await client.clear_rooms()
-        yield client
-
-
-@pytest.fixture()
 async def tmexio_listener_factory(
     tmexio_server: TMEXIOTestServer,
-    user_sio_environ: dict[str, str],
+    proxy_auth_data: ProxyAuthData,
 ) -> AsyncIterator[TMEXIOListenerFactory]:
     async with AsyncExitStack() as stack:
 
         async def listener_factory(room_name: str | None = None) -> TMEXIOTestClient:
             return await stack.enter_async_context(
-                tmexio_server.listener(room_name=room_name, environ=user_sio_environ)
+                tmexio_server.authorized_listener(
+                    proxy_auth_data=proxy_auth_data,
+                    room_name=room_name,
+                )
             )
 
         yield listener_factory
