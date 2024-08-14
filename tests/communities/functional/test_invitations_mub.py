@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -10,6 +12,75 @@ from tests.common.types import AnyJSON
 from tests.communities.factories import InvitationFullInputFactory
 
 pytestmark = pytest.mark.anyio
+
+INVITATION_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def invitations_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        invitations = [
+            await Invitation.create(
+                community_id=community.id,
+                **InvitationFullInputFactory.build_json(),
+            )
+            for _ in range(INVITATION_LIST_SIZE)
+        ]
+    invitations.sort(key=lambda invitation: invitation.created_at)
+
+    yield [
+        Invitation.FullResponseSchema.model_validate(
+            invitation, from_attributes=True
+        ).model_dump(mode="json")
+        for invitation in invitations
+    ]
+
+    async with active_session():
+        for invitation in invitations:
+            await invitation.delete()
+
+
+async def test_invitations_listing(
+    mub_client: TestClient,
+    community: Community,
+    invitations_data: list[AnyJSON],
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{community.id}/invitations/",
+        ),
+        expected_code=200,
+        expected_json=invitations_data,
+    )
+
+
+async def test_invitations_listing_empty_list(
+    mub_client: TestClient,
+    community: Community,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{community.id}/invitations/",
+        ),
+        expected_code=200,
+        expected_json=[],
+    )
+
+
+async def test_invitations_listing_community_not_found(
+    mub_client: TestClient,
+    deleted_community_id: int,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{deleted_community_id}/invitations/",
+        ),
+        expected_code=404,
+        expected_json={"detail": "Community not found"},
+    )
 
 
 async def test_invitation_creation(

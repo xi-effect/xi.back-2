@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -12,6 +13,76 @@ from tests.common.types import AnyJSON
 from tests.communities.factories import ParticipantMUBPatchFactory
 
 pytestmark = pytest.mark.anyio
+
+PARTICIPANT_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def participants_data(
+    active_session: ActiveSession,
+    participant_user_id: int,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        participants = [
+            await Participant.create(
+                community_id=community.id,
+                user_id=participant_user_id,
+            )
+            for _ in range(PARTICIPANT_LIST_SIZE)
+        ]
+    participants.sort(key=lambda participant: participant.created_at)
+
+    yield [
+        Participant.FullResponseSchema.model_validate(
+            participant, from_attributes=True
+        ).model_dump(mode="json")
+        for participant in participants
+    ]
+
+    async with active_session():
+        for participant in participants:
+            await participant.delete()
+
+
+async def test_participants_listing(
+    mub_client: TestClient,
+    community: Community,
+    participants_data: list[AnyJSON],
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{community.id}/participants/",
+        ),
+        expected_code=200,
+        expected_json=participants_data,
+    )
+
+
+async def test_participants_listing_empty_list(
+    mub_client: TestClient,
+    community: Community,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{community.id}/participants/",
+        ),
+        expected_code=200,
+        expected_json=[],
+    )
+
+
+async def test_participants_listing_community_not_found(
+    mub_client: TestClient,
+    deleted_community_id: int,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{deleted_community_id}/participants/",
+        ),
+        expected_code=404,
+        expected_json={"detail": "Community not found"},
+    )
 
 
 @pytest.fixture()
