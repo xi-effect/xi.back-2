@@ -3,13 +3,12 @@ from collections.abc import AsyncIterator
 import pytest
 from starlette.testclient import TestClient
 
-from app.communities.models.channels_db import Channel, ChannelType
-from app.communities.models.posts_db import Post
+from app.posts.models.post_channels_db import PostChannel
+from app.posts.models.posts_db import Post
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
-from tests.communities.conftest import change_channel_kind
-from tests.communities.factories import PostInputFactory
+from tests.posts.factories import PostInputFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -19,7 +18,7 @@ POST_LIST_SIZE = 6
 @pytest.fixture()
 async def posts(
     active_session: ActiveSession,
-    channel: Channel,
+    post_channel: PostChannel,
 ) -> AsyncIterator[list[Post]]:
     posts_data: list[AnyJSON] = [
         PostInputFactory.build_json() for _ in range(POST_LIST_SIZE)
@@ -27,7 +26,7 @@ async def posts(
 
     async with active_session():
         posts = [
-            await Post.create(channel_id=channel.id, **post_data)
+            await Post.create(channel_id=post_channel.id, **post_data)
             for post_data in posts_data
         ]
     posts.sort(key=lambda post: post.created_at, reverse=True)
@@ -50,16 +49,14 @@ async def posts(
 async def test_posts_listing(
     active_session: ActiveSession,
     mub_client: TestClient,
-    channel: Channel,
+    post_channel: PostChannel,
     posts: list[Post],
     offset: int,
     limit: int,
 ) -> None:
-    await change_channel_kind(active_session, channel.id, ChannelType.POSTS)
-
     assert_response(
         mub_client.get(
-            f"/mub/community-service/channels/{channel.id}/posts/",
+            f"/mub/post-service/post-channels/{post_channel.id}/posts/",
             params={"offset": offset, "limit": limit},
         ),
         expected_json=[
@@ -69,28 +66,16 @@ async def test_posts_listing(
     )
 
 
-@pytest.mark.parametrize(
-    "kind",
-    [
-        pytest.param(ChannelType.TASKS, id="tasks"),
-        pytest.param(ChannelType.CHAT, id="chat"),
-        pytest.param(ChannelType.CALL, id="call"),
-        pytest.param(ChannelType.BOARD, id="board"),
-    ],
-)
-async def test_posts_listing_invalid_channel_kind(
+async def test_posts_listing_post_channel_not_found(
     active_session: ActiveSession,
     mub_client: TestClient,
-    channel: Channel,
-    kind: ChannelType,
+    deleted_post_channel_id: int,
 ) -> None:
-    await change_channel_kind(active_session, channel.id, kind)
-
     assert_response(
         mub_client.get(
-            f"/mub/community-service/channels/{channel.id}/posts/",
+            f"/mub/post-service/post-channels/{deleted_post_channel_id}/posts/",
             params={"offset": 0, "limit": POST_LIST_SIZE},
         ),
-        expected_code=409,
-        expected_json={"detail": "Invalid channel kind"},
+        expected_code=404,
+        expected_json={"detail": "Post-channel not found"},
     )

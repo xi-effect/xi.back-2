@@ -15,7 +15,7 @@ from tests.communities.factories import ChannelPatchFactory
 pytestmark = pytest.mark.anyio
 
 
-async def test_channel_creation(
+async def test_channel_creation(  # TODO nq mocks for posts_bridge in communities
     mub_client: TestClient,
     active_session: ActiveSession,
     community: Community,
@@ -91,7 +91,7 @@ async def test_channel_updating(
     )
 
 
-async def test_channel_deleting(
+async def test_channel_deleting(  # TODO nq mocks for posts_bridge in communities
     mub_client: TestClient,
     active_session: ActiveSession,
     channel: Channel,
