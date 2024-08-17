@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, Path
 
 from app.common.fastapi_ext import Responses, with_responses
-from app.communities.models.posts_db import Post
+from app.posts.models.posts_db import Post
 
 
 class PostResponses(Responses):
