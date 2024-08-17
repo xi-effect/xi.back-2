@@ -23,6 +23,10 @@ DB_URL: str = getenv("DB_LINK", "postgresql+psycopg://test:test@localhost:5432/t
 DB_SCHEMA: str | None = getenv("DB_SCHEMA", None)
 DATABASE_MIGRATED: bool = getenv("DATABASE_MIGRATED", "0") == "1"
 
+LOCAL_PORT: str = getenv("LOCAL_PORT", "8000")
+
+POSTS_BASE_URL: str = getenv("POSTS_BASE_URL", f"http://localhost:{LOCAL_PORT}")
+
 API_KEY: str = getenv("API_KEY", "local")  # common for now, split later
 MUB_KEY: str = getenv("MUB_KEY", "local")
 

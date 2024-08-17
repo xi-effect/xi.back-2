@@ -12,19 +12,19 @@ pytestmark = pytest.mark.anyio
 async def test_post_channel_creation(
     active_session: ActiveSession,
     internal_client: TestClient,
-    post_channel_id: int,
     post_channel_data: AnyJSON,
+    deleted_post_channel_id: int,
 ) -> None:
     assert_nodata_response(
         internal_client.post(
-            f"/internal/post-service/post-channels/{post_channel_id}/",
+            f"/internal/post-service/post-channels/{deleted_post_channel_id}/",
             json=post_channel_data,
         ),
         expected_code=201,
     )
 
     async with active_session():
-        post_channel = await PostChannel.find_first_by_id(post_channel_id)
+        post_channel = await PostChannel.find_first_by_id(deleted_post_channel_id)
         assert post_channel is not None
         await post_channel.delete()
 

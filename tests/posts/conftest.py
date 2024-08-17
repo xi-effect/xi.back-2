@@ -1,5 +1,3 @@
-from random import randint
-
 import pytest
 
 from app.posts.models.post_channels_db import PostChannel
@@ -10,11 +8,6 @@ from tests.posts import factories
 
 
 @pytest.fixture()
-async def post_channel_id() -> int:
-    return randint(0, 1000)
-
-
-@pytest.fixture()
 async def post_channel_data() -> AnyJSON:
     return factories.PostChannelInputFactory.build_json()
 
@@ -22,11 +15,10 @@ async def post_channel_data() -> AnyJSON:
 @pytest.fixture()
 async def post_channel(
     active_session: ActiveSession,
-    post_channel_id: int,
     post_channel_data: AnyJSON,
 ) -> PostChannel:
     async with active_session():
-        return await PostChannel.create(id=post_channel_id, **post_channel_data)
+        return await PostChannel.create(**post_channel_data)
 
 
 @pytest.fixture()

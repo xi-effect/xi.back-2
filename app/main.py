@@ -15,6 +15,7 @@ from app.common.config import (
     engine,
     sessionmaker,
 )
+from app.common.config_bdg import posts_bridge
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 
@@ -34,6 +35,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(communities.lifespan())
         await stack.enter_async_context(posts.lifespan())
         await stack.enter_async_context(storage.lifespan())
+
+        await posts_bridge.open_if_unopen(stack)
+
         yield
 
 

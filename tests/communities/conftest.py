@@ -3,7 +3,7 @@ from random import randint
 import pytest
 
 from app.communities.models.categories_db import Category
-from app.communities.models.channels_db import Channel
+from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -138,6 +138,31 @@ async def channel(
 ) -> Channel:
     async with active_session():
         return await Channel.create(community_id=community.id, **channel_data)
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(channel_kind, id=channel_kind.value)
+        for channel_kind in ChannelType
+    ]
+)
+async def specific_channel_kind(request: PytestRequest[ChannelType]) -> ChannelType:
+    return request.param
+
+
+@pytest.fixture()
+async def specific_channel_data(specific_channel_kind: ChannelType) -> AnyJSON:
+    return factories.ChannelInputFactory.build_json(kind=specific_channel_kind)
+
+
+@pytest.fixture()
+async def specific_channel(
+    active_session: ActiveSession,
+    community: Community,
+    specific_channel_data: AnyJSON,
+) -> Channel:
+    async with active_session():
+        return await Channel.create(community_id=community.id, **specific_channel_data)
 
 
 @pytest.fixture()
