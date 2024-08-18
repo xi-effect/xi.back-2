@@ -214,6 +214,36 @@ async def deleted_invitation_id(
     return invitation.id
 
 
+INVITATION_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def invitations_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        invitations = [
+            await Invitation.create(
+                community_id=community.id,
+                **factories.InvitationMUBInputFactory.build_json(),
+            )
+            for _ in range(INVITATION_LIST_SIZE)
+        ]
+    invitations.sort(key=lambda invitation: invitation.created_at)
+
+    yield [
+        Invitation.ResponseSchema.model_validate(
+            invitation, from_attributes=True
+        ).model_dump(mode="json")
+        for invitation in invitations
+    ]
+
+    async with active_session():
+        for invitation in invitations:
+            await invitation.delete()
+
+
 @pytest.fixture()
 async def category_data() -> AnyJSON:
     return factories.CategoryInputFactory.build_json()

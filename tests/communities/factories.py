@@ -18,6 +18,10 @@ class ParticipantMUBPatchFactory(BasePatchModelFactory[Participant.MUBPatchSchem
     __model__ = Participant.MUBPatchSchema
 
 
+class InvitationInputFactory(BaseModelFactory[Invitation.InputSchema]):
+    __model__ = Invitation.InputSchema
+
+
 class InvitationMUBInputFactory(BaseModelFactory[Invitation.MUBInputSchema]):
     __model__ = Invitation.MUBInputSchema
 

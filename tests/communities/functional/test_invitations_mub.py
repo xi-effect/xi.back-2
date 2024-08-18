@@ -1,5 +1,3 @@
-from collections.abc import AsyncIterator
-
 import pytest
 from starlette.testclient import TestClient
 
@@ -12,35 +10,6 @@ from tests.common.types import AnyJSON
 from tests.communities.factories import InvitationMUBInputFactory
 
 pytestmark = pytest.mark.anyio
-
-INVITATION_LIST_SIZE = 6
-
-
-@pytest.fixture()
-async def invitations_data(
-    active_session: ActiveSession,
-    community: Community,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        invitations = [
-            await Invitation.create(
-                community_id=community.id,
-                **InvitationMUBInputFactory.build_json(),
-            )
-            for _ in range(INVITATION_LIST_SIZE)
-        ]
-    invitations.sort(key=lambda invitation: invitation.created_at)
-
-    yield [
-        Invitation.ResponseSchema.model_validate(
-            invitation, from_attributes=True
-        ).model_dump(mode="json")
-        for invitation in invitations
-    ]
-
-    async with active_session():
-        for invitation in invitations:
-            await invitation.delete()
 
 
 async def test_invitations_listing(

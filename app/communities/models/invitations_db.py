@@ -87,10 +87,12 @@ class Invitation(Base):
     async def find_all_valid_by_community_id(cls, community_id: int) -> Sequence[Self]:
         # TODO add sorting by creation time
         return await db.get_all(
-            select(cls).filter(
+            select(cls)
+            .filter(
                 cls.community_id == community_id,
                 *cls.valid_only_filters(),
             )
+            .order_by(cls.created_at)
         )
 
     @classmethod
