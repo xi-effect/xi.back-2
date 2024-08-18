@@ -26,11 +26,11 @@ internal_router = APIRouterExt(
 )
 internal_router.include_router(post_channels_int.router)
 
-router = APIRouterExt()
-router.include_router(outside_router)
-router.include_router(authorized_router)
-router.include_router(mub_router)
-router.include_router(internal_router)
+api_router = APIRouterExt()
+api_router.include_router(outside_router)
+api_router.include_router(authorized_router)
+api_router.include_router(mub_router)
+api_router.include_router(internal_router)
 
 
 @asynccontextmanager

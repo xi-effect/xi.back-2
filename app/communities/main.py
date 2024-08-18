@@ -1,6 +1,8 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from tmexio import EventRouter
+
 from app.common.config import AVATARS_PATH
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
@@ -34,10 +36,13 @@ mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
 mub_router.include_router(board_channels_mub.router)
 
-router = APIRouterExt()
-router.include_router(outside_router)
-router.include_router(authorized_router)
-router.include_router(mub_router)
+api_router = APIRouterExt()
+api_router.include_router(outside_router)
+api_router.include_router(authorized_router)
+api_router.include_router(mub_router)
+
+
+event_router = EventRouter()
 
 
 @asynccontextmanager

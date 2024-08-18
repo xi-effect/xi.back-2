@@ -1,3 +1,3 @@
-from app.storage.main import lifespan, router
+from app.storage.main import api_router, lifespan
 
-__all__ = ["lifespan", "router"]
+__all__ = ["lifespan", "api_router"]
