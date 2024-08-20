@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic_marshals.base import CompositeMarshalModel
 from tmexio import (
     AsyncServer,
     AsyncSocket,
@@ -49,22 +49,15 @@ UpdateParticipationEmitter = Annotated[
 ]
 
 
-class UpdateParticipantsServerSchema(BaseModel):
+class UpdateParticipantsSchema(CompositeMarshalModel):
     community_id: int
-    participants: list[Participant.ListItemSchema]
-
-
-class UpdateParticipantsPreSchema(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    community_id: int
-    participants: list[Participant]
+    participants: Annotated[list[Participant], Participant.ListItemSchema]
 
 
 UpdateParticipantsEmitter = Annotated[
-    Emitter[UpdateParticipantsPreSchema],
+    Emitter[UpdateParticipantsSchema],
     router.register_server_emitter(
-        UpdateParticipantsServerSchema,
+        UpdateParticipantsSchema.build_marshal(),
         event_name="update-participants",
         summary="Participants' metadata has been updated in the current community",
     ),
@@ -198,7 +191,7 @@ async def transfer_ownership(
     )
 
     await update_participants_emitter.emit(
-        UpdateParticipantsPreSchema(
+        UpdateParticipantsSchema(
             community_id=community.id,
             participants=[current_participant, target_participant],
         ),

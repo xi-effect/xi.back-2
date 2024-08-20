@@ -12,7 +12,7 @@ fastapi = "^0.110.1"
 uvicorn = {extras = ["standard"], version = "^0.29.0"}
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.29"}
 psycopg = {extras = ["binary"], version = "^3.1.19"}
-pydantic-marshals = {extras = ["sqlalchemy"], version = "^0.3.12"}
+pydantic-marshals = {version = "0.3.14", extras = ["sqlalchemy"]}
 alembic = "^1.13.1"
 pydantic-settings = "^2.2.1"
 filetype = "^1.2.0"
@@ -48,7 +48,7 @@ flake8-use-pathlib = "0.3.0"
 flake8-test-name = "^0.1.5"
 wemake-python-styleguide = "0.18.0"
 httpx = "^0.27.0"
-pydantic-marshals = {extras = ["assert-contains"], version = "^0.3.12"}
+pydantic-marshals = {version = "0.3.14", extras = ["assert-contains"]}
 rstr = "^3.2.2"
 faker = "^24.9.0"
 polyfactory = "^2.15.0"

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic_marshals.base import CompositeMarshalModel
 from tmexio import AsyncServer, AsyncSocket, Emitter, EventException, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -32,16 +32,14 @@ from app.communities.store import user_id_to_sids
 router = EventRouterExt(tags=["communities-all"])  # TODO split community routers
 
 
-class ParticipationSchema(BaseModel):
-    community: Community.FullResponseSchema
-    participant: Participant.CurrentSchema
+class ParticipationSchema(CompositeMarshalModel):
+    community: Annotated[Community, Community.FullResponseSchema]
+    participant: Annotated[Participant, Participant.CurrentSchema]
 
 
-class ParticipationPreSchema(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    community: Community
-    participant: Participant
+ParticipationSchemaAck = Annotated[
+    ParticipationSchema, PydanticPackager(ParticipationSchema.build_marshal())
+]
 
 
 @router.on(
@@ -54,7 +52,7 @@ async def create_community(
     user: AuthorizedUser,
     socket: AsyncSocket,
     duplex_emitter: Annotated[Emitter[Community], Community.FullResponseSchema],
-) -> Annotated[ParticipationPreSchema, PydanticPackager(ParticipationSchema)]:
+) -> ParticipationSchemaAck:
     community = await Community.create(**data.model_dump())
     participant = await Participant.create(
         community_id=community.id, user_id=user.user_id, is_owner=True
@@ -69,7 +67,7 @@ async def create_community(
         exclude_self=True,
     )
 
-    return ParticipationPreSchema(community=community, participant=participant)
+    return ParticipationSchema(community=community, participant=participant)
 
 
 @router.on(
@@ -80,7 +78,7 @@ async def create_community(
 async def retrieve_any_community(
     user: AuthorizedUser,
     socket: AsyncSocket,
-) -> Annotated[ParticipationPreSchema, PydanticPackager(ParticipationSchema)]:
+) -> ParticipationSchemaAck:
     result = await Participant.find_first_community_by_user_id(user_id=user.user_id)
     if result is None:
         raise community_not_found
@@ -89,7 +87,7 @@ async def retrieve_any_community(
 
     await socket.enter_room(community_room(community.id))
     await socket.enter_room(participant_room(community.id, user.user_id))
-    return ParticipationPreSchema(community=community, participant=participant)
+    return ParticipationSchema(community=community, participant=participant)
 
 
 @router.on("retrieve-community", summary="Retrieve and open a community by id")
@@ -97,10 +95,10 @@ async def retrieve_community(
     community: CommunityById,
     participant: CurrentParticipant,
     socket: AsyncSocket,
-) -> Annotated[ParticipationPreSchema, PydanticPackager(ParticipationSchema)]:
+) -> ParticipationSchemaAck:
     await socket.enter_room(community_room(community.id))
     await socket.enter_room(participant_room(community.id, participant.user_id))
-    return ParticipationPreSchema(community=community, participant=participant)
+    return ParticipationSchema(community=community, participant=participant)
 
 
 @router.on("close-community", summary="Close a community")  # TODO no session here
@@ -136,7 +134,7 @@ async def join_community(
     socket: AsyncSocket,
     create_participant_emitter: CreateParticipantEmitter,
     duplex_emitter: Annotated[Emitter[Community], Community.FullResponseSchema],
-) -> Annotated[ParticipationPreSchema, PydanticPackager(ParticipationSchema)]:
+) -> ParticipationSchemaAck:
     result = await Invitation.find_with_community_by_code(code)
     if result is None:
         raise invitation_not_found
@@ -173,7 +171,7 @@ async def join_community(
         exclude_self=True,
     )
 
-    return ParticipationPreSchema(community=community, participant=participant)
+    return ParticipationSchema(community=community, participant=participant)
 
 
 owner_can_not_leave = EventException(409, "Owner can not leave")
