@@ -1,21 +1,21 @@
 from collections.abc import Sequence
 
 from app.common.fastapi_ext import APIRouterExt
-from app.communities.dependencies.channels_dep import PostsChannelById
-from app.communities.dependencies.posts_dep import PostById
-from app.communities.models.posts_db import Post
+from app.posts.dependencies.post_channels_dep import PostChannelById
+from app.posts.dependencies.posts_dep import PostById
+from app.posts.models.posts_db import Post
 
 router = APIRouterExt(tags=["posts mub"])
 
 
 @router.get(
-    "/channels/{channel_id}/posts/",
+    "/post-channels/{channel_id}/posts/",
     status_code=200,
     response_model=list[Post.ResponseSchema],
     summary="List paginated posts in a channel",
 )
 async def list_posts(
-    channel: PostsChannelById,
+    channel: PostChannelById,
     offset: int,
     limit: int,
 ) -> Sequence[Post]:
@@ -23,12 +23,12 @@ async def list_posts(
 
 
 @router.post(
-    "/channels/{channel_id}/posts/",
+    "/post-channels/{channel_id}/posts/",
     status_code=201,
     response_model=Post.ResponseSchema,
     summary="Create a new post in a channel",
 )
-async def create_post(channel: PostsChannelById, data: Post.InputSchema) -> Post:
+async def create_post(channel: PostChannelById, data: Post.InputSchema) -> Post:
     return await Post.create(channel_id=channel.id, **data.model_dump())
 
 

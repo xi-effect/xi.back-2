@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import Headers
 
-from app.common.config import MUB_KEY
+from app.common.config import API_KEY, MUB_KEY
 from app.common.dependencies.authorization_dep import (
     AUTH_SESSION_ID_HEADER_NAME,
     AUTH_USER_ID_HEADER_NAME,
@@ -19,6 +19,7 @@ pytest_plugins = (
     "tests.common.active_session",
     "tests.common.faker_ext",
     "tests.common.mock_stack",
+    "tests.common.respx_ext",
 )
 
 
@@ -67,4 +68,10 @@ def authorized_client(
 @pytest.fixture(scope="session")
 def mub_client() -> Iterator[TestClient]:
     with TestClient(app, headers={"X-MUB-Secret": MUB_KEY}) as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
+def internal_client() -> Iterator[TestClient]:
+    with TestClient(app, headers={"X-Api-Key": API_KEY}) as client:
         yield client

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
-from app.communities.models.channels_db import Channel
+from app.posts.models.post_channels_db import PostChannel
 
 
 class Post(Base):
@@ -20,7 +20,9 @@ class Post(Base):
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
     author_id: Mapped[int] = mapped_column()
-    channel_id: Mapped[int] = mapped_column(ForeignKey(Channel.id, ondelete="CASCADE"))
+    channel_id: Mapped[int] = mapped_column(
+        ForeignKey(PostChannel.id, ondelete="CASCADE")
+    )
 
     __table_args__ = (
         Index("hash_index_posts_channel_id", channel_id, postgresql_using="hash"),

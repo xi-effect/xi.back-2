@@ -6,12 +6,13 @@ from fastapi import Body, HTTPException
 from pydantic import BaseModel
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
+from app.common.config_bdg import posts_bridge
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.categories_dep import CategoryById
 from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.categories_db import Category
-from app.communities.models.channels_db import Channel
+from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.responses import LimitedListResponses, MoveResponses
 
 router = APIRouterExt(tags=["channels mub"])
@@ -78,11 +79,14 @@ async def create_channel(
         community_id=community.id, category_id=None
     ):
         raise LimitedListResponses.QUANTITY_EXCEEDED
-    return await Channel.create(
+    channel = await Channel.create(
         community_id=community.id,
         category_id=None,
         **data.model_dump(),
     )
+    if channel.kind is ChannelType.POSTS:
+        await posts_bridge.create_post_channel(channel.id, channel.community_id)
+    return channel
 
 
 @router.post(
@@ -101,11 +105,14 @@ async def create_channel_in_category(
         community_id=category.community_id, category_id=category.id
     ):
         raise LimitedListResponses.QUANTITY_EXCEEDED
-    return await Channel.create(
+    channel = await Channel.create(
         community_id=category.community_id,
         category_id=category.id,
         **data.model_dump(),
     )
+    if channel.kind is ChannelType.POSTS:
+        await posts_bridge.create_post_channel(channel.id, channel.community_id)
+    return channel
 
 
 @router.put(
@@ -177,4 +184,6 @@ async def move_channel(
     summary="Delete any channel by id",
 )
 async def delete_channel(channel: ChannelById) -> None:
+    if channel.kind is ChannelType.POSTS:
+        await posts_bridge.delete_post_channel(channel.id)
     await channel.delete()

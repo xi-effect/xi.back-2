@@ -3,14 +3,13 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
-from app.communities.models.channels_db import Channel, ChannelType
-from app.communities.models.posts_db import Post
+from app.posts.models.post_channels_db import PostChannel
+from app.posts.models.posts_db import Post
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
-from tests.communities.conftest import change_channel_kind
-from tests.communities.factories import PostInputFactory, PostPatchFactory
+from tests.posts.factories import PostInputFactory, PostPatchFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -18,14 +17,12 @@ pytestmark = pytest.mark.anyio
 async def test_post_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
-    channel: Channel,
+    post_channel: PostChannel,
 ) -> None:
-    await change_channel_kind(active_session, channel.id, ChannelType.POSTS)
-
     post_input_data = PostInputFactory.build_json()
     post_id: int = assert_response(
         mub_client.post(
-            f"/mub/community-service/channels/{channel.id}/posts/",
+            f"/mub/post-service/post-channels/{post_channel.id}/posts/",
             json=post_input_data,
         ),
         expected_code=201,
@@ -41,31 +38,19 @@ async def test_post_creation(
         await post.delete()
 
 
-@pytest.mark.parametrize(
-    "kind",
-    [
-        pytest.param(ChannelType.TASKS, id="tasks"),
-        pytest.param(ChannelType.CHAT, id="chat"),
-        pytest.param(ChannelType.CALL, id="call"),
-        pytest.param(ChannelType.BOARD, id="board"),
-    ],
-)
-async def test_post_creation_invalid_channel_kind(
+async def test_post_creation_post_channel_not_found(
     mub_client: TestClient,
     active_session: ActiveSession,
-    channel: Channel,
-    kind: ChannelType,
+    deleted_post_channel_id: int,
 ) -> None:
-    await change_channel_kind(active_session, channel.id, kind)
-
     post_input_data = PostInputFactory.build_json()
     assert_response(
         mub_client.post(
-            f"/mub/community-service/channels/{channel.id}/posts/",
+            f"/mub/post-service/post-channels/{deleted_post_channel_id}/posts/",
             json=post_input_data,
         ),
-        expected_code=409,
-        expected_json={"detail": "Invalid channel kind"},
+        expected_code=404,
+        expected_json={"detail": "Post-channel not found"},
     )
 
 
@@ -75,7 +60,7 @@ async def test_post_retrieving(
     post_data: AnyJSON,
 ) -> None:
     assert_response(
-        mub_client.get(f"/mub/community-service/posts/{post.id}/"),
+        mub_client.get(f"/mub/post-service/posts/{post.id}/"),
         expected_json=post_data,
     )
 
@@ -89,7 +74,7 @@ async def test_post_updating(
 
     assert_response(
         mub_client.patch(
-            f"/mub/community-service/posts/{post.id}/",
+            f"/mub/post-service/posts/{post.id}/",
             json=post_patch_data,
         ),
         expected_json={**post_data, **post_patch_data},
@@ -102,7 +87,7 @@ async def test_post_deleting(
     post: Post,
 ) -> None:
     assert_nodata_response(
-        mub_client.delete(f"/mub/community-service/posts/{post.id}/"),
+        mub_client.delete(f"/mub/post-service/posts/{post.id}/"),
     )
 
     async with active_session():
@@ -126,7 +111,7 @@ async def test_post_not_finding(
     assert_response(
         mub_client.request(
             method,
-            f"/mub/community-service/posts/{deleted_post_id}/",
+            f"/mub/post-service/posts/{deleted_post_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=404,
