@@ -2290,13 +2290,13 @@ pbr = ">=2.0.0,<2.1.0 || >2.1.0"
 
 [[package]]
 name = "tmexio"
-version = "0.0.1"
+version = "0.1.0"
 description = "Python framework for building SocketIO applications with typing, dependency injection and more"
 optional = false
 python-versions = "<4.0,>=3.12"
 files = [
-    {file = "tmexio-0.0.1-py3-none-any.whl", hash = "sha256:b21fc1c7d9b52292484654de61484d320c303c760de24fffe56dedadc254ed58"},
-    {file = "tmexio-0.0.1.tar.gz", hash = "sha256:0f01e62fc2bac72ca5609b19b76f56445cd419c1ff100a50e6449c361f25ca9a"},
+    {file = "tmexio-0.1.0-py3-none-any.whl", hash = "sha256:88866a8b176fcc7e7bd18499b1b3a62aae8f5df646888ade63e29bb15154e334"},
+    {file = "tmexio-0.1.0.tar.gz", hash = "sha256:7053c93a350ade3edecfe830551469fa6ae6996bf8401e1595037d82e193b613"},
 ]
 
 [package.dependencies]
@@ -2633,4 +2633,4 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "56d469d4001580dc2ccbc0f7bf42c32192a832b4fc9eedb053c9e4abd9ecff54"
+content-hash = "b285668d99d29182eb9ad5ef987fba9ac50d8dd46c9aec4ee900f9038d15e401"

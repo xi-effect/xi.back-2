@@ -1,9 +1,10 @@
-from typing import Annotated, Any, Final
+from typing import Annotated, Any, Final, cast
 
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ValidationError
 from starlette.status import HTTP_407_PROXY_AUTHENTICATION_REQUIRED
+from tmexio import AsyncSocket, register_dependency
 
 from app.common.fastapi_ext import Responses, with_responses
 
@@ -85,3 +86,12 @@ async def authorize_from_wsgi_environ(environ: dict[str, Any]) -> ProxyAuthData:
         user_id=environ.get(header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME)),  # type: ignore[arg-type]
         username=environ.get(header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME)),  # type: ignore[arg-type]
     )
+
+
+@register_dependency()
+async def retrieve_authorized_user(socket: AsyncSocket) -> ProxyAuthData:
+    session = await socket.get_session()  # TODO better typing!!!
+    return cast(ProxyAuthData, session["auth"])
+
+
+AuthorizedUser = Annotated[ProxyAuthData, retrieve_authorized_user]

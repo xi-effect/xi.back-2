@@ -1,4 +1,3 @@
-import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 
@@ -22,6 +21,7 @@ from app.common.config_bdg import posts_bridge
 from app.common.dependencies.authorization_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
+from app.common.tmexio_ext import remove_ping_pong_logs
 from app.communities.store import user_id_to_sids
 
 tmex = TMEXIO(
@@ -32,17 +32,7 @@ tmex = TMEXIO(
     engineio_logger=True,
 )
 tmex.include_router(communities.event_router)
-
-
-class NoPingPongFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:  # noqa: FNE005
-        return not (
-            "Received packet PONG" in record.getMessage()
-            or "Sending packet PING" in record.getMessage()
-        )
-
-
-logging.getLogger("engineio.server").addFilter(NoPingPongFilter())
+remove_ping_pong_logs()
 
 
 @tmex.on_connect()
