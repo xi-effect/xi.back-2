@@ -1,4 +1,4 @@
-from typing import Annotated, Final
+from typing import Annotated, Any, Final
 
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
@@ -73,3 +73,15 @@ async def authorize_proxy(
 
 ProxyAuthorized = Depends(authorize_proxy)
 AuthorizationData = Annotated[ProxyAuthData, ProxyAuthorized]
+
+
+def header_to_wsgi_var(header_name: str) -> str:
+    return f"HTTP_{header_name.upper().replace('-', '_')}"
+
+
+async def authorize_from_wsgi_environ(environ: dict[str, Any]) -> ProxyAuthData:
+    return ProxyAuthData(
+        session_id=environ.get(header_to_wsgi_var(AUTH_SESSION_ID_HEADER_NAME)),  # type: ignore[arg-type]
+        user_id=environ.get(header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME)),  # type: ignore[arg-type]
+        username=environ.get(header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME)),  # type: ignore[arg-type]
+    )
