@@ -18,11 +18,21 @@ async def test_invitations_listing(
     tmexio_owner_client: TMEXIOTestClient,
     invitations_data: list[AnyJSON],
 ) -> None:
-    # TODO properly test filters in `Invitation.find_all_valid_by_community_id`
-    #  (currently `invitation_data` generates invites without `expiry` or `usage_limit`)
     assert_ack(
         await tmexio_owner_client.emit("list-invitations", community_id=community.id),
         expected_data=invitations_data,
+    )
+    tmexio_owner_client.assert_no_more_events()
+
+
+async def test_invitations_listing_invalid_invitation_not_shown(
+    community: Community,
+    tmexio_owner_client: TMEXIOTestClient,
+    invalid_invitation: Invitation,
+) -> None:
+    assert_ack(
+        await tmexio_owner_client.emit("list-invitations", community_id=community.id),
+        expected_data=[],
     )
     tmexio_owner_client.assert_no_more_events()
 

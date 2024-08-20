@@ -53,7 +53,9 @@ class Invitation(Base):
         columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None)],
     )
     MUBInputSchema = InputSchema.extend(columns=[created_at, creator_id])
-    ResponseSchema = MUBInputSchema.extend(columns=[id, token, usage_count])
+    ResponseSchema = MappedModel.create(
+        columns=[id, token, expiry, usage_count, usage_limit, created_at, creator_id]
+    )
 
     @classmethod
     async def create(cls, **kwargs: Any) -> Self:

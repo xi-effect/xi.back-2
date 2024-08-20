@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from typing import Any
 
 import pytest
 
@@ -10,6 +11,7 @@ from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
 from app.communities.rooms import community_room
 from tests.common.active_session import ActiveSession
+from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
     TMEXIOTestClient,
@@ -194,6 +196,24 @@ async def invitation(
         return await Invitation.create(
             community_id=community.id,
             **factories.InvitationMUBInputFactory.build_json(),
+        )
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(factories.ExpiredInvitationDataFactory, id="expired"),
+        pytest.param(factories.OverusedInvitationDataFactory, id="overused"),
+    ]
+)
+async def invalid_invitation(
+    active_session: ActiveSession,
+    community: Community,
+    request: PytestRequest[type[BaseModelFactory[Any]]],
+) -> Invitation:
+    async with active_session():
+        return await Invitation.create(
+            community_id=community.id,
+            **request.param.build_json(),
         )
 
 

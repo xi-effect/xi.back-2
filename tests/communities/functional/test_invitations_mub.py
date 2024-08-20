@@ -25,6 +25,23 @@ async def test_invitations_listing(
     )
 
 
+async def test_invitations_listing_invalid_invitations_shown(
+    mub_client: TestClient,
+    community: Community,
+    invalid_invitation: Invitation,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/community-service/communities/{community.id}/invitations/",
+        ),
+        expected_json=[
+            Invitation.ResponseSchema.model_validate(
+                invalid_invitation, from_attributes=True
+            ).model_dump(mode="json")
+        ],
+    )
+
+
 async def test_invitations_listing_empty_list(
     mub_client: TestClient,
     community: Community,
@@ -37,20 +54,7 @@ async def test_invitations_listing_empty_list(
     )
 
 
-async def test_invitations_listing_community_not_found(
-    mub_client: TestClient,
-    deleted_community_id: int,
-) -> None:
-    assert_response(
-        mub_client.get(
-            f"/mub/community-service/communities/{deleted_community_id}/invitations/",
-        ),
-        expected_code=404,
-        expected_json={"detail": "Community not found"},
-    )
-
-
-async def test_invitation_creation(
+async def test_invitation_creation(  # TODO community_not_finding
     mub_client: TestClient,
     active_session: ActiveSession,
     community: Community,
@@ -89,6 +93,24 @@ async def test_invitation_creation_quantity_exceed(
         ),
         expected_code=409,
         expected_json={"detail": "Quantity exceeded"},
+    )
+
+
+@pytest.mark.parametrize(
+    "method", [pytest.param("GET", id="list"), pytest.param("POST", id="create")]
+)
+async def test_invitations_requesting_community_not_found(
+    mub_client: TestClient,
+    deleted_community_id: int,
+    method: str,
+) -> None:
+    assert_response(
+        mub_client.request(
+            method,
+            f"/mub/community-service/communities/{deleted_community_id}/invitations/",
+        ),
+        expected_code=404,
+        expected_json={"detail": "Community not found"},
     )
 
 

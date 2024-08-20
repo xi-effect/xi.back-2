@@ -118,6 +118,20 @@ async def test_community_joining(
     participant_list_listener.assert_no_more_events()
 
 
+async def test_community_joining_invalid_invitation(
+    tmexio_outsider_client: TMEXIOTestClient,
+    invalid_invitation: Invitation,
+) -> None:
+    assert_ack(
+        await tmexio_outsider_client.emit(
+            "join-community", code=invalid_invitation.token
+        ),
+        expected_code=404,
+        expected_data="Invitation not found",
+    )
+    tmexio_outsider_client.assert_no_more_events()
+
+
 async def test_community_joining_invitation_not_found(
     tmexio_outsider_client: TMEXIOTestClient,
     deleted_invitation_code: str,
