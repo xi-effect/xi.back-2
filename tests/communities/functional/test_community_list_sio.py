@@ -1,26 +1,74 @@
+from collections.abc import AsyncIterator
+
 import pytest
 
 from app.communities.models.communities_db import Community
+from app.communities.models.participants_db import Participant
 from app.communities.rooms import (
     community_room,
     participant_room,
     participants_list_room,
 )
+from tests.common.active_session import ActiveSession
 from tests.common.tmexio_testing import TMEXIOTestClient, assert_ack
 from tests.common.types import AnyJSON
+from tests.communities import factories
 
 pytestmark = pytest.mark.anyio
 
+COMMUNITY_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def communities_data(
+    active_session: ActiveSession,
+    outsider_user_id: int,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        communities = [
+            await Community.create(**factories.CommunityFullInputFactory.build_json())
+            for _ in range(COMMUNITY_LIST_SIZE)
+        ]
+        for i, community in enumerate(communities):
+            await Participant.create(
+                community_id=community.id,
+                user_id=outsider_user_id,
+                is_owner=i % 2 == 0,
+            )
+    # if ordering will be added:
+    # `communities.sort(key=lambda community: community.created_at)`
+
+    yield [
+        Community.FullResponseSchema.model_validate(
+            community, from_attributes=True
+        ).model_dump(mode="json")
+        for community in communities
+    ]
+
+    async with active_session():
+        for community in communities:
+            await community.delete()
+
 
 async def test_community_listing(
-    community_data: AnyJSON,
-    tmexio_actor_client: TMEXIOTestClient,
+    tmexio_outsider_client: TMEXIOTestClient,
+    communities_data: list[AnyJSON],
 ) -> None:
     assert_ack(
-        await tmexio_actor_client.emit("list-communities"),
-        expected_data=[community_data],
+        await tmexio_outsider_client.emit("list-communities"),
+        expected_data=communities_data,
     )
-    tmexio_actor_client.assert_no_more_events()
+    tmexio_outsider_client.assert_no_more_events()
+
+
+async def test_community_listing_empty_list(
+    tmexio_outsider_client: TMEXIOTestClient,
+) -> None:
+    assert_ack(
+        await tmexio_outsider_client.emit("list-communities"),
+        expected_data=[],
+    )
+    tmexio_outsider_client.assert_no_more_events()
 
 
 async def test_any_community_retrieving_and_opening(
