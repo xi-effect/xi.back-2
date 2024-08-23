@@ -3,7 +3,6 @@ from contextlib import AsyncExitStack
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import Headers
 
 from app.common.config import API_KEY, MUB_KEY
 from app.common.dependencies.authorization_dep import (
@@ -41,21 +40,13 @@ def client() -> Iterator[TestClient]:
 
 
 @pytest.fixture(scope="session")
-def mub_client() -> Iterator[TestClient]:
-    with TestClient(app, headers={"X-MUB-Secret": MUB_KEY}) as client:
-        yield client
+def mub_client(client: TestClient) -> TestClient:
+    return TestClient(client.app, headers={"X-MUB-Secret": MUB_KEY})
 
 
 @pytest.fixture(scope="session")
-def internal_client() -> Iterator[TestClient]:
-    with TestClient(app, headers={"X-Api-Key": API_KEY}) as client:
-        yield client
-
-
-@pytest.fixture(scope="session")
-def authorized_client_base() -> Iterator[TestClient]:
-    with TestClient(app) as client:
-        yield client
+def internal_client(client: TestClient) -> TestClient:
+    return TestClient(client.app, headers={"X-Api-Key": API_KEY})
 
 
 class ProxyAuthDataFactory(BaseModelFactory[ProxyAuthData]):
@@ -68,19 +59,15 @@ def proxy_auth_data() -> ProxyAuthData:
 
 
 @pytest.fixture()
-def authorized_client(
-    authorized_client_base: TestClient,
-    proxy_auth_data: ProxyAuthData,
-) -> Iterator[TestClient]:
-    authorized_client_base.headers = Headers(
-        {
+def authorized_client(client: TestClient, proxy_auth_data: ProxyAuthData) -> TestClient:
+    return TestClient(
+        client.app,
+        headers={
             AUTH_SESSION_ID_HEADER_NAME: str(proxy_auth_data.session_id),
             AUTH_USER_ID_HEADER_NAME: str(proxy_auth_data.user_id),
             AUTH_USERNAME_HEADER_NAME: proxy_auth_data.username,
-        }
+        },
     )
-    yield authorized_client_base
-    authorized_client_base.headers = Headers()
 
 
 @pytest.fixture()

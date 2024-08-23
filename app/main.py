@@ -78,7 +78,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(posts.lifespan())
         await stack.enter_async_context(storage.lifespan())
 
-        await posts_bridge.open_if_unopen(stack)
+        await stack.enter_async_context(posts_bridge.client)
 
         yield
 
