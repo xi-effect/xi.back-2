@@ -11,6 +11,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.categories_dep import CategoryById
 from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
+from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.responses import LimitedListResponses, MoveResponses
@@ -86,6 +87,8 @@ async def create_channel(
     )
     if channel.kind is ChannelType.POSTS:
         await posts_bridge.create_post_channel(channel.id, channel.community_id)
+    elif channel.kind is ChannelType.BOARD:
+        await BoardChannel.create(id=channel.id)
     return channel
 
 
@@ -112,6 +115,8 @@ async def create_channel_in_category(
     )
     if channel.kind is ChannelType.POSTS:
         await posts_bridge.create_post_channel(channel.id, channel.community_id)
+    elif channel.kind is ChannelType.BOARD:
+        await BoardChannel.create(id=channel.id)
     return channel
 
 

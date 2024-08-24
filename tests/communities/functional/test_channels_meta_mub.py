@@ -5,6 +5,7 @@ from respx import MockRouter
 from starlette.testclient import TestClient
 
 from app.common.config import API_KEY
+from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
@@ -50,6 +51,9 @@ async def test_channel_creation(
             expected_path=f"/internal/post-service/post-channels/{channel_id}/",
             expected_json={"community_id": community.id},
         )
+    elif specific_channel_kind is ChannelType.BOARD:
+        async with active_session():
+            assert await BoardChannel.find_first_by_id(channel_id) is not None
 
     async with active_session():
         channel = await Channel.find_first_by_id(channel_id)

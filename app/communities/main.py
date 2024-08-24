@@ -7,6 +7,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.routes import (
     avatars_rst,
+    board_channels_mub,
     categories_mub,
     channels_mub,
     communities_mub,
@@ -31,6 +32,7 @@ mub_router.include_router(invitations_mub.router)
 mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
+mub_router.include_router(board_channels_mub.router)
 
 router = APIRouterExt()
 router.include_router(outside_router)
