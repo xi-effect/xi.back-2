@@ -90,27 +90,6 @@ async def test_community_management_community_not_found(
 
 
 @management_events_parametrization
-async def test_community_management_insufficient_permissions(
-    community: Community,
-    community_room_listener: TMEXIOTestClient,
-    tmexio_participant_client: TMEXIOTestClient,
-    event_name: str,
-    data_factory: type[BaseModelFactory[Any]] | None,
-) -> None:
-    assert_ack(
-        await tmexio_participant_client.emit(
-            event_name,
-            community_id=community.id,
-            data=data_factory and data_factory.build_json(),
-        ),
-        expected_data="Not sufficient permissions",
-        expected_code=403,
-    )
-    tmexio_participant_client.assert_no_more_events()
-    community_room_listener.assert_no_more_events()
-
-
-@management_events_parametrization
 async def test_community_management_no_access_to_community(
     community: Community,
     community_room_listener: TMEXIOTestClient,
@@ -128,4 +107,25 @@ async def test_community_management_no_access_to_community(
         expected_code=403,
     )
     tmexio_outsider_client.assert_no_more_events()
+    community_room_listener.assert_no_more_events()
+
+
+@management_events_parametrization
+async def test_community_management_insufficient_permissions(
+    community: Community,
+    community_room_listener: TMEXIOTestClient,
+    tmexio_participant_client: TMEXIOTestClient,
+    event_name: str,
+    data_factory: type[BaseModelFactory[Any]] | None,
+) -> None:
+    assert_ack(
+        await tmexio_participant_client.emit(
+            event_name,
+            community_id=community.id,
+            data=data_factory and data_factory.build_json(),
+        ),
+        expected_data="Not sufficient permissions",
+        expected_code=403,
+    )
+    tmexio_participant_client.assert_no_more_events()
     community_room_listener.assert_no_more_events()

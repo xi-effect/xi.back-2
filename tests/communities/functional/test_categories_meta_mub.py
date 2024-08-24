@@ -16,8 +16,8 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_category_creation(
-    mub_client: TestClient,
     active_session: ActiveSession,
+    mub_client: TestClient,
     community: Community,
     category_data: AnyJSON,
 ) -> None:
@@ -36,7 +36,7 @@ async def test_category_creation(
         await category.delete()
 
 
-async def test_category_creation_quantity_exceed(
+async def test_category_creation_quantity_exceeded(
     mock_stack: MockStack,
     mub_client: TestClient,
     community: Community,
@@ -50,6 +50,21 @@ async def test_category_creation_quantity_exceed(
         ),
         expected_code=409,
         expected_json={"detail": "Quantity exceeded"},
+    )
+
+
+async def test_category_creation_community_not_found(
+    mub_client: TestClient,
+    deleted_community_id: int,
+    category_data: AnyJSON,
+) -> None:
+    assert_response(
+        mub_client.post(
+            f"/mub/community-service/communities/{deleted_community_id}/categories/",
+            json=category_data,
+        ),
+        expected_code=404,
+        expected_json={"detail": "Community not found"},
     )
 
 
@@ -76,13 +91,13 @@ async def test_category_updating(
             f"/mub/community-service/categories/{category.id}/",
             json=category_patch_data,
         ),
-        expected_json={**category_data, **category_patch_data},
+        expected_json={**category_data, **category_patch_data, "id": category.id},
     )
 
 
 async def test_category_deleting(
-    mub_client: TestClient,
     active_session: ActiveSession,
+    mub_client: TestClient,
     category: Category,
 ) -> None:
     assert_nodata_response(
@@ -96,14 +111,14 @@ async def test_category_deleting(
 @pytest.mark.parametrize(
     ("method", "body_factory"),
     [
-        pytest.param("GET", None, id="get"),
-        pytest.param("PATCH", CategoryPatchFactory, id="patch"),
+        pytest.param("GET", None, id="retrieve"),
+        pytest.param("PATCH", CategoryPatchFactory, id="update"),
         pytest.param("DELETE", None, id="delete"),
     ],
 )
 async def test_category_not_finding(
-    mub_client: TestClient,
     active_session: ActiveSession,
+    mub_client: TestClient,
     deleted_category_id: int,
     method: str,
     body_factory: type[BaseModelFactory[Any]] | None,
