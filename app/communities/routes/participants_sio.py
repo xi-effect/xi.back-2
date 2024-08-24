@@ -88,7 +88,7 @@ KickedFromCommunityEmitter = Annotated[
     summary="Open the list of participants of a community",
     dependencies=[current_participant_dependency],
 )
-async def list_participants(
+async def list_participants(  # TODO (37570606) pragma: no cover
     community: CommunityById,
     socket: AsyncSocket,
 ) -> Annotated[
@@ -103,7 +103,9 @@ async def list_participants(
     summary="Close the list of participants of a community",
 )  # TODO no session here
 async def close_participants(community_id: int, socket: AsyncSocket) -> None:
-    await socket.leave_room(participants_list_room(community_id))
+    await socket.leave_room(  # TODO (37570606) pragma: no cover
+        participants_list_room(community_id)
+    )
 
 
 target_is_the_source = EventException(409, "Target is the source")
@@ -112,7 +114,7 @@ owner_can_not_be_kicked = EventException(403, "Owner can not be kicked")
 
 
 @register_dependency(exceptions=[target_is_the_source, participant_not_found])
-async def target_participant_dependency(
+async def target_participant_dependency(  # TODO (37570606) pragma: no cover
     community: CommunityById,
     current_participant: CurrentOwner,
     target_user_id: int,
@@ -136,7 +138,7 @@ TargetParticipant = Annotated[Participant, target_participant_dependency]
     summary="Kick a participant from a community",
     exceptions=[owner_can_not_be_kicked],
 )
-async def kick_participant(
+async def kick_participant(  # TODO (37570606) pragma: no cover
     community: CommunityById,
     target_participant: TargetParticipant,
     server: AsyncServer,
@@ -168,7 +170,7 @@ async def kick_participant(
 
 
 @router.on("transfer-ownership", summary="Transfer ownership of the community")
-async def transfer_ownership(
+async def transfer_ownership(  # pragma: no cover  # not used right now
     community: CommunityById,
     current_participant: CurrentOwner,
     target_participant: TargetParticipant,

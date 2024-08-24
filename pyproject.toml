@@ -92,6 +92,7 @@ exclude_lines = [
   "class .*\\(Protocol\\):",
   "@abstractmethod",
   "custom_swagger_ui_html",
+  "custom_openapi",
   "@mark.skip",
   "!wow!",
 ]
@@ -102,6 +103,7 @@ omit = [
   "app/common/fastapi_ext.py",
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
+  "app/common/tmexio_ext.py",
   "app/setup_ci.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
 ]

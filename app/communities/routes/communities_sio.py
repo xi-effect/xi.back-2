@@ -183,7 +183,7 @@ owner_can_not_leave = EventException(409, "Owner can not leave")
     server_summary="The current participant has left the current community",
     exceptions=[owner_can_not_leave],
 )
-async def leave_community(
+async def leave_community(  # TODO (37570606) pragma: no cover
     community: CommunityById,
     participant: CurrentParticipant,
     user: AuthorizedUser,

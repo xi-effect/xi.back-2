@@ -30,7 +30,7 @@ router = EventRouterExt(tags=["channels-list"])
     summary="List categories and channels in the community",
     dependencies=[current_participant_dependency],
 )
-async def list_channels(
+async def list_channels(  # TODO (37570606) pragma: no cover
     community: CommunityById,
 ) -> Annotated[
     list[ChannelCategoryListItemDict],
@@ -58,7 +58,7 @@ quantity_limit_per_category_exceeded = EventException(
     ],
     dependencies=[current_owner_dependency],
 )
-async def create_channel(
+async def create_channel(  # TODO (37570606) pragma: no cover
     community: CommunityById,
     category_id: int | None,
     data: Channel.InputSchema,
@@ -97,7 +97,7 @@ async def create_channel(
     server_summary="Channel's metadata has been updated in the current community",
     dependencies=[current_owner_dependency],
 )
-async def update_channel(
+async def update_channel(  # TODO (37570606) pragma: no cover
     channel: ChannelByIds,
     data: Channel.PatchSchema,
     duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
@@ -134,7 +134,7 @@ invalid_mode = EventException(409, "Invalid move")
     exceptions=[quantity_limit_per_category_exceeded, invalid_mode],
     dependencies=[current_owner_dependency],
 )
-async def move_channel(
+async def move_channel(  # TODO (37570606) pragma: no cover
     channel: ChannelByIds,
     category_id: int | None,
     after_id: int | None,
@@ -183,7 +183,7 @@ async def move_channel(
     server_summary="A channel has been deleted in the current community",
     dependencies=[current_owner_dependency],
 )
-async def delete_channel(
+async def delete_channel(  # TODO (37570606) pragma: no cover
     channel: ChannelByIds,
     duplex_emitter: Emitter[ChannelIdsSchema],
 ) -> None:

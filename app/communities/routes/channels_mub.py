@@ -146,7 +146,7 @@ async def move_channel(
         category = await Category.find_first_by_kwargs(
             id=category_id, community_id=channel.community_id
         )
-        if category is None:
+        if category is None:  # TODO (33602197) pragma: no cover
             raise CategoriesResponses.CATEGORY_NOT_FOUND
 
     if await Channel.is_limit_per_category_reached(

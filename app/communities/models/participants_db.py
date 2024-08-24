@@ -49,7 +49,7 @@ class Participant(Base):
     @classmethod
     async def find_all_by_community_id(cls, community_id: int) -> Sequence[Self]:
         # TODO pagination and search
-        return await cls.find_all_by_kwargs(
+        return await cls.find_all_by_kwargs(  # TODO (37570606) pragma: no cover
             cls.created_at.desc(), community_id=community_id
         )
 

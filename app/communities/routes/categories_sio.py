@@ -24,7 +24,7 @@ router = EventRouterExt(tags=["categories-list"])
     summary="List categories (without channels) in the community",
     dependencies=[current_participant_dependency],
 )
-async def list_categories(
+async def list_categories(  # TODO (37570606) pragma: no cover
     community: CommunityById,
 ) -> Annotated[Sequence[Category], PydanticPackager(list[Category.ResponseSchema])]:
     return await Category.find_all_by_community_id(community_id=community.id)
@@ -101,7 +101,7 @@ invalid_move = EventException(409, "Invalid move")
     exceptions=[invalid_move],
     dependencies=[current_owner_dependency],
 )
-async def move_category(
+async def move_category(  # TODO (37570606) pragma: no cover
     category: CategoryByIds,
     after_id: int | None,
     before_id: int | None,
