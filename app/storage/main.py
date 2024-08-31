@@ -21,10 +21,10 @@ mub_router = APIRouterExt(
     prefix="/mub/storage-service",
 )
 
-router = APIRouterExt()
-router.include_router(outside_router)
-router.include_router(authorized_router)
-router.include_router(mub_router)
+api_router = APIRouterExt()
+api_router.include_router(outside_router)
+api_router.include_router(authorized_router)
+api_router.include_router(mub_router)
 
 
 @asynccontextmanager

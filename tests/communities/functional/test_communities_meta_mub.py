@@ -32,8 +32,8 @@ async def test_community_creation(
 
 async def test_community_retrieving(
     mub_client: TestClient,
-    community: Community,
     community_data: AnyJSON,
+    community: Community,
 ) -> None:
     assert_response(
         mub_client.get(f"/mub/community-service/communities/{community.id}/"),

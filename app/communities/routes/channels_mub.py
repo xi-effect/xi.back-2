@@ -1,47 +1,27 @@
-from collections import defaultdict
-from collections.abc import Iterable, Sequence
-from typing import Annotated, TypedDict
+from typing import Annotated
 
 from fastapi import Body, HTTPException
-from pydantic import BaseModel
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.config_bdg import posts_bridge
 from app.common.fastapi_ext import APIRouterExt
-from app.communities.dependencies.categories_dep import CategoryById
+from app.communities.dependencies.categories_dep import (
+    CategoriesResponses,
+    CategoryById,
+)
 from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.responses import LimitedListResponses, MoveResponses
+from app.communities.utils.channel_list import (
+    ChannelCategoryListItemDict,
+    ChannelCategoryListItemSchema,
+    build_channels_and_categories_list,
+)
 
 router = APIRouterExt(tags=["channels mub"])
-
-
-class ChannelCategoryListItemSchema(BaseModel):
-    category: Category.ResponseSchema | None
-    channels: list[Channel.ResponseSchema]
-
-
-class ChannelCategoryListItemDict(TypedDict):
-    category: Category | None
-    channels: list[Channel]
-
-
-def collect_channels_and_categories_list(
-    categories: Sequence[Category],
-    category_id_to_channels: dict[None | int, list[Channel]],
-) -> Iterable[ChannelCategoryListItemDict]:
-    yield {
-        "category": None,
-        "channels": category_id_to_channels[None],
-    }
-    for category in categories:  # noqa: WPS526  # yield from messes with mypy
-        yield {
-            "category": category,
-            "channels": category_id_to_channels[category.id],
-        }
 
 
 @router.get(
@@ -52,16 +32,7 @@ def collect_channels_and_categories_list(
 async def list_channels_and_categories(
     community: CommunityById,
 ) -> list[ChannelCategoryListItemDict]:
-    categories = await Category.find_all_by_community_id(community_id=community.id)
-    channels = await Channel.find_all_by_community_id(community_id=community.id)
-
-    category_id_to_channels: dict[None | int, list[Channel]] = defaultdict(list)
-    for channel in channels:
-        category_id_to_channels[channel.category_id].append(channel)
-
-    return list(
-        collect_channels_and_categories_list(categories, category_id_to_channels)
-    )
+    return await build_channels_and_categories_list(community)
 
 
 @router.post(
@@ -160,7 +131,9 @@ async def patch_channel(channel: ChannelById, data: Channel.PatchSchema) -> Chan
 @router.put(
     "/channels/{channel_id}/position/",
     status_code=204,
-    responses=LimitedListResponses.responses(MoveResponses.responses()),
+    responses=CategoriesResponses.responses(
+        LimitedListResponses.responses(MoveResponses.responses())
+    ),
     summary="Move channel to a new position",
 )
 async def move_channel(
@@ -169,6 +142,13 @@ async def move_channel(
     after_id: Annotated[int | None, Body()] = None,
     before_id: Annotated[int | None, Body()] = None,
 ) -> None:
+    if category_id is not None:
+        category = await Category.find_first_by_kwargs(
+            id=category_id, community_id=channel.community_id
+        )
+        if category is None:  # TODO (33602197) pragma: no cover
+            raise CategoriesResponses.CATEGORY_NOT_FOUND
+
     if await Channel.is_limit_per_category_reached(
         community_id=channel.community_id, category_id=category_id
     ):  # TODO (33602197) pragma: no cover

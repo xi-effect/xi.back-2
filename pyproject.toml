@@ -12,12 +12,13 @@ fastapi = "^0.110.1"
 uvicorn = {extras = ["standard"], version = "^0.29.0"}
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.29"}
 psycopg = {extras = ["binary"], version = "^3.1.19"}
-pydantic-marshals = {extras = ["sqlalchemy"], version = "^0.3.12"}
+pydantic-marshals = {version = "0.3.14", extras = ["sqlalchemy"]}
 alembic = "^1.13.1"
 pydantic-settings = "^2.2.1"
 filetype = "^1.2.0"
 python-multipart = "^0.0.9"
 httpx = "^0.27.0"
+tmexio = "0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
@@ -47,7 +48,7 @@ flake8-use-pathlib = "0.3.0"
 flake8-test-name = "^0.1.5"
 wemake-python-styleguide = "0.18.0"
 httpx = "^0.27.0"
-pydantic-marshals = {extras = ["assert-contains"], version = "^0.3.12"}
+pydantic-marshals = {version = "0.3.14", extras = ["assert-contains"]}
 rstr = "^3.2.2"
 faker = "^24.9.0"
 polyfactory = "^2.15.0"
@@ -91,6 +92,7 @@ exclude_lines = [
   "class .*\\(Protocol\\):",
   "@abstractmethod",
   "custom_swagger_ui_html",
+  "custom_openapi",
   "@mark.skip",
   "!wow!",
 ]
@@ -101,6 +103,7 @@ omit = [
   "app/common/fastapi_ext.py",
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
+  "app/common/tmexio_ext.py",
   "app/setup_ci.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
 ]

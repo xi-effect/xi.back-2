@@ -1,15 +1,25 @@
-from random import randint
+from collections.abc import AsyncIterator
+from typing import Any
 
 import pytest
 
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.rooms import community_room
 from tests.common.active_session import ActiveSession
+from tests.common.polyfactory_ext import BaseModelFactory
+from tests.common.tmexio_testing import (
+    TMEXIOListenerFactory,
+    TMEXIOTestClient,
+    TMEXIOTestServer,
+)
 from tests.common.types import AnyJSON, PytestRequest
 from tests.communities import factories
+from tests.conftest import ProxyAuthDataFactory
 
 
 @pytest.fixture()
@@ -27,6 +37,14 @@ async def community(
 
 
 @pytest.fixture()
+async def community_room_listener(
+    tmexio_listener_factory: TMEXIOListenerFactory,
+    community: Community,
+) -> TMEXIOTestClient:
+    return await tmexio_listener_factory(community_room(community.id))
+
+
+@pytest.fixture()
 async def deleted_community_id(
     active_session: ActiveSession,
     community: Community,
@@ -37,8 +55,54 @@ async def deleted_community_id(
 
 
 @pytest.fixture()
-async def participant_user_id() -> int:
-    return randint(0, 10000)
+def owner_proxy_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def owner_user_id(owner_proxy_auth_data: ProxyAuthData) -> int:
+    return owner_proxy_auth_data.user_id
+
+
+@pytest.fixture()
+async def owner(
+    active_session: ActiveSession,
+    community: Community,
+    owner_user_id: int,
+) -> Participant:
+    async with active_session():
+        return await Participant.create(
+            community_id=community.id,
+            user_id=owner_user_id,
+            is_owner=True,
+        )
+
+
+@pytest.fixture()
+def owner_data(owner: Participant) -> AnyJSON:
+    return Participant.MUBResponseSchema.model_validate(
+        owner, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def tmexio_owner_client(
+    tmexio_server: TMEXIOTestServer,
+    owner_proxy_auth_data: ProxyAuthData,
+    owner: Participant,
+) -> AsyncIterator[TMEXIOTestClient]:
+    async with tmexio_server.authorized_client(owner_proxy_auth_data) as client:
+        yield client
+
+
+@pytest.fixture()
+def participant_proxy_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def participant_user_id(participant_proxy_auth_data: ProxyAuthData) -> int:
+    return participant_proxy_auth_data.user_id
 
 
 @pytest.fixture()
@@ -56,9 +120,19 @@ async def participant(
 
 @pytest.fixture()
 def participant_data(participant: Participant) -> AnyJSON:
-    return Participant.FullResponseSchema.model_validate(
+    return Participant.MUBResponseSchema.model_validate(
         participant, from_attributes=True
     ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def tmexio_participant_client(
+    tmexio_server: TMEXIOTestServer,
+    participant_proxy_auth_data: ProxyAuthData,
+    participant: Participant,
+) -> AsyncIterator[TMEXIOTestClient]:
+    async with tmexio_server.authorized_client(participant_proxy_auth_data) as client:
+        yield client
 
 
 @pytest.fixture()
@@ -71,6 +145,48 @@ async def deleted_participant_id(
     return participant.id
 
 
+@pytest.fixture(
+    params=[pytest.param(True, id="owner"), pytest.param(False, id="participant")]
+)
+def actor_is_owner(request: PytestRequest[bool]) -> bool:
+    return request.param
+
+
+@pytest.fixture()
+def actor_user_id(
+    owner: Participant, participant: Participant, actor_is_owner: bool
+) -> int:
+    return owner.user_id if actor_is_owner else participant.user_id
+
+
+@pytest.fixture()
+def tmexio_actor_client(
+    tmexio_owner_client: TMEXIOTestClient,
+    tmexio_participant_client: TMEXIOTestClient,
+    actor_is_owner: bool,
+) -> TMEXIOTestClient:
+    return tmexio_owner_client if actor_is_owner else tmexio_participant_client
+
+
+@pytest.fixture()
+def outsider_proxy_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def outsider_user_id(outsider_proxy_auth_data: ProxyAuthData) -> int:
+    return outsider_proxy_auth_data.user_id
+
+
+@pytest.fixture()
+async def tmexio_outsider_client(
+    tmexio_server: TMEXIOTestServer,
+    outsider_proxy_auth_data: ProxyAuthData,
+) -> AsyncIterator[TMEXIOTestClient]:
+    async with tmexio_server.authorized_client(outsider_proxy_auth_data) as client:
+        yield client
+
+
 @pytest.fixture()
 async def invitation(
     active_session: ActiveSession,
@@ -79,25 +195,83 @@ async def invitation(
     async with active_session():
         return await Invitation.create(
             community_id=community.id,
-            **factories.InvitationFullInputFactory.build_json(),
+            **factories.InvitationMUBInputFactory.build_json(),
+        )
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(factories.ExpiredInvitationDataFactory, id="expired"),
+        pytest.param(factories.OverusedInvitationDataFactory, id="overused"),
+    ]
+)
+async def invalid_invitation(
+    active_session: ActiveSession,
+    community: Community,
+    request: PytestRequest[type[BaseModelFactory[Any]]],
+) -> Invitation:
+    async with active_session():
+        return await Invitation.create(
+            community_id=community.id,
+            **request.param.build_json(),
         )
 
 
 @pytest.fixture()
 def invitation_data(invitation: Invitation) -> AnyJSON:
-    return Invitation.FullResponseSchema.model_validate(
+    return Invitation.ResponseSchema.model_validate(
         invitation, from_attributes=True
     ).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def deleted_invitation_id(
+async def deleted_invitation(
     active_session: ActiveSession,
     invitation: Invitation,
-) -> int:
+) -> Invitation:
     async with active_session():
         await invitation.delete()
-    return invitation.id
+    return invitation
+
+
+@pytest.fixture()
+async def deleted_invitation_id(deleted_invitation: Invitation) -> int:
+    return deleted_invitation.id
+
+
+@pytest.fixture()
+async def deleted_invitation_code(deleted_invitation: Invitation) -> str:
+    return deleted_invitation.token
+
+
+INVITATION_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def invitations_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        invitations = [
+            await Invitation.create(
+                community_id=community.id,
+                **factories.InvitationMUBInputFactory.build_json(),
+            )
+            for _ in range(INVITATION_LIST_SIZE)
+        ]
+    invitations.sort(key=lambda invitation: invitation.created_at)
+
+    yield [
+        Invitation.ResponseSchema.model_validate(
+            invitation, from_attributes=True
+        ).model_dump(mode="json")
+        for invitation in invitations
+    ]
+
+    async with active_session():
+        for invitation in invitations:
+            await invitation.delete()
 
 
 @pytest.fixture()

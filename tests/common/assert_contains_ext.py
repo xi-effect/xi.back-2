@@ -19,15 +19,15 @@ def assert_nodata_response(
     assert_contains(
         {
             "status_code": response.status_code,
-            "json_data": json_data,
             "headers": response.headers,
             "cookies": response.cookies,
+            "json_data": json_data,
         },
         {
             "status_code": expected_code,
-            "json_data": None,
             "headers": expected_headers or {},
             "cookies": expected_cookies or {},
+            "json_data": None,
         },
     )
     return response
@@ -51,15 +51,15 @@ def assert_response(
     assert_contains(
         {
             "status_code": response.status_code,
-            "json_data": json_data,
             "headers": response.headers,
             "cookies": response.cookies,
+            "json_data": json_data,
         },
         {
             "status_code": expected_code,
-            "json_data": expected_json,
             "headers": expected_headers,
             "cookies": expected_cookies or {},
+            "json_data": expected_json,
         },
     )
     return response

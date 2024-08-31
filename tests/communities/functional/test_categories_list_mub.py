@@ -9,7 +9,7 @@ from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
-from tests.communities.factories import CategoryInputFactory
+from tests.communities import factories
 
 pytestmark = pytest.mark.anyio
 
@@ -25,7 +25,7 @@ async def test_reindexing_categories(
             Category(
                 community_id=community.id,
                 position=i,
-                **CategoryInputFactory.build_json(),
+                **factories.CategoryInputFactory.build_json(),
             )
             for i in range(categories_count)
         )
@@ -51,21 +51,26 @@ CATEGORY_LIST_SIZE = 5
 
 
 @pytest.fixture()
-def categories_data() -> list[AnyJSON]:
-    return [CategoryInputFactory.build_json() for _ in range(CATEGORY_LIST_SIZE)]
-
-
-@pytest.fixture()
-async def categories(
-    active_session: ActiveSession, community: Community, categories_data: list[AnyJSON]
-) -> AsyncIterator[list[Category]]:
+async def categories_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
     async with active_session():
         categories = [
-            await Category.create(community_id=community.id, **category_data)
-            for category_data in categories_data
+            await Category.create(
+                community_id=community.id,
+                **factories.CategoryInputFactory.build_json(),
+            )
+            for _ in range(CATEGORY_LIST_SIZE)
         ]
+    categories.sort(key=lambda category: category.position)
 
-    yield categories
+    yield [
+        Category.ResponseSchema.model_validate(
+            category, from_attributes=True
+        ).model_dump(mode="json")
+        for category in categories
+    ]
 
     async with active_session():
         for category in categories:
@@ -76,16 +81,12 @@ async def test_categories_listing(
     mub_client: TestClient,
     community: Community,
     categories_data: list[AnyJSON],
-    categories: list[Category],
 ) -> None:
     assert_response(
         mub_client.get(
             f"/mub/community-service/communities/{community.id}/categories/"
         ),
-        expected_json=[
-            {**category_data, "id": category.id}
-            for category_data, category in zip(categories_data, categories)
-        ],
+        expected_json=categories_data,
     )
 
 
@@ -102,12 +103,11 @@ async def test_category_moving(
     active_session: ActiveSession,
     community: Community,
     categories_data: list[AnyJSON],
-    categories: list[Category],
     target: int,
     after: int | None,
     before: int | None,
 ) -> None:
-    category_ids = [category.id for category in categories]
+    category_ids = [category_data["id"] for category_data in categories_data]
 
     assert_nodata_response(
         mub_client.put(

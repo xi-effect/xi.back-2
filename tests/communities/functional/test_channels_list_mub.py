@@ -10,7 +10,7 @@ from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
-from tests.communities.factories import ChannelInputFactory
+from tests.communities import factories
 
 pytestmark = pytest.mark.anyio
 
@@ -31,7 +31,7 @@ async def test_reindexing_channels(
                 community_id=community.id,
                 category_id=channel_parent_category_id,
                 position=i,
-                **ChannelInputFactory.build_json(),
+                **factories.ChannelInputFactory.build_json(),
             )
             for i in range(channels_count)
         )
@@ -59,27 +59,26 @@ CHANNEL_LIST_SIZE = 5
 
 
 @pytest.fixture()
-def channels_without_category_data() -> list[AnyJSON]:
-    return [ChannelInputFactory.build_json() for _ in range(CHANNEL_LIST_SIZE)]
-
-
-@pytest.fixture()
-async def channels_without_category(
+async def channels_without_category_data(
     active_session: ActiveSession,
     community: Community,
-    channels_without_category_data: list[AnyJSON],
-) -> AsyncIterator[list[Channel]]:
+) -> AsyncIterator[list[AnyJSON]]:
     async with active_session():
         channels = [
             await Channel.create(
                 community_id=community.id,
-                category_id=None,
-                **channel_data,
+                **factories.ChannelInputFactory.build_json(),
             )
-            for channel_data in channels_without_category_data
+            for _ in range(CHANNEL_LIST_SIZE)
         ]
+    channels.sort(key=lambda channel: channel.position)
 
-    yield channels
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
 
     async with active_session():
         for channel in channels:
@@ -87,28 +86,28 @@ async def channels_without_category(
 
 
 @pytest.fixture()
-def channels_with_category_data() -> list[AnyJSON]:
-    return [ChannelInputFactory.build_json() for _ in range(CHANNEL_LIST_SIZE)]
-
-
-@pytest.fixture()
-async def channels_with_category(
+async def channels_with_category_data(
     active_session: ActiveSession,
     community: Community,
     category: Category,
-    channels_with_category_data: list[AnyJSON],
-) -> AsyncIterator[list[Channel]]:
+) -> AsyncIterator[list[AnyJSON]]:
     async with active_session():
         channels = [
             await Channel.create(
                 community_id=community.id,
                 category_id=category.id,
-                **channel_data,
+                **factories.ChannelInputFactory.build_json(),
             )
-            for channel_data in channels_with_category_data
+            for _ in range(CHANNEL_LIST_SIZE)
         ]
+    channels.sort(key=lambda channel: channel.position)
 
-    yield channels
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
 
     async with active_session():
         for channel in channels:
@@ -121,30 +120,18 @@ async def test_channels_listing(
     category: Category,
     category_data: AnyJSON,
     channels_without_category_data: list[AnyJSON],
-    channels_without_category: list[Channel],
     channels_with_category_data: list[AnyJSON],
-    channels_with_category: list[Channel],
 ) -> None:
     assert_response(
         mub_client.get(f"/mub/community-service/communities/{community.id}/channels/"),
         expected_json=[
             {
                 "category": None,
-                "channels": [
-                    {**channel_data, "id": channel.id}
-                    for channel_data, channel in zip(
-                        channels_without_category_data, channels_without_category
-                    )
-                ],
+                "channels": channels_without_category_data,
             },
             {
                 "category": {**category_data, "id": category.id},
-                "channels": [
-                    {**channel_data, "id": channel.id}
-                    for channel_data, channel in zip(
-                        channels_with_category_data, channels_with_category
-                    )
-                ],
+                "channels": channels_with_category_data,
             },
         ],
     )
@@ -165,18 +152,18 @@ async def test_channel_moving(
     category: Category,
     is_channel_with_category: bool,
     channel_parent_category_id: int | None,
-    channels_without_category: list[Channel],
-    channels_with_category: list[Channel],
+    channels_without_category_data: list[AnyJSON],
+    channels_with_category_data: list[AnyJSON],
     target: int,
     after: int | None,
     before: int | None,
 ) -> None:
-    channels = list(
-        channels_with_category
+    channels_data = list(
+        channels_with_category_data
         if is_channel_with_category
-        else channels_without_category
+        else channels_without_category_data
     )
-    channel_ids = [channel.id for channel in channels]
+    channel_ids = [channel_data["id"] for channel_data in channels_data]
 
     assert_nodata_response(
         mub_client.put(

@@ -11,7 +11,7 @@ router = APIRouterExt(tags=["participants meta mub"])
 
 @router.get(
     "/communities/{community_id}/participants/",
-    response_model=list[Participant.FullResponseSchema],
+    response_model=list[Participant.MUBResponseSchema],
     summary="List participants in the community",
 )
 async def list_participants(community: CommunityById) -> Sequence[Participant]:
@@ -23,7 +23,7 @@ async def list_participants(community: CommunityById) -> Sequence[Participant]:
 @router.post(
     "/communities/{community_id}/participants/",
     status_code=201,
-    response_model=Participant.FullResponseSchema,
+    response_model=Participant.MUBResponseSchema,
     summary="Create a new participant in the community",
 )
 async def create_participant(
@@ -38,7 +38,7 @@ async def create_participant(
 
 @router.get(
     "/participants/{participant_id}/",
-    response_model=Participant.FullResponseSchema,
+    response_model=Participant.MUBResponseSchema,
     summary="Retrieve any participant by id",
 )
 async def retrieve_participant(participant: ParticipantById) -> Participant:
@@ -47,7 +47,7 @@ async def retrieve_participant(participant: ParticipantById) -> Participant:
 
 @router.patch(
     "/participants/{participant_id}/",
-    response_model=Participant.FullResponseSchema,
+    response_model=Participant.MUBResponseSchema,
     summary="Update any participant by id",
 )
 async def patch_participant(

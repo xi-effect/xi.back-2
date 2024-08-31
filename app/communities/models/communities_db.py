@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from pydantic import BaseModel
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,3 +22,7 @@ class Community(Base):
     @property
     def avatar_path(self) -> Path:
         return AVATARS_PATH / f"{self.id}.webp"
+
+
+class CommunityIdSchema(BaseModel):
+    community_id: int
