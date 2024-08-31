@@ -19,7 +19,7 @@ async def test_community_creation(
     community_data: AnyJSON,
 ) -> None:
     community_id: int = assert_response(
-        mub_client.post("/mub/communities/", json=community_data),
+        mub_client.post("/mub/community-service/communities/", json=community_data),
         expected_code=201,
         expected_json={**community_data, "id": int},
     ).json()["id"]
@@ -32,11 +32,11 @@ async def test_community_creation(
 
 async def test_community_retrieving(
     mub_client: TestClient,
-    community: Community,
     community_data: AnyJSON,
+    community: Community,
 ) -> None:
     assert_response(
-        mub_client.get(f"/mub/communities/{community.id}/"),
+        mub_client.get(f"/mub/community-service/communities/{community.id}/"),
         expected_json={**community_data},
     )
 
@@ -50,7 +50,8 @@ async def test_community_updating(
 
     assert_response(
         mub_client.patch(
-            f"/mub/communities/{community.id}/", json=community_patch_data
+            f"/mub/community-service/communities/{community.id}/",
+            json=community_patch_data,
         ),
         expected_json={**community_data, **community_patch_data},
     )
@@ -60,9 +61,10 @@ async def test_community_deleting(
     mub_client: TestClient,
     active_session: ActiveSession,
     community: Community,
-    community_data: AnyJSON,
 ) -> None:
-    assert_nodata_response(mub_client.delete(f"/mub/communities/{community.id}/"))
+    assert_nodata_response(
+        mub_client.delete(f"/mub/community-service/communities/{community.id}/")
+    )
 
     async with active_session():
         assert (await Community.find_first_by_id(community.id)) is None
@@ -86,7 +88,7 @@ async def test_community_not_finding(
     assert_response(
         mub_client.request(
             method,
-            f"/mub/communities/{deleted_community_id}/",
+            f"/mub/community-service/communities/{deleted_community_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=404,

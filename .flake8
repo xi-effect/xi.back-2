@@ -20,17 +20,19 @@ extend-ignore =
   D I FI TC Q U101 S101 WPS400
 
   # # black
-  WPS348 WPS352 E501 C812 C815 C816
+  WPS220 WPS348 WPS352 E501 C812 C815 C816
   # # pydantic-marshals & SQLAlchemy
   VNE003 WPS115
   # # weird
-  PIE803 C101 FNE007 FNE008 N812 ANN101 ANN102 WPS110 WPS111 WPS114 WPS407 VNE001 CM001
+  PIE803 C101 FNE007 FNE008 N812 ANN101 ANN102 WPS110 WPS111 WPS114 WPS338 WPS407 WPS414 VNE001 VNE002 CM001
   # # broken
   PIE798 WPS226 WPS354 WPS432 WPS473 WPS507
   # fails to understand `raise NotImplementedError` and overloading
   U100
   # fails to understand enums
   WPS115
+  # __init__
+  WPS410 WPS412
   # fails to understand overloading
   WPS428
   # fails to understand pipe-unions
@@ -38,7 +40,7 @@ extend-ignore =
   # fails to same-name class and instance attributes (pydantic & sqlalchemy)
   WPS601
   # too many
-  WPS201 WPS202 WPS204 WPS210 WPS214 WPS217 WPS218 WPS221 WPS234 WPS235
+  WPS201 WPS202 WPS204 WPS210 WPS211 WPS214 WPS217 WPS218 WPS221 WPS230 WPS231 WPS234 WPS235 WPS238
 
   # # don't block features
   # utils is a module name
@@ -47,8 +49,8 @@ extend-ignore =
   WPS237 WPS305
   # python 2.x is deprecated
   WPS306
-  # multiline loops
-  WPS352
+  # multiline
+  WPS320 WPS337 WPS352
   # noqa exists for a reason
   WPS402
   # pass is a thing
@@ -69,5 +71,5 @@ extend-ignore =
   WPS605
 
 per-file-ignores =
-  *test*: TN101 FNE005 SCS108 VNE001 WPS118 WPS202 WPS211 WPS317 WPS407 WPS425 WPS432 WPS440 WPS437 WPS441 WPS442 WPS507 WPS520 WPS609
+  *test*: TN101 FNE005 SCS108 S311 VNE001 WPS118 WPS202 WPS211 WPS317 WPS407 WPS425 WPS432 WPS440 WPS437 WPS441 WPS442 WPS507 WPS520 WPS609
   alembic/versions/*: WPS102 PEA001 NU001 SIM907

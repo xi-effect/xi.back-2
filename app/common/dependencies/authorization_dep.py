@@ -51,6 +51,19 @@ class ProxyAuthData(BaseModel):
     username: str
 
 
+def construct_proxy_auth_data(
+    session_id_token: SessionIDHeader = None,
+    user_id_token: UserIDHeader = None,
+    username_token: UsernameHeader = None,
+) -> ProxyAuthData:
+    # may raise pydantic.ValidationError
+    return ProxyAuthData(
+        session_id=session_id_token,  # type: ignore[arg-type]
+        user_id=user_id_token,  # type: ignore[arg-type]
+        username=username_token,  # type: ignore[arg-type]
+    )
+
+
 class AuthorizedResponses(Responses):
     PROXY_AUTH_MISSING = HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "Proxy auth required"
 
@@ -62,12 +75,12 @@ async def authorize_proxy(
     username_token: UsernameHeader = None,
 ) -> ProxyAuthData:
     try:  # using try-except to use pydantic's validation
-        return ProxyAuthData(
-            session_id=session_id_token,  # type: ignore[arg-type]
-            user_id=user_id_token,  # type: ignore[arg-type]
-            username=username_token,  # type: ignore[arg-type]
+        return construct_proxy_auth_data(
+            session_id_token=session_id_token,
+            user_id_token=user_id_token,
+            username_token=username_token,
         )
-    except ValidationError:  # noqa: WPS329  # linter bug
+    except ValidationError:  # noqa: WPS329  # bug  # TODO (36286438) pragma: no cover
         raise AuthorizedResponses.PROXY_AUTH_MISSING
 
 
