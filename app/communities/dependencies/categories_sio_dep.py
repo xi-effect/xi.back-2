@@ -9,7 +9,7 @@ category_not_found = EventException(404, "Category not found")
 
 
 @register_dependency(exceptions=[category_not_found])
-async def get_category_by_ids(
+async def category_by_ids_dependency(
     category_id: int,
     community: CommunityById,
 ) -> Category:
@@ -19,4 +19,4 @@ async def get_category_by_ids(
     return category
 
 
-CategoryByIds = Annotated[Category, get_category_by_ids]
+CategoryByIds = Annotated[Category, category_by_ids_dependency]

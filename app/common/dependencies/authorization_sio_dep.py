@@ -11,6 +11,9 @@ from app.common.dependencies.authorization_dep import (
 
 
 def header_to_wsgi_var(header_name: str) -> str:
+    """
+    Convert an HTTP header name to the equivalent WSGI environment variable's name
+    """
     return f"HTTP_{header_name.upper().replace('-', '_')}"
 
 

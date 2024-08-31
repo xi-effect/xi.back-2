@@ -9,7 +9,7 @@ invitation_not_found = EventException(404, "Invitation not found")
 
 
 @register_dependency(exceptions=[invitation_not_found])
-async def get_invitation_by_ids(
+async def invitation_by_ids_dependency(
     invitation_id: int,
     community: CommunityById,
 ) -> Invitation:
@@ -19,4 +19,4 @@ async def get_invitation_by_ids(
     return invitation
 
 
-InvitationByIds = Annotated[Invitation, get_invitation_by_ids]
+InvitationByIds = Annotated[Invitation, invitation_by_ids_dependency]

@@ -9,7 +9,7 @@ channel_not_found = EventException(404, "Channel not found")
 
 
 @register_dependency(exceptions=[channel_not_found])
-async def get_channel_by_ids(  # TODO (37570606) pragma: no cover
+async def channel_by_ids_dependency(  # TODO (37570606) pragma: no cover
     channel_id: int,
     community: CommunityById,
 ) -> Channel:
@@ -19,4 +19,4 @@ async def get_channel_by_ids(  # TODO (37570606) pragma: no cover
     return channel
 
 
-ChannelByIds = Annotated[Channel, get_channel_by_ids]
+ChannelByIds = Annotated[Channel, channel_by_ids_dependency]
