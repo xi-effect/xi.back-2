@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 from tmexio import EventRouter
 
 from app.common.config import AVATARS_PATH
+from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.routes import (
     avatars_rst,
+    board_channels_int,
     board_channels_mub,
     categories_mub,
     categories_sio,
@@ -32,6 +34,13 @@ authorized_router = APIRouterExt(
 )
 authorized_router.include_router(avatars_rst.router)
 
+internal_router = APIRouterExt(
+    dependencies=[APIKeyProtection],
+    prefix="/internal/community-service",
+)
+internal_router.include_router(board_channels_int.router)
+
+
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/community-service",
@@ -46,6 +55,7 @@ mub_router.include_router(board_channels_mub.router)
 api_router = APIRouterExt()
 api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
+api_router.include_router(internal_router)
 api_router.include_router(mub_router)
 
 event_router = EventRouter()

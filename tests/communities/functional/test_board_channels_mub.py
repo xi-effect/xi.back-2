@@ -3,31 +3,10 @@ from faker import Faker
 from starlette.testclient import TestClient
 
 from app.communities.models.board_channels_db import BoardChannel
-from app.communities.models.channels_db import Channel
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture()
-async def board_channel(
-    faker: Faker,
-    active_session: ActiveSession,
-    channel: Channel,
-) -> BoardChannel:
-    async with active_session():
-        return await BoardChannel.create(id=channel.id, content=faker.binary(length=64))
-
-
-@pytest.fixture()
-async def deleted_board_channel_id(
-    active_session: ActiveSession,
-    board_channel: BoardChannel,
-) -> int:
-    async with active_session():
-        await board_channel.delete()
-    return board_channel.id
 
 
 async def test_board_channel_content_retrieving(
