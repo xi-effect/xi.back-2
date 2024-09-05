@@ -4,12 +4,7 @@ from starlette.testclient import TestClient
 
 from app.common.config import API_KEY
 from app.common.dependencies.api_key_dep import API_KEY_HEADER_NAME
-from app.common.dependencies.authorization_dep import (
-    AUTH_SESSION_ID_HEADER_NAME,
-    AUTH_USER_ID_HEADER_NAME,
-    AUTH_USERNAME_HEADER_NAME,
-    ProxyAuthData,
-)
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
@@ -26,9 +21,7 @@ def authorized_internal_client(
     return TestClient(
         client.app,
         headers={
-            AUTH_SESSION_ID_HEADER_NAME: str(proxy_auth_data.session_id),
-            AUTH_USER_ID_HEADER_NAME: str(proxy_auth_data.user_id),
-            AUTH_USERNAME_HEADER_NAME: proxy_auth_data.username,
+            **proxy_auth_data.as_headers,
             API_KEY_HEADER_NAME: API_KEY,
         },
     )
