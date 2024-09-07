@@ -1,6 +1,7 @@
 from app.common.config_bdg import posts_bridge
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
+from app.communities.models.task_channels_db import TaskChannel
 
 
 async def create_channel(
@@ -15,6 +16,8 @@ async def create_channel(
     match channel.kind:
         case ChannelType.POSTS:
             await posts_bridge.create_post_channel(channel.id, channel.community_id)
+        case ChannelType.TASKS:
+            await TaskChannel.create(id=channel.id)
         case ChannelType.BOARD:
             await BoardChannel.create(id=channel.id)
 
@@ -25,6 +28,8 @@ async def delete_channel(channel: Channel) -> None:
     match channel.kind:
         case ChannelType.POSTS:
             await posts_bridge.delete_post_channel(channel.id)
+        case ChannelType.TASKS:
+            pass
         case ChannelType.BOARD:
             pass
     await channel.delete()
