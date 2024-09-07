@@ -21,7 +21,6 @@ async def test_reindexing_channels(
     community: Community,
     category: Category,
     channel_parent_category_id: int | None,
-    channel_parent_path: str,
 ) -> None:
     channels_count = 3
 
@@ -38,7 +37,12 @@ async def test_reindexing_channels(
 
     assert_nodata_response(
         mub_client.put(
-            f"/mub/community-service/{channel_parent_path}/channels/positions/"
+            f"/mub/community-service/communities/{community.id}/channels/positions/",
+            params=(
+                None
+                if channel_parent_category_id is None
+                else {"category_id": channel_parent_category_id}
+            ),
         )
     )
 
@@ -150,7 +154,6 @@ async def test_channel_moving(
     active_session: ActiveSession,
     community: Community,
     category: Category,
-    is_channel_with_category: bool,
     channel_parent_category_id: int | None,
     channels_without_category_data: list[AnyJSON],
     channels_with_category_data: list[AnyJSON],
@@ -159,9 +162,9 @@ async def test_channel_moving(
     before: int | None,
 ) -> None:
     channels_data = list(
-        channels_with_category_data
-        if is_channel_with_category
-        else channels_without_category_data
+        channels_without_category_data
+        if channel_parent_category_id is None
+        else channels_with_category_data
     )
     channel_ids = [channel_data["id"] for channel_data in channels_data]
 

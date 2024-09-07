@@ -6,7 +6,7 @@ from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.categories_dep import (
     CategoriesResponses,
-    CategoryById,
+    ValidatedOptionalCategoryId,
 )
 from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
@@ -39,45 +39,23 @@ async def list_channels_and_categories(
     status_code=201,
     response_model=Channel.ResponseSchema,
     responses=LimitedListResponses.responses(),
-    summary="Create a new channel in the default category (append to the end of the list)",
+    summary="Create a new channel in the community (append to the end of the list)",
 )
 async def create_channel(
-    community: CommunityById, data: Channel.InputSchema
+    community: CommunityById,
+    category_id: ValidatedOptionalCategoryId,
+    data: Channel.InputSchema,
 ) -> Channel:
     if await Channel.is_limit_per_community_reached(community_id=community.id):
         raise LimitedListResponses.QUANTITY_EXCEEDED
     if await Channel.is_limit_per_category_reached(
-        community_id=community.id, category_id=None
+        community_id=community.id, category_id=category_id
     ):
         raise LimitedListResponses.QUANTITY_EXCEEDED
 
     return await channels_svc.create_channel(
         community_id=community.id,
-        category_id=None,
-        data=data,
-    )
-
-
-@router.post(
-    "/categories/{category_id}/channels/",
-    status_code=201,
-    response_model=Channel.ResponseSchema,
-    responses=LimitedListResponses.responses(),
-    summary="Create a new channel in a category (append to the end of the list)",
-)
-async def create_channel_in_category(
-    category: CategoryById, data: Channel.InputSchema
-) -> Channel:
-    if await Channel.is_limit_per_community_reached(community_id=category.community_id):
-        raise LimitedListResponses.QUANTITY_EXCEEDED
-    if await Channel.is_limit_per_category_reached(
-        community_id=category.community_id, category_id=category.id
-    ):
-        raise LimitedListResponses.QUANTITY_EXCEEDED
-
-    return await channels_svc.create_channel(
-        community_id=category.community_id,
-        category_id=category.id,
+        category_id=category_id,
         data=data,
     )
 
@@ -85,19 +63,13 @@ async def create_channel_in_category(
 @router.put(
     "/communities/{community_id}/channels/positions/",
     status_code=204,
-    summary="Reindex channels in the default category",
+    summary="Reindex channels in a community",
 )
-async def reindex_channels(community: CommunityById) -> None:
-    await Channel.reindex_by_list_id(list_id=(community.id, None))
-
-
-@router.put(
-    "/categories/{category_id}/channels/positions/",
-    status_code=204,
-    summary="Reindex channels in a category",
-)
-async def reindex_channels_in_category(category: CategoryById) -> None:
-    await Channel.reindex_by_list_id(list_id=(category.community_id, category.id))
+async def reindex_channels(
+    community: CommunityById,
+    category_id: ValidatedOptionalCategoryId,
+) -> None:
+    await Channel.reindex_by_list_id(list_id=(community.id, category_id))
 
 
 @router.get(
