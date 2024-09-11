@@ -16,6 +16,7 @@ from app.communities.dependencies.communities_sio_dep import (
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel
 from app.communities.rooms import community_room
+from app.communities.services import channels_svc
 from app.communities.utils.channel_list import (
     ChannelCategoryListItemDict,
     ChannelCategoryListItemSchema,
@@ -78,8 +79,10 @@ async def create_channel(  # TODO (37570606) pragma: no cover
     ):
         raise quantity_limit_per_category_exceeded
 
-    channel = await Channel.create(
-        community_id=community.id, category_id=category_id, **data.model_dump()
+    channel = await channels_svc.create_channel(
+        community_id=community.id,
+        category_id=category_id,
+        data=data,
     )
     await db.session.commit()
 
@@ -187,7 +190,7 @@ async def delete_channel(  # TODO (37570606) pragma: no cover
     channel: ChannelByIds,
     duplex_emitter: Emitter[ChannelIdsSchema],
 ) -> None:
-    await channel.delete()
+    await channels_svc.delete_channel(channel)
     await db.session.commit()
 
     await duplex_emitter.emit(

@@ -25,7 +25,6 @@ async def test_channel_creation(
     active_session: ActiveSession,
     community: Community,
     channel_parent_category_id: int | None,
-    channel_parent_path: str,
     specific_channel_kind: ChannelType,
 ) -> None:
     if specific_channel_kind is ChannelType.POSTS:
@@ -37,7 +36,12 @@ async def test_channel_creation(
 
     channel_id: int = assert_response(
         mub_client.post(
-            f"/mub/community-service/{channel_parent_path}/channels/",
+            f"/mub/community-service/communities/{community.id}/channels/",
+            params=(
+                None
+                if channel_parent_category_id is None
+                else {"category_id": channel_parent_category_id}
+            ),
             json=channel_data,
         ),
         expected_code=201,
@@ -72,14 +76,20 @@ async def test_channel_creation(
 async def test_channel_creation_quantity_exceeded(
     mock_stack: MockStack,
     mub_client: TestClient,
+    community: Community,
     channel_data: AnyJSON,
-    channel_parent_path: str,
+    channel_parent_category_id: int | None,
     limit_field_name: str,
 ) -> None:
     mock_stack.enter_mock(Channel, limit_field_name, property_value=0)
     assert_response(
         mub_client.post(
-            f"/mub/community-service/{channel_parent_path}/channels/",
+            f"/mub/community-service/communities/{community.id}/channels/",
+            params=(
+                None
+                if channel_parent_category_id is None
+                else {"category_id": channel_parent_category_id}
+            ),
             json=channel_data,
         ),
         expected_code=409,

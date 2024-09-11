@@ -352,24 +352,10 @@ async def deleted_channel_id(
 
 
 @pytest.fixture(params=[False, True], ids=["without_category", "with_category"])
-def is_channel_with_category(request: PytestRequest[bool]) -> bool:
-    return request.param
-
-
-@pytest.fixture()
 def channel_parent_category_id(
-    category: Category, is_channel_with_category: bool
+    request: PytestRequest[bool], category: Category
 ) -> int | None:
-    return category.id if is_channel_with_category else None
-
-
-@pytest.fixture()
-def channel_parent_path(
-    community: Community, category: Category, is_channel_with_category: int | None
-) -> str:
-    if is_channel_with_category:
-        return f"categories/{category.id}"
-    return f"communities/{community.id}"
+    return category.id if request.param else None
 
 
 @pytest.fixture()
