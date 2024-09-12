@@ -10,8 +10,6 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.routes import (
     avatars_rst,
-    board_channels_int,
-    board_channels_mub,
     categories_mub,
     categories_sio,
     channels_mub,
@@ -39,7 +37,6 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/community-service",
 )
-internal_router.include_router(board_channels_int.router)
 
 
 mub_router = APIRouterExt(
@@ -52,7 +49,6 @@ mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
 mub_router.include_router(tasks_mub.router)
-mub_router.include_router(board_channels_mub.router)
 
 api_router = APIRouterExt()
 api_router.include_router(outside_router)
