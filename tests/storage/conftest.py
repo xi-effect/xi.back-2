@@ -9,6 +9,7 @@ from starlette.responses import FileResponse
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.files_db import File, FileKind
+from app.storage.models.hokus_db import Hoku
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
 from tests.storage import factories
@@ -29,6 +30,23 @@ async def access_group(
 
 @pytest.fixture()
 def missing_access_group_id() -> UUID:
+    return uuid4()
+
+
+@pytest.fixture()
+async def hoku(
+    faker: Faker,
+    active_session: ActiveSession,
+    access_group: AccessGroup,
+) -> Hoku:
+    async with active_session():
+        return await Hoku.create(
+            access_group_id=access_group.id, content=faker.binary(length=64)
+        )
+
+
+@pytest.fixture()
+def missing_hoku_id() -> UUID:
     return uuid4()
 
 
