@@ -34,7 +34,7 @@ async def participants_data(
     participants.sort(key=lambda participant: participant.created_at)
 
     yield [
-        Participant.MUBResponseSchema.model_validate(
+        Participant.MUBItemSchema.model_validate(
             participant, from_attributes=True
         ).model_dump(mode="json")
         for participant in participants
@@ -54,6 +54,7 @@ async def test_participants_listing(
         mub_client.get(
             f"/mub/community-service/communities/{community.id}/participants/",
         ),
+        expected_code=200,
         expected_json=participants_data,
     )
 
@@ -66,6 +67,7 @@ async def test_participants_listing_empty_list(
         mub_client.get(
             f"/mub/community-service/communities/{community.id}/participants/",
         ),
+        expected_code=200,
         expected_json=[],
     )
 
