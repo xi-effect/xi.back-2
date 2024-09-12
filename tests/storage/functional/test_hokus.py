@@ -2,12 +2,17 @@ from uuid import UUID
 
 import pytest
 from faker import Faker
+from respx import MockRouter
 from starlette.testclient import TestClient
 
+from app.common.access import AccessLevel
+from app.common.config import API_KEY
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.hokus_db import Hoku
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.respx_ext import assert_last_httpx_request
 
 pytestmark = pytest.mark.anyio
 
@@ -43,6 +48,48 @@ async def test_hoku_creating_access_group_not_found(
         ),
         expected_code=404,
         expected_json={"detail": "Access group not found"},
+    )
+
+
+@pytest.mark.parametrize(
+    "access_level",
+    [pytest.param(access_level, id=access_level.value) for access_level in AccessLevel],
+)
+async def test_hoku_access_level_retrieving(
+    communities_respx_mock: MockRouter,
+    proxy_auth_data: ProxyAuthData,
+    authorized_internal_client: TestClient,
+    access_group: AccessGroup,
+    hoku: Hoku,
+    access_level: AccessLevel,
+) -> None:
+    board_channel_access_level_mock = communities_respx_mock.get(
+        path=f"/channels/{access_group.related_id}/board/access-level/",
+    ).respond(json=access_level.value)
+
+    assert_response(
+        authorized_internal_client.get(
+            f"/internal/storage-service/hokus/{hoku.id}/access-level/",
+        ),
+        expected_json=access_level.value,
+    )
+
+    assert_last_httpx_request(
+        board_channel_access_level_mock,
+        expected_headers={"X-Api-Key": API_KEY, **proxy_auth_data.as_headers},
+    )
+
+
+async def test_hoku_access_level_retrieving_proxy_auth_required(
+    internal_client: TestClient,
+    hoku: Hoku,
+) -> None:
+    assert_response(
+        internal_client.get(
+            f"/internal/storage-service/hokus/{hoku.id}/access-level/",
+        ),
+        expected_code=407,
+        expected_json={"detail": "Proxy auth required"},
     )
 
 
@@ -103,6 +150,7 @@ async def test_hoku_content_clearing(
 @pytest.mark.parametrize(
     ("method", "with_content", "path"),
     [
+        pytest.param("GET", False, "access-level", id="retrieve-access-level"),
         pytest.param("GET", False, "content", id="retrieve-content"),
         pytest.param("PUT", True, "content", id="update-content"),
         pytest.param("DELETE", False, "content", id="clear-content"),
