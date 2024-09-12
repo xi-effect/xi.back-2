@@ -1,12 +1,12 @@
 from httpx import AsyncClient
 
-from app.common.config import API_KEY, POSTS_BASE_URL
+from app.common.config import API_KEY, BRIDGE_BASE_URL
 
 
 class PostsBridge:
     def __init__(self) -> None:
         self.client = AsyncClient(
-            base_url=f"{POSTS_BASE_URL}/internal/post-service",
+            base_url=f"{BRIDGE_BASE_URL}/internal/post-service",
             headers={"X-Api-Key": API_KEY},
         )
 
