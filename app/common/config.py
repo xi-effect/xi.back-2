@@ -20,7 +20,7 @@ STORAGE_PATH: Path = current_directory / "storage"
 PRODUCTION_MODE: bool = getenv("PRODUCTION", "0") == "1"
 
 DB_URL: str = getenv("DB_LINK", "postgresql+psycopg://test:test@localhost:5432/test")
-DB_SCHEMA: str | None = getenv("DB_SCHEMA", None)
+DB_SCHEMA: str | None = getenv("DB_SCHEMA", None) or None
 DATABASE_MIGRATED: bool = getenv("DATABASE_MIGRATED", "0") == "1"
 
 LOCAL_PORT: str = getenv("LOCAL_PORT", "8000")

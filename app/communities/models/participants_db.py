@@ -7,9 +7,10 @@ from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import ForeignKey, Index, Row, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.common.config import Base
+from app.common.config import DB_SCHEMA, Base
 from app.common.sqlalchemy_ext import db
 from app.communities.models.communities_db import Community
+from app.communities.models.roles_db import Role
 
 
 class Participant(Base):
@@ -30,6 +31,21 @@ class Participant(Base):
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
+    # role data
+    roles: Mapped[list[Role]] = relationship(
+        passive_deletes=True,
+        secondary=(
+            "participant_roles"
+            if DB_SCHEMA is None
+            else f"{DB_SCHEMA}.participant_roles"
+        ),
+        lazy="selectin",
+    )
+
+    @property
+    def participant_roles(self) -> list[Role.ResponseSchema]:
+        return [Role.ResponseSchema.from_orm(role) for role in self.roles]
+
     # indexes
     __table_args__ = (
         Index("hash_index_user_id", user_id, postgresql_using="hash"),
@@ -41,7 +57,8 @@ class Participant(Base):
     IDsSchema = MappedModel.create(columns=[community_id, user_id])
     MUBBaseSchema = CurrentSchema.extend(columns=[(created_at, NaiveDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
-    MUBResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
+    MUBItemSchema = MUBBaseSchema.extend(columns=[id, user_id])
+    MUBResponseSchema = MUBItemSchema.extend(properties=[participant_roles])
     ListItemSchema = MUBBaseSchema.extend(columns=[user_id])
     ServerEventSchema = ListItemSchema.extend(columns=[community_id])
 
@@ -67,3 +84,14 @@ class Participant(Base):
         return await db.get_all(
             select(Community).join(cls).filter(cls.user_id == user_id)
         )
+
+
+class ParticipantRole(Base):
+    __tablename__ = "participant_roles"
+
+    participant_id: Mapped[int] = mapped_column(
+        ForeignKey(Participant.id, ondelete="CASCADE"), primary_key=True
+    )
+    role_id: Mapped[int] = mapped_column(
+        ForeignKey(Role.id, ondelete="CASCADE"), primary_key=True
+    )
