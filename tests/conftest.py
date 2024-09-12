@@ -59,6 +59,19 @@ def authorized_client(client: TestClient, proxy_auth_data: ProxyAuthData) -> Tes
 
 
 @pytest.fixture()
+def authorized_internal_client(
+    proxy_auth_data: ProxyAuthData, client: TestClient
+) -> TestClient:
+    return TestClient(
+        client.app,
+        headers={
+            **proxy_auth_data.as_headers,
+            "X-Api-Key": API_KEY,
+        },
+    )
+
+
+@pytest.fixture()
 async def tmexio_server() -> AsyncIterator[TMEXIOTestServer]:
     server = TMEXIOTestServer(tmexio=tmex)
     server_mock = server.create_mock()

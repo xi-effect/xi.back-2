@@ -7,9 +7,29 @@ from faker import Faker
 from starlette.responses import FileResponse
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.files_db import File, FileKind
 from tests.common.active_session import ActiveSession
-from tests.common.types import PytestRequest
+from tests.common.types import AnyJSON, PytestRequest
+from tests.storage import factories
+
+
+@pytest.fixture()
+async def access_group_data() -> AnyJSON:
+    return factories.AccessGroupInputFactory.build_json()
+
+
+@pytest.fixture()
+async def access_group(
+    faker: Faker, active_session: ActiveSession, access_group_data: AnyJSON
+) -> AccessGroup:
+    async with active_session():
+        return await AccessGroup.create(**access_group_data)
+
+
+@pytest.fixture()
+def missing_access_group_id() -> UUID:
+    return uuid4()
 
 
 @pytest.fixture()
