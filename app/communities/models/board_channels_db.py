@@ -1,3 +1,4 @@
+from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,3 +18,5 @@ class BoardChannel(Base):
 
     access_group_id: Mapped[str] = mapped_column()
     hoku_id: Mapped[str] = mapped_column()
+
+    ResponseSchema = MappedModel.create(columns=[hoku_id])

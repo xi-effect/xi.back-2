@@ -21,6 +21,7 @@ pytestmark = pytest.mark.anyio
         pytest.param("GET", "/communities/1/", id="retrieve-community"),
         pytest.param("PATCH", "/communities/1/", id="update-community"),
         pytest.param("DELETE", "/communities/1/", id="delete-community"),
+        pytest.param("GET", "/channels/1/board/", id="retrieve-board-channel"),
     ],
 )
 async def test_requesting_mub_invalid_key(
