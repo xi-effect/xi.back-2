@@ -127,6 +127,37 @@ def participant_data(participant: Participant) -> AnyJSON:
     ).model_dump(mode="json")
 
 
+PARTICIPANT_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def participants_data(
+    active_session: ActiveSession,
+    community: Community,
+    participant_user_id: int,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        participants = [
+            await Participant.create(
+                community_id=community.id,
+                user_id=participant_user_id,
+            )
+            for _ in range(PARTICIPANT_LIST_SIZE)
+        ]
+    participants.sort(key=lambda participant: participant.created_at, reverse=True)
+
+    yield [
+        Participant.MUBResponseSchema.model_validate(
+            participant, from_attributes=True
+        ).model_dump(mode="json")
+        for participant in participants
+    ]
+
+    async with active_session():
+        for participant in participants:
+            await participant.delete()
+
+
 @pytest.fixture()
 async def tmexio_participant_client(
     tmexio_server: TMEXIOTestServer,
@@ -301,6 +332,36 @@ async def deleted_category_id(
     return category.id
 
 
+CATEGORY_LIST_SIZE = 5
+
+
+@pytest.fixture()
+async def categories_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        categories = [
+            await Category.create(
+                community_id=community.id,
+                **factories.CategoryInputFactory.build_json(),
+            )
+            for _ in range(CATEGORY_LIST_SIZE)
+        ]
+    categories.sort(key=lambda category: category.position)
+
+    yield [
+        Category.ResponseSchema.model_validate(
+            category, from_attributes=True
+        ).model_dump(mode="json")
+        for category in categories
+    ]
+
+    async with active_session():
+        for category in categories:
+            await category.delete()
+
+
 @pytest.fixture()
 async def channel_data() -> AnyJSON:
     return factories.ChannelInputFactory.build_json()
@@ -339,6 +400,65 @@ async def specific_channel(
 ) -> Channel:
     async with active_session():
         return await Channel.create(community_id=community.id, **specific_channel_data)
+
+
+CHANNEL_LIST_SIZE = 5
+
+
+@pytest.fixture()
+async def channels_without_category_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        channels = [
+            await Channel.create(
+                community_id=community.id,
+                **factories.ChannelInputFactory.build_json(),
+            )
+            for _ in range(CHANNEL_LIST_SIZE)
+        ]
+    channels.sort(key=lambda channel: channel.position)
+
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
+
+    async with active_session():
+        for channel in channels:
+            await channel.delete()
+
+
+@pytest.fixture()
+async def channels_with_category_data(
+    active_session: ActiveSession,
+    community: Community,
+    category: Category,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        channels = [
+            await Channel.create(
+                community_id=community.id,
+                category_id=category.id,
+                **factories.ChannelInputFactory.build_json(),
+            )
+            for _ in range(CHANNEL_LIST_SIZE)
+        ]
+    channels.sort(key=lambda channel: channel.position)
+
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
+
+    async with active_session():
+        for channel in channels:
+            await channel.delete()
 
 
 @pytest.fixture()

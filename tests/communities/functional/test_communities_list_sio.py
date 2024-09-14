@@ -10,7 +10,11 @@ from app.communities.rooms import (
     participants_list_room,
 )
 from tests.common.active_session import ActiveSession
-from tests.common.tmexio_testing import TMEXIOTestClient, assert_ack
+from tests.common.tmexio_testing import (
+    TMEXIOListenerFactory,
+    TMEXIOTestClient,
+    assert_ack,
+)
 from tests.common.types import AnyJSON
 from tests.communities import factories
 
@@ -234,3 +238,97 @@ async def test_community_closing_deleted_community(
         community_id=deleted_community_id,
         user_id=outsider_user_id,
     )
+
+
+async def test_community_leaving(
+    active_session: ActiveSession,
+    tmexio_listener_factory: TMEXIOListenerFactory,
+    community: Community,
+    participant: Participant,
+    tmexio_participant_client: TMEXIOTestClient,
+) -> None:
+    participant_list_room_listener = await tmexio_listener_factory(
+        participants_list_room(community.id)
+    )
+    participant_room_listener = await tmexio_listener_factory(
+        participant_room(community.id, participant.user_id)
+    )
+
+    await tmexio_participant_client.enter_room(community_room(community.id))
+    await tmexio_participant_client.enter_room(participants_list_room(community.id))
+
+    assert_ack(
+        await tmexio_participant_client.emit(
+            "leave-community", community_id=community.id
+        ),
+        expected_code=204,
+    )
+    tmexio_participant_client.assert_no_more_events()
+
+    participant_room_listener.assert_next_event(
+        expected_name="leave-community", expected_data={"community_id": community.id}
+    )
+    participant_room_listener.assert_no_more_events()
+
+    participant_list_room_listener.assert_next_event(
+        expected_name="delete-participant",
+        expected_data={"community_id": community.id, "user_id": participant.user_id},
+    )
+    participant_list_room_listener.assert_no_more_events()
+
+    assert (
+        participant_room(community.id, participant.user_id)
+        not in participant_room_listener.current_rooms()
+    )
+
+    assert community_room(community.id) not in tmexio_participant_client.current_rooms()
+    assert (
+        participants_list_room(community.id)
+        not in tmexio_participant_client.current_rooms()
+    )
+
+    async with active_session():
+        assert (
+            await Participant.find_first_by_kwargs(
+                community_id=community.id, user_id=participant.user_id
+            )
+            is None
+        )
+
+
+async def test_community_leaving_owner_can_not_leave(
+    community: Community,
+    tmexio_owner_client: TMEXIOTestClient,
+) -> None:
+    assert_ack(
+        await tmexio_owner_client.emit("leave-community", community_id=community.id),
+        expected_code=409,
+        expected_data="Owner can not leave",
+    )
+    tmexio_owner_client.assert_no_more_events()
+
+
+async def test_community_leaving_no_access_to_community(
+    community: Community,
+    tmexio_outsider_client: TMEXIOTestClient,
+) -> None:
+    assert_ack(
+        await tmexio_outsider_client.emit("leave-community", community_id=community.id),
+        expected_code=403,
+        expected_data="No access to community",
+    )
+    tmexio_outsider_client.assert_no_more_events()
+
+
+async def test_community_leaving_community_not_found(
+    deleted_community_id: int,
+    tmexio_outsider_client: TMEXIOTestClient,
+) -> None:
+    assert_ack(
+        await tmexio_outsider_client.emit(
+            "leave-community", community_id=deleted_community_id
+        ),
+        expected_code=404,
+        expected_data="Community not found",
+    )
+    tmexio_outsider_client.assert_no_more_events()

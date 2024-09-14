@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -13,36 +12,6 @@ from tests.common.types import AnyJSON
 from tests.communities.factories import ParticipantMUBPatchFactory
 
 pytestmark = pytest.mark.anyio
-
-PARTICIPANT_LIST_SIZE = 6
-
-
-@pytest.fixture()
-async def participants_data(
-    active_session: ActiveSession,
-    participant_user_id: int,
-    community: Community,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        participants = [
-            await Participant.create(
-                community_id=community.id,
-                user_id=participant_user_id,
-            )
-            for _ in range(PARTICIPANT_LIST_SIZE)
-        ]
-    participants.sort(key=lambda participant: participant.created_at)
-
-    yield [
-        Participant.MUBResponseSchema.model_validate(
-            participant, from_attributes=True
-        ).model_dump(mode="json")
-        for participant in participants
-    ]
-
-    async with active_session():
-        for participant in participants:
-            await participant.delete()
 
 
 async def test_participants_listing(

@@ -42,7 +42,7 @@ remove_ping_pong_logs()
 async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
-    except ValidationError:  # TODO (37570606) pragma: no cover
+    except ValidationError:  # TODO (38980978) pragma: no cover
         raise EventException(407, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
@@ -56,7 +56,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 
 
 @tmex.on_other(summary="[special] Handler for non-existent events")
-async def handle_other_events(  # TODO (37570606) pragma: no cover
+async def handle_other_events(  # TODO (38980978) pragma: no cover
     event_name: EventName,
 ) -> Annotated[str, PydanticPackager(str, 404)]:
     return f"Unknown event: '{event_name}'"

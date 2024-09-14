@@ -15,9 +15,7 @@ router = APIRouterExt(tags=["participants meta mub"])
     summary="List participants in the community",
 )
 async def list_participants(community: CommunityById) -> Sequence[Participant]:
-    return await Participant.find_all_by_kwargs(
-        Participant.created_at, community_id=community.id
-    )
+    return await Participant.find_all_by_community_id(community_id=community.id)
 
 
 @router.post(

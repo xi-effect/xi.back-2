@@ -31,7 +31,7 @@ router = EventRouterExt(tags=["channels-list"])
     summary="List categories and channels in the community",
     dependencies=[current_participant_dependency],
 )
-async def list_channels(  # TODO (37570606) pragma: no cover
+async def list_channels(
     community: CommunityById,
 ) -> Annotated[
     list[ChannelCategoryListItemDict],
@@ -59,7 +59,7 @@ quantity_limit_per_category_exceeded = EventException(
     ],
     dependencies=[current_owner_dependency],
 )
-async def create_channel(  # TODO (37570606) pragma: no cover
+async def create_channel(
     community: CommunityById,
     category_id: int | None,
     data: Channel.InputSchema,
@@ -100,7 +100,7 @@ async def create_channel(  # TODO (37570606) pragma: no cover
     server_summary="Channel's metadata has been updated in the current community",
     dependencies=[current_owner_dependency],
 )
-async def update_channel(  # TODO (37570606) pragma: no cover
+async def update_channel(
     channel: ChannelByIds,
     data: Channel.PatchSchema,
     duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
@@ -137,7 +137,7 @@ invalid_mode = EventException(409, "Invalid move")
     exceptions=[quantity_limit_per_category_exceeded, invalid_mode],
     dependencies=[current_owner_dependency],
 )
-async def move_channel(  # TODO (37570606) pragma: no cover
+async def move_channel(
     channel: ChannelByIds,
     category_id: int | None,
     after_id: int | None,
@@ -151,7 +151,7 @@ async def move_channel(  # TODO (37570606) pragma: no cover
         if category is None:
             raise category_not_found
 
-    if await Channel.is_limit_per_category_reached(
+    if await Channel.is_limit_per_category_reached(  # TODO (33602197) pragma: no cover
         community_id=channel.community_id, category_id=category_id
     ):
         raise quantity_limit_per_category_exceeded
@@ -161,7 +161,7 @@ async def move_channel(  # TODO (37570606) pragma: no cover
             after_id=after_id,
             before_id=before_id,
         )
-    except InvalidMoveException as e:
+    except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
         # TODO warns as if the exception is not documented
         raise EventException(409, e.message)
 
@@ -186,7 +186,7 @@ async def move_channel(  # TODO (37570606) pragma: no cover
     server_summary="A channel has been deleted in the current community",
     dependencies=[current_owner_dependency],
 )
-async def delete_channel(  # TODO (37570606) pragma: no cover
+async def delete_channel(
     channel: ChannelByIds,
     duplex_emitter: Emitter[ChannelIdsSchema],
 ) -> None:
