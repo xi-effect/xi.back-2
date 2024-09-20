@@ -1,5 +1,3 @@
-from collections.abc import AsyncIterator
-
 import pytest
 from pydantic_marshals.contains import assert_contains
 from starlette.testclient import TestClient
@@ -10,6 +8,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
 from tests.communities import factories
+from tests.communities.conftest import CATEGORY_LIST_SIZE
 
 pytestmark = pytest.mark.anyio
 
@@ -43,36 +42,6 @@ async def test_reindexing_categories(
             positions, [i * Category.spacing for i in range(categories_count)]
         )
 
-        for category in categories:
-            await category.delete()
-
-
-CATEGORY_LIST_SIZE = 5
-
-
-@pytest.fixture()
-async def categories_data(
-    active_session: ActiveSession,
-    community: Community,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        categories = [
-            await Category.create(
-                community_id=community.id,
-                **factories.CategoryInputFactory.build_json(),
-            )
-            for _ in range(CATEGORY_LIST_SIZE)
-        ]
-    categories.sort(key=lambda category: category.position)
-
-    yield [
-        Category.ResponseSchema.model_validate(
-            category, from_attributes=True
-        ).model_dump(mode="json")
-        for category in categories
-    ]
-
-    async with active_session():
         for category in categories:
             await category.delete()
 

@@ -30,7 +30,7 @@ class CommunityPreviewModel(BaseModel):
     response_model=CommunityPreviewModel,
     summary="Retrieve community preview by invitation code",
 )
-async def retrieve_community_by_invitation_code(  # TODO (37570606) pragma: no cover
+async def retrieve_community_by_invitation_code(
     code: str,
     session_id_token: SessionIDHeader = None,
     user_id_token: UserIDHeader = None,

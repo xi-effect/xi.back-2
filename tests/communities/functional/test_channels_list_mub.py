@@ -1,5 +1,3 @@
-from collections.abc import AsyncIterator
-
 import pytest
 from pydantic_marshals.contains import assert_contains
 from starlette.testclient import TestClient
@@ -11,6 +9,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
 from tests.communities import factories
+from tests.communities.conftest import CHANNEL_LIST_SIZE
 
 pytestmark = pytest.mark.anyio
 
@@ -55,65 +54,6 @@ async def test_reindexing_channels(
         positions = [channel.position for channel in channels]
         assert_contains(positions, [i * Channel.spacing for i in range(channels_count)])
 
-        for channel in channels:
-            await channel.delete()
-
-
-CHANNEL_LIST_SIZE = 5
-
-
-@pytest.fixture()
-async def channels_without_category_data(
-    active_session: ActiveSession,
-    community: Community,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        channels = [
-            await Channel.create(
-                community_id=community.id,
-                **factories.ChannelInputFactory.build_json(),
-            )
-            for _ in range(CHANNEL_LIST_SIZE)
-        ]
-    channels.sort(key=lambda channel: channel.position)
-
-    yield [
-        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
-            mode="json"
-        )
-        for channel in channels
-    ]
-
-    async with active_session():
-        for channel in channels:
-            await channel.delete()
-
-
-@pytest.fixture()
-async def channels_with_category_data(
-    active_session: ActiveSession,
-    community: Community,
-    category: Category,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        channels = [
-            await Channel.create(
-                community_id=community.id,
-                category_id=category.id,
-                **factories.ChannelInputFactory.build_json(),
-            )
-            for _ in range(CHANNEL_LIST_SIZE)
-        ]
-    channels.sort(key=lambda channel: channel.position)
-
-    yield [
-        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
-            mode="json"
-        )
-        for channel in channels
-    ]
-
-    async with active_session():
         for channel in channels:
             await channel.delete()
 
