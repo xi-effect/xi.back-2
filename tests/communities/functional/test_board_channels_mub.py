@@ -13,7 +13,7 @@ async def test_board_channel_retrieving(
 ) -> None:
     assert_response(
         mub_client.get(f"/mub/community-service/channels/{board_channel.id}/board/"),
-        expected_json={"hoku_id": board_channel.hoku_id},
+        expected_json={"ydoc_id": board_channel.ydoc_id},
     )
 
 

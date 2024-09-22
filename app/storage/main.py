@@ -7,7 +7,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.storage.models.files_db import FILE_KIND_TO_FOLDER
-from app.storage.routers import access_groups_int, files_rst, hokus_int
+from app.storage.routers import access_groups_int, files_rst, ydocs_int
 
 outside_router = APIRouterExt(prefix="/api/public/storage-service")
 
@@ -22,7 +22,7 @@ internal_router = APIRouterExt(
     prefix="/internal/storage-service",
 )
 internal_router.include_router(access_groups_int.router)
-internal_router.include_router(hokus_int.router)
+internal_router.include_router(ydocs_int.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

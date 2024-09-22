@@ -12,7 +12,7 @@ class AccessGroupMetaSchema(BaseModel):
     related_id: str
 
 
-class HokuMetaSchema(BaseModel):
+class YDocMetaSchema(BaseModel):
     id: str
 
 
@@ -38,6 +38,6 @@ class StorageBridge:
     async def delete_access_group(self, access_group_id: str) -> None:
         await self.client.delete(f"/access-groups/{access_group_id}/")
 
-    @validate_json_response(TypeAdapter(HokuMetaSchema))
-    async def create_hoku(self, access_group_id: str) -> Response:
-        return await self.client.post(f"/access-groups/{access_group_id}/hokus/")
+    @validate_json_response(TypeAdapter(YDocMetaSchema))
+    async def create_ydoc(self, access_group_id: str) -> Response:
+        return await self.client.post(f"/access-groups/{access_group_id}/ydocs/")

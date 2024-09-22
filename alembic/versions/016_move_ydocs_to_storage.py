@@ -1,7 +1,7 @@
-"""move-hokus-to-storage
+"""move-ydocs-to-storage
 
-Revision ID: 015
-Revises: 014
+Revision ID: 016
+Revises: 015
 Create Date: 2024-09-14 20:19:54.502385
 
 """
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "015"
-down_revision: Union[str, None] = "014"
+revision: str = "016"
+down_revision: Union[str, None] = "015"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -31,7 +31,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "board_channels",
-        sa.Column("hoku_id", sa.String(), nullable=False),
+        sa.Column("ydoc_id", sa.String(), nullable=False),
         schema="xi_back_2",
     )
     op.drop_column("board_channels", "content", schema="xi_back_2")
@@ -45,6 +45,6 @@ def downgrade() -> None:
         sa.Column("content", sa.LargeBinary(), autoincrement=False, nullable=True),
         schema="xi_back_2",
     )
-    op.drop_column("board_channels", "hoku_id", schema="xi_back_2")
+    op.drop_column("board_channels", "ydoc_id", schema="xi_back_2")
     op.drop_column("board_channels", "access_group_id", schema="xi_back_2")
     # ### end Alembic commands ###

@@ -17,6 +17,6 @@ class BoardChannel(Base):
     channel: Mapped[Channel] = relationship(lazy="joined")
 
     access_group_id: Mapped[str] = mapped_column()
-    hoku_id: Mapped[str] = mapped_column()
+    ydoc_id: Mapped[str] = mapped_column()
 
-    ResponseSchema = MappedModel.create(columns=[hoku_id])
+    ResponseSchema = MappedModel.create(columns=[ydoc_id])

@@ -8,8 +8,8 @@ from app.common.config import Base
 from app.storage.models.access_groups_db import AccessGroup
 
 
-class Hoku(Base):
-    __tablename__ = "hokus"
+class YDoc(Base):
+    __tablename__ = "ydocs"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     access_group_id: Mapped[UUID] = mapped_column(

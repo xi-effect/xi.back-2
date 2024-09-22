@@ -93,14 +93,14 @@ async def test_board_channel_creation(
     )
 
     access_group_id = str(uuid4())
-    hoku_id = str(uuid4())
+    ydoc_id = str(uuid4())
 
     create_access_group_mock = storage_respx_mock.post(path="/access-groups/").mock(
         side_effect=create_access_group_mock_side_effect_factory(access_group_id)
     )
-    create_hoku_mock = storage_respx_mock.post(
-        path=f"/access-groups/{access_group_id}/hokus/"
-    ).respond(status_code=201, json={"id": hoku_id})
+    create_ydoc_mock = storage_respx_mock.post(
+        path=f"/access-groups/{access_group_id}/ydocs/"
+    ).respond(status_code=201, json={"id": ydoc_id})
 
     async with active_session():
         channel = await channels_svc.create_channel(
@@ -124,7 +124,7 @@ async def test_board_channel_creation(
         board_channel = await BoardChannel.find_first_by_id(channel.id)
         assert_contains(
             board_channel,
-            {"access_group_id": access_group_id, "hoku_id": hoku_id},
+            {"access_group_id": access_group_id, "ydoc_id": ydoc_id},
         )
 
     assert_last_httpx_request(
@@ -136,7 +136,7 @@ async def test_board_channel_creation(
         },
     )
     assert_last_httpx_request(
-        create_hoku_mock,
+        create_ydoc_mock,
         expected_headers={"X-Api-Key": API_KEY},
     )
 

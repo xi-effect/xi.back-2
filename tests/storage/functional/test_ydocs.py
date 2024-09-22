@@ -9,7 +9,7 @@ from app.common.access import AccessLevel
 from app.common.config import API_KEY
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.storage.models.access_groups_db import AccessGroup
-from app.storage.models.hokus_db import Hoku
+from app.storage.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.respx_ext import assert_last_httpx_request
@@ -17,34 +17,34 @@ from tests.common.respx_ext import assert_last_httpx_request
 pytestmark = pytest.mark.anyio
 
 
-async def test_hoku_creating(
+async def test_ydoc_creating(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
     access_group: AccessGroup,
 ) -> None:
-    hoku_id = assert_response(
+    ydoc_id = assert_response(
         internal_client.post(
-            f"/internal/storage-service/access-groups/{access_group.id}/hokus/",
+            f"/internal/storage-service/access-groups/{access_group.id}/ydocs/",
         ),
         expected_code=201,
         expected_json={"id": UUID},
     ).json()["id"]
 
     async with active_session():
-        hoku = await Hoku.find_first_by_id(hoku_id)
-        assert hoku is not None
-        assert hoku.access_group_id == access_group.id
+        ydoc = await YDoc.find_first_by_id(ydoc_id)
+        assert ydoc is not None
+        assert ydoc.access_group_id == access_group.id
 
 
-async def test_hoku_creating_access_group_not_found(
+async def test_ydoc_creating_access_group_not_found(
     faker: Faker,
     internal_client: TestClient,
     missing_access_group_id: UUID,
 ) -> None:
     assert_response(
         internal_client.post(
-            f"/internal/storage-service/access-groups/{missing_access_group_id}/hokus/",
+            f"/internal/storage-service/access-groups/{missing_access_group_id}/ydocs/",
         ),
         expected_code=404,
         expected_json={"detail": "Access group not found"},
@@ -55,12 +55,12 @@ async def test_hoku_creating_access_group_not_found(
     "access_level",
     [pytest.param(access_level, id=access_level.value) for access_level in AccessLevel],
 )
-async def test_hoku_access_level_retrieving(
+async def test_ydoc_access_level_retrieving(
     communities_respx_mock: MockRouter,
     proxy_auth_data: ProxyAuthData,
     authorized_internal_client: TestClient,
     access_group: AccessGroup,
-    hoku: Hoku,
+    ydoc: YDoc,
     access_level: AccessLevel,
 ) -> None:
     board_channel_access_level_mock = communities_respx_mock.get(
@@ -69,7 +69,7 @@ async def test_hoku_access_level_retrieving(
 
     assert_response(
         authorized_internal_client.get(
-            f"/internal/storage-service/hokus/{hoku.id}/access-level/",
+            f"/internal/storage-service/ydocs/{ydoc.id}/access-level/",
         ),
         expected_json=access_level.value,
     )
@@ -80,71 +80,71 @@ async def test_hoku_access_level_retrieving(
     )
 
 
-async def test_hoku_access_level_retrieving_proxy_auth_required(
+async def test_ydoc_access_level_retrieving_proxy_auth_required(
     internal_client: TestClient,
-    hoku: Hoku,
+    ydoc: YDoc,
 ) -> None:
     assert_response(
         internal_client.get(
-            f"/internal/storage-service/hokus/{hoku.id}/access-level/",
+            f"/internal/storage-service/ydocs/{ydoc.id}/access-level/",
         ),
         expected_code=407,
         expected_json={"detail": "Proxy auth required"},
     )
 
 
-async def test_hoku_content_retrieving(
+async def test_ydoc_content_retrieving(
     internal_client: TestClient,
-    hoku: Hoku,
+    ydoc: YDoc,
 ) -> None:
     response = assert_response(
         internal_client.get(
-            f"/internal/storage-service/hokus/{hoku.id}/content/",
+            f"/internal/storage-service/ydocs/{ydoc.id}/content/",
         ),
         expected_json=None,
         expected_headers={
             "Content-Type": "application/octet-stream",
         },
     )
-    assert response.content == hoku.content
+    assert response.content == ydoc.content
 
 
-async def test_hoku_content_updating(
+async def test_ydoc_content_updating(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
-    hoku: Hoku,
+    ydoc: YDoc,
 ) -> None:
     content: bytes = faker.binary(length=64)
 
     assert_nodata_response(
         internal_client.put(
-            f"/internal/storage-service/hokus/{hoku.id}/content/",
+            f"/internal/storage-service/ydocs/{ydoc.id}/content/",
             content=content,
             headers={"Content-Type": "application/octet-stream"},
         ),
     )
 
     async with active_session():
-        updated_hoku = await Hoku.find_first_by_id(hoku.id)
-        assert updated_hoku is not None
-        assert updated_hoku.content == content
+        updated_ydoc = await YDoc.find_first_by_id(ydoc.id)
+        assert updated_ydoc is not None
+        assert updated_ydoc.content == content
 
 
-async def test_hoku_content_clearing(
+async def test_ydoc_content_clearing(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
-    hoku: Hoku,
+    ydoc: YDoc,
 ) -> None:
     assert_nodata_response(
-        internal_client.delete(f"/internal/storage-service/hokus/{hoku.id}/content/"),
+        internal_client.delete(f"/internal/storage-service/ydocs/{ydoc.id}/content/"),
     )
 
     async with active_session():
-        updated_hoku = await Hoku.find_first_by_id(hoku.id)
-        assert updated_hoku is not None
-        assert updated_hoku.content is None
+        updated_ydoc = await YDoc.find_first_by_id(ydoc.id)
+        assert updated_ydoc is not None
+        assert updated_ydoc.content is None
 
 
 @pytest.mark.parametrize(
@@ -156,10 +156,10 @@ async def test_hoku_content_clearing(
         pytest.param("DELETE", False, "content", id="clear-content"),
     ],
 )
-async def test_hoku_not_finding(
+async def test_ydoc_not_finding(
     faker: Faker,
     authorized_internal_client: TestClient,
-    missing_hoku_id: int,
+    missing_ydoc_id: int,
     method: str,
     with_content: bool,
     path: str,
@@ -167,12 +167,12 @@ async def test_hoku_not_finding(
     assert_response(
         authorized_internal_client.request(
             method,
-            f"/internal/storage-service/hokus/{missing_hoku_id}/{path}/",
+            f"/internal/storage-service/ydocs/{missing_ydoc_id}/{path}/",
             content=faker.binary(length=64) if with_content else None,
             headers=(
                 {"Content-Type": "application/octet-stream"} if with_content else None
             ),
         ),
         expected_code=404,
-        expected_json={"detail": "Hoku not found"},
+        expected_json={"detail": "YDoc not found"},
     )

@@ -70,7 +70,7 @@ async def test_board_channel_deletion(
         board_channel = await BoardChannel.create(
             id=channel.id,
             access_group_id=str(uuid4()),
-            hoku_id=str(uuid4()),
+            ydoc_id=str(uuid4()),
         )
 
     delete_access_group_mock = storage_respx_mock.delete(

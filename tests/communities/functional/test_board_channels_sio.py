@@ -18,7 +18,7 @@ async def test_board_channel_retrieving(
             community_id=community.id,
             channel_id=board_channel.id,
         ),
-        expected_data={"hoku_id": board_channel.hoku_id},
+        expected_data={"ydoc_id": board_channel.ydoc_id},
     )
     tmexio_actor_client.assert_no_more_events()
 

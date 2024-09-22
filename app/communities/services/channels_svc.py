@@ -23,9 +23,9 @@ async def create_channel(
             access_group = await storage_bridge.create_access_group(
                 kind=AccessGroupKind.BOARD_CHANNEL, related_id=channel.id
             )
-            hoku = await storage_bridge.create_hoku(access_group_id=access_group.id)
+            ydoc = await storage_bridge.create_ydoc(access_group_id=access_group.id)
             await BoardChannel.create(
-                id=channel.id, access_group_id=access_group.id, hoku_id=hoku.id
+                id=channel.id, access_group_id=access_group.id, ydoc_id=ydoc.id
             )
 
     return channel

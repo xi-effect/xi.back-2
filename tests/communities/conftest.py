@@ -496,7 +496,7 @@ async def board_channel(
         return await BoardChannel.create(
             id=channel.id,
             access_group_id=str(uuid4()),
-            hoku_id=str(uuid4()),
+            ydoc_id=str(uuid4()),
         )
 
 
