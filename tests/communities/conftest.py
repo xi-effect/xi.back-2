@@ -11,6 +11,8 @@ from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.models.task_channels_db import TaskChannel
+from app.communities.models.tasks_db import Task
 from app.communities.rooms import community_room
 from tests.common.active_session import ActiveSession
 from tests.common.polyfactory_ext import BaseModelFactory
@@ -493,3 +495,48 @@ async def deleted_board_channel_id(
     async with active_session():
         await board_channel.delete()
     return board_channel.id
+
+
+@pytest.fixture()
+async def task_channel(active_session: ActiveSession, channel: Channel) -> TaskChannel:
+    async with active_session():
+        return await TaskChannel.create(id=channel.id)
+
+
+@pytest.fixture()
+async def deleted_task_channel_id(
+    active_session: ActiveSession,
+    task_channel: TaskChannel,
+) -> int:
+    async with active_session():
+        await task_channel.delete()
+    return task_channel.id
+
+
+@pytest.fixture()
+async def task(
+    active_session: ActiveSession,
+    task_channel: TaskChannel,
+) -> Task:
+    async with active_session():
+        return await Task.create(
+            channel_id=task_channel.id,
+            **factories.TaskInputFactory.build_json(),
+        )
+
+
+@pytest.fixture()
+def task_data(task: Task) -> AnyJSON:
+    return Task.ResponseSchema.model_validate(task, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def deleted_task_id(
+    active_session: ActiveSession,
+    task: Task,
+) -> int:
+    async with active_session():
+        await task.delete()
+    return task.id
