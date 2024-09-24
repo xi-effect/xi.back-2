@@ -190,7 +190,7 @@ async def delete_channel(
     channel: ChannelByIds,
     duplex_emitter: Emitter[ChannelIdsSchema],
 ) -> None:
-    await channels_svc.delete_channel(channel)
+    await channels_svc.delete_channel(channel=channel)
     await db.session.commit()
 
     await duplex_emitter.emit(

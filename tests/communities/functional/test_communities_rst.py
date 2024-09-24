@@ -1,12 +1,7 @@
 import pytest
 from starlette.testclient import TestClient
 
-from app.common.dependencies.authorization_dep import (
-    AUTH_SESSION_ID_HEADER_NAME,
-    AUTH_USER_ID_HEADER_NAME,
-    AUTH_USERNAME_HEADER_NAME,
-    ProxyAuthData,
-)
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -63,13 +58,7 @@ async def test_retrieving_community_by_invitation_code_already_joined(
     assert_response(
         client.get(
             f"/api/public/community-service/invitations/by-code/{invitation.token}/community/",
-            headers={
-                AUTH_SESSION_ID_HEADER_NAME: str(
-                    participant_proxy_auth_data.session_id
-                ),
-                AUTH_USER_ID_HEADER_NAME: str(participant.user_id),
-                AUTH_USERNAME_HEADER_NAME: participant_proxy_auth_data.username,
-            },
+            headers=participant_proxy_auth_data.as_headers,
         ),
         expected_json={
             "community": {**community_data, "id": community.id},

@@ -12,6 +12,7 @@ from app.communities.routes import (
     avatars_rst,
     board_channels_int,
     board_channels_mub,
+    board_channels_sio,
     categories_mub,
     categories_sio,
     channels_mub,
@@ -51,8 +52,8 @@ mub_router.include_router(invitations_mub.router)
 mub_router.include_router(participants_mub.router)
 mub_router.include_router(categories_mub.router)
 mub_router.include_router(channels_mub.router)
-mub_router.include_router(tasks_mub.router)
 mub_router.include_router(board_channels_mub.router)
+mub_router.include_router(tasks_mub.router)
 
 api_router = APIRouterExt()
 api_router.include_router(outside_router)
@@ -66,6 +67,7 @@ event_router.include_router(invitations_sio.router)
 event_router.include_router(participants_sio.router)
 event_router.include_router(categories_sio.router)
 event_router.include_router(channels_sio.router)
+event_router.include_router(board_channels_sio.router)
 
 
 @asynccontextmanager

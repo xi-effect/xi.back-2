@@ -132,4 +132,4 @@ async def move_channel(
     summary="Delete any channel by id",
 )
 async def delete_channel(channel: ChannelById) -> None:
-    await channels_svc.delete_channel(channel)
+    await channels_svc.delete_channel(channel=channel)

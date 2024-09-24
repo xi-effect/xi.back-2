@@ -5,12 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.common.config import API_KEY, MUB_KEY
-from app.common.dependencies.authorization_dep import (
-    AUTH_SESSION_ID_HEADER_NAME,
-    AUTH_USER_ID_HEADER_NAME,
-    AUTH_USERNAME_HEADER_NAME,
-    ProxyAuthData,
-)
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app, tmex
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.tmexio_testing import (
@@ -60,12 +55,18 @@ def proxy_auth_data() -> ProxyAuthData:
 
 @pytest.fixture()
 def authorized_client(client: TestClient, proxy_auth_data: ProxyAuthData) -> TestClient:
+    return TestClient(client.app, headers=proxy_auth_data.as_headers)
+
+
+@pytest.fixture()
+def authorized_internal_client(
+    proxy_auth_data: ProxyAuthData, client: TestClient
+) -> TestClient:
     return TestClient(
         client.app,
         headers={
-            AUTH_SESSION_ID_HEADER_NAME: str(proxy_auth_data.session_id),
-            AUTH_USER_ID_HEADER_NAME: str(proxy_auth_data.user_id),
-            AUTH_USERNAME_HEADER_NAME: proxy_auth_data.username,
+            **proxy_auth_data.as_headers,
+            "X-Api-Key": API_KEY,
         },
     )
 

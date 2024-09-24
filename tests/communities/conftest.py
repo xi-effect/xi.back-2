@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from typing import Any
+from uuid import uuid4
 
 import pytest
 from faker import Faker
@@ -365,18 +366,25 @@ async def categories_data(
 
 
 @pytest.fixture()
-async def channel_data() -> AnyJSON:
-    return factories.ChannelInputFactory.build_json()
+async def channel_raw_data() -> Channel.InputSchema:
+    return factories.ChannelInputFactory.build()
+
+
+@pytest.fixture()
+async def channel_data(channel_raw_data: Channel.InputSchema) -> AnyJSON:
+    return channel_raw_data.model_dump(mode="json")
 
 
 @pytest.fixture()
 async def channel(
     active_session: ActiveSession,
     community: Community,
-    channel_data: AnyJSON,
+    channel_raw_data: Channel.InputSchema,
 ) -> Channel:
     async with active_session():
-        return await Channel.create(community_id=community.id, **channel_data)
+        return await Channel.create(
+            community_id=community.id, **channel_raw_data.model_dump()
+        )
 
 
 @pytest.fixture(
@@ -485,7 +493,11 @@ async def board_channel(
     faker: Faker, active_session: ActiveSession, channel: Channel
 ) -> BoardChannel:
     async with active_session():
-        return await BoardChannel.create(id=channel.id, content=faker.binary(length=64))
+        return await BoardChannel.create(
+            id=channel.id,
+            access_group_id=str(uuid4()),
+            ydoc_id=str(uuid4()),
+        )
 
 
 @pytest.fixture()

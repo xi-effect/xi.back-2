@@ -50,6 +50,14 @@ class ProxyAuthData(BaseModel):
     user_id: int
     username: str
 
+    @property
+    def as_headers(self) -> dict[str, str]:
+        return {
+            AUTH_SESSION_ID_HEADER_NAME: str(self.session_id),
+            AUTH_USER_ID_HEADER_NAME: str(self.user_id),
+            AUTH_USERNAME_HEADER_NAME: self.username,
+        }
+
 
 def construct_proxy_auth_data(
     session_id_token: SessionIDHeader = None,
