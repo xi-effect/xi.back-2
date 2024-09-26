@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Body, Depends, Path
+from fastapi import Depends, Path
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.communities.models.board_channels_db import BoardChannel
@@ -19,5 +19,3 @@ async def get_board_channel_by_id(channel_id: Annotated[int, Path()]) -> BoardCh
 
 
 BoardChannelById = Annotated[BoardChannel, Depends(get_board_channel_by_id)]
-
-BoardChannelContent = Annotated[bytes, Body(..., media_type="application/octet-stream")]

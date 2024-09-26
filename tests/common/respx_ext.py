@@ -6,12 +6,30 @@ import pytest
 from pydantic_marshals.contains import TypeChecker, assert_contains
 from respx import MockRouter, Route, mock
 
-from app.common.config import POSTS_BASE_URL
+from app.common.config import BRIDGE_BASE_URL
+
+
+@pytest.fixture()
+def communities_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(
+        base_url=f"{BRIDGE_BASE_URL}/internal/community-service"
+    )
+    with mock_router:
+        yield mock_router
 
 
 @pytest.fixture()
 def posts_respx_mock() -> Iterator[MockRouter]:
-    mock_router: MockRouter = mock(base_url=f"{POSTS_BASE_URL}/internal/post-service")
+    mock_router: MockRouter = mock(base_url=f"{BRIDGE_BASE_URL}/internal/post-service")
+    with mock_router:
+        yield mock_router
+
+
+@pytest.fixture()
+def storage_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(
+        base_url=f"{BRIDGE_BASE_URL}/internal/storage-service"
+    )
     with mock_router:
         yield mock_router
 

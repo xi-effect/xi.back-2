@@ -10,6 +10,7 @@ from app.communities.models.channels_db import Channel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.models.tasks_db import Task
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
@@ -66,3 +67,11 @@ class ChannelInputFactory(BaseModelFactory[Channel.InputSchema]):
 
 class ChannelPatchFactory(BasePatchModelFactory[Channel.PatchSchema]):
     __model__ = Channel.PatchSchema
+
+
+class TaskInputFactory(BaseModelFactory[Task.InputSchema]):
+    __model__ = Task.InputSchema
+
+
+class TaskPatchFactory(BasePatchModelFactory[Task.PatchSchema]):
+    __model__ = Task.PatchSchema

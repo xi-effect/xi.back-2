@@ -9,7 +9,7 @@ channel_not_found = EventException(404, "Channel not found")
 
 
 @register_dependency(exceptions=[channel_not_found])
-async def channel_by_ids_dependency(  # TODO (37570606) pragma: no cover
+async def channel_by_ids_dependency(
     channel_id: int,
     community: CommunityById,
 ) -> Channel:

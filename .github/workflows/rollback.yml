@@ -35,7 +35,7 @@ jobs:
           script: |-
             cd ~/xieffect-core
             docker compose --profile stage stop back-2-stage
-            docker compose --profile stage run --rm --entrypoint alembic back-2-stage downgrade $(cat back-2-stage-version.txt)
+            docker compose --profile stage run --rm --entrypoint alembic back-2-stage-migrate downgrade $(cat back-2-stage-version.txt)
             docker image tag ${{ env.deploy_image }}-backup ${{ env.deploy_image }}
             docker compose --profile stage up -d
           script_stop: true

@@ -19,7 +19,7 @@ from app.common.config import (
     engine,
     sessionmaker,
 )
-from app.common.config_bdg import posts_bridge
+from app.common.config_bdg import communities_bridge, posts_bridge, storage_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
@@ -42,7 +42,7 @@ remove_ping_pong_logs()
 async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
-    except ValidationError:  # TODO (37570606) pragma: no cover
+    except ValidationError:  # TODO (38980978) pragma: no cover
         raise EventException(407, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
@@ -56,7 +56,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 
 
 @tmex.on_other(summary="[special] Handler for non-existent events")
-async def handle_other_events(  # TODO (37570606) pragma: no cover
+async def handle_other_events(  # TODO (38980978) pragma: no cover
     event_name: EventName,
 ) -> Annotated[str, PydanticPackager(str, 404)]:
     return f"Unknown event: '{event_name}'"
@@ -78,7 +78,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(posts.lifespan())
         await stack.enter_async_context(storage.lifespan())
 
+        await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(posts_bridge.client)
+        await stack.enter_async_context(storage_bridge.client)
 
         yield
 

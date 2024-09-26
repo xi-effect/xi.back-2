@@ -1,23 +1,4 @@
 services:
-  mq:
-    image: rabbitmq:3.12.10-management-alpine
-    volumes:
-      - type: tmpfs
-        target: /var/lib/rabbitmq/
-    ports:
-      - target: 5672
-        host_ip: 127.0.0.1
-        published: 5672
-      - target: 15672
-        host_ip: 127.0.0.1
-        published: 15672
-    healthcheck:
-      test: rabbitmq-diagnostics -q check_port_connectivity
-      start_period: 60s
-      interval: 10s
-      timeout: 60s
-      retries: 5
-
   db:
     image: postgres:16.1-alpine
     environment:
@@ -98,6 +79,5 @@ services:
     environment:
       WATCHFILES_FORCE_POLLING: true
       DB_LINK: postgresql+psycopg://test:test@db:5432/test
-      MQ_URL: amqp://guest:guest@mq
       DB_SCHEMA: xi_back_2
       # DATABASE_MIGRATED: "1"

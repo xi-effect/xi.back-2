@@ -1,14 +1,19 @@
 from collections.abc import AsyncIterator
 from typing import Any
+from uuid import uuid4
 
 import pytest
+from faker import Faker
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
+from app.communities.models.task_channels_db import TaskChannel
+from app.communities.models.tasks_db import Task
 from app.communities.rooms import community_room
 from tests.common.active_session import ActiveSession
 from tests.common.polyfactory_ext import BaseModelFactory
@@ -123,6 +128,37 @@ def participant_data(participant: Participant) -> AnyJSON:
     return Participant.MUBResponseSchema.model_validate(
         participant, from_attributes=True
     ).model_dump(mode="json")
+
+
+PARTICIPANT_LIST_SIZE = 6
+
+
+@pytest.fixture()
+async def participants_data(
+    active_session: ActiveSession,
+    community: Community,
+    participant_user_id: int,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        participants = [
+            await Participant.create(
+                community_id=community.id,
+                user_id=participant_user_id,
+            )
+            for _ in range(PARTICIPANT_LIST_SIZE)
+        ]
+    participants.sort(key=lambda participant: participant.created_at, reverse=True)
+
+    yield [
+        Participant.MUBResponseSchema.model_validate(
+            participant, from_attributes=True
+        ).model_dump(mode="json")
+        for participant in participants
+    ]
+
+    async with active_session():
+        for participant in participants:
+            await participant.delete()
 
 
 @pytest.fixture()
@@ -299,19 +335,56 @@ async def deleted_category_id(
     return category.id
 
 
+CATEGORY_LIST_SIZE = 5
+
+
 @pytest.fixture()
-async def channel_data() -> AnyJSON:
-    return factories.ChannelInputFactory.build_json()
+async def categories_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        categories = [
+            await Category.create(
+                community_id=community.id,
+                **factories.CategoryInputFactory.build_json(),
+            )
+            for _ in range(CATEGORY_LIST_SIZE)
+        ]
+    categories.sort(key=lambda category: category.position)
+
+    yield [
+        Category.ResponseSchema.model_validate(
+            category, from_attributes=True
+        ).model_dump(mode="json")
+        for category in categories
+    ]
+
+    async with active_session():
+        for category in categories:
+            await category.delete()
+
+
+@pytest.fixture()
+async def channel_raw_data() -> Channel.InputSchema:
+    return factories.ChannelInputFactory.build()
+
+
+@pytest.fixture()
+async def channel_data(channel_raw_data: Channel.InputSchema) -> AnyJSON:
+    return channel_raw_data.model_dump(mode="json")
 
 
 @pytest.fixture()
 async def channel(
     active_session: ActiveSession,
     community: Community,
-    channel_data: AnyJSON,
+    channel_raw_data: Channel.InputSchema,
 ) -> Channel:
     async with active_session():
-        return await Channel.create(community_id=community.id, **channel_data)
+        return await Channel.create(
+            community_id=community.id, **channel_raw_data.model_dump()
+        )
 
 
 @pytest.fixture(
@@ -339,6 +412,65 @@ async def specific_channel(
         return await Channel.create(community_id=community.id, **specific_channel_data)
 
 
+CHANNEL_LIST_SIZE = 5
+
+
+@pytest.fixture()
+async def channels_without_category_data(
+    active_session: ActiveSession,
+    community: Community,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        channels = [
+            await Channel.create(
+                community_id=community.id,
+                **factories.ChannelInputFactory.build_json(),
+            )
+            for _ in range(CHANNEL_LIST_SIZE)
+        ]
+    channels.sort(key=lambda channel: channel.position)
+
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
+
+    async with active_session():
+        for channel in channels:
+            await channel.delete()
+
+
+@pytest.fixture()
+async def channels_with_category_data(
+    active_session: ActiveSession,
+    community: Community,
+    category: Category,
+) -> AsyncIterator[list[AnyJSON]]:
+    async with active_session():
+        channels = [
+            await Channel.create(
+                community_id=community.id,
+                category_id=category.id,
+                **factories.ChannelInputFactory.build_json(),
+            )
+            for _ in range(CHANNEL_LIST_SIZE)
+        ]
+    channels.sort(key=lambda channel: channel.position)
+
+    yield [
+        Channel.ResponseSchema.model_validate(channel, from_attributes=True).model_dump(
+            mode="json"
+        )
+        for channel in channels
+    ]
+
+    async with active_session():
+        for channel in channels:
+            await channel.delete()
+
+
 @pytest.fixture()
 async def deleted_channel_id(
     active_session: ActiveSession,
@@ -350,21 +482,73 @@ async def deleted_channel_id(
 
 
 @pytest.fixture(params=[False, True], ids=["without_category", "with_category"])
-def is_channel_with_category(request: PytestRequest[bool]) -> bool:
-    return request.param
-
-
-@pytest.fixture()
 def channel_parent_category_id(
-    category: Category, is_channel_with_category: bool
+    request: PytestRequest[bool], category: Category
 ) -> int | None:
-    return category.id if is_channel_with_category else None
+    return category.id if request.param else None
 
 
 @pytest.fixture()
-def channel_parent_path(
-    community: Community, category: Category, is_channel_with_category: int | None
-) -> str:
-    if is_channel_with_category:
-        return f"categories/{category.id}"
-    return f"communities/{community.id}"
+async def board_channel(
+    faker: Faker, active_session: ActiveSession, channel: Channel
+) -> BoardChannel:
+    async with active_session():
+        return await BoardChannel.create(
+            id=channel.id,
+            access_group_id=str(uuid4()),
+            ydoc_id=str(uuid4()),
+        )
+
+
+@pytest.fixture()
+async def deleted_board_channel_id(
+    active_session: ActiveSession, board_channel: BoardChannel
+) -> int:
+    async with active_session():
+        await board_channel.delete()
+    return board_channel.id
+
+
+@pytest.fixture()
+async def task_channel(active_session: ActiveSession, channel: Channel) -> TaskChannel:
+    async with active_session():
+        return await TaskChannel.create(id=channel.id)
+
+
+@pytest.fixture()
+async def deleted_task_channel_id(
+    active_session: ActiveSession,
+    task_channel: TaskChannel,
+) -> int:
+    async with active_session():
+        await task_channel.delete()
+    return task_channel.id
+
+
+@pytest.fixture()
+async def task(
+    active_session: ActiveSession,
+    task_channel: TaskChannel,
+) -> Task:
+    async with active_session():
+        return await Task.create(
+            channel_id=task_channel.id,
+            **factories.TaskInputFactory.build_json(),
+        )
+
+
+@pytest.fixture()
+def task_data(task: Task) -> AnyJSON:
+    return Task.ResponseSchema.model_validate(task, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def deleted_task_id(
+    active_session: ActiveSession,
+    task: Task,
+) -> int:
+    async with active_session():
+        await task.delete()
+    return task.id
