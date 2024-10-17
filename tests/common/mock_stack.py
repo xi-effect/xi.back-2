@@ -55,6 +55,7 @@ class MockStack(ExitStack):
         attribute: str,
         /,
         *,
+        mock: AsyncMock | None = None,
         return_value: Any | None = None,
     ) -> AsyncMock: ...
 
@@ -64,6 +65,7 @@ class MockStack(ExitStack):
         target: str,
         /,
         *,
+        mock: AsyncMock | None = None,
         return_value: Any | None = None,
     ) -> AsyncMock: ...
 
@@ -72,9 +74,11 @@ class MockStack(ExitStack):
         target: Any,
         attribute: str | None = None,
         *,
+        mock: AsyncMock | None = None,
         return_value: Any | None = None,
     ) -> AsyncMock:
-        mock = AsyncMock(return_value=return_value)
+        if mock is None:
+            mock = AsyncMock(return_value=return_value)
         if attribute is None:
             return self.enter_context(patch(target, mock))
         return self.enter_context(patch.object(target, attribute, mock))
