@@ -69,6 +69,8 @@ line_length = 88
 
 [tool.mypy]
 strict = true
+warn_unreachable = true
+warn_redundant_casts = true
 exclude = ["alembic"]
 plugins = "pydantic_marshals.mypy.plugin"
 
