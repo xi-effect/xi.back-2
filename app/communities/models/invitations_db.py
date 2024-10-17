@@ -36,7 +36,7 @@ class Invitation(Base):
 
     # community data
     community_id: Mapped[int] = mapped_column(
-        ForeignKey(Community.id, ondelete="CASCADE"), nullable=False
+        ForeignKey(Community.id, ondelete="CASCADE")
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 

@@ -21,7 +21,7 @@ class Category(SpacedOrderedList[int]):
     description: Mapped[str | None] = mapped_column(Text)
 
     community_id: Mapped[int] = mapped_column(
-        ForeignKey(Community.id, ondelete="CASCADE"), nullable=False
+        ForeignKey(Community.id, ondelete="CASCADE")
     )
     community: Mapped[Community] = relationship(passive_deletes=True)
 
