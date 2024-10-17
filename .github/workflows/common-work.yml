@@ -25,13 +25,8 @@ jobs:
     env:
       repository_cache_name: back-2
       postgres_schema: ${{ inputs.database && 'xi_back_2' || '' }}
-      MQ_URL: 'amqp://guest:guest@localhost/'
 
     services:
-      mq:
-        image: rabbitmq:3.12.10-management-alpine
-        ports:
-          - 5672:5672
       db:
         image: postgres:16.1-alpine
         env:
