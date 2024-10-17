@@ -72,7 +72,10 @@ strict = true
 warn_unreachable = true
 warn_redundant_casts = true
 exclude = ["alembic"]
-plugins = "pydantic_marshals.mypy.plugin"
+plugins = [
+  "pydantic.mypy",
+  "pydantic_marshals.mypy.plugin",
+]
 
 [tool.coverage.run]
 concurrency = ["greenlet", "thread"]
