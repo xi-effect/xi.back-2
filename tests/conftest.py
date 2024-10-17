@@ -4,7 +4,7 @@ from contextlib import AsyncExitStack
 import pytest
 from fastapi.testclient import TestClient
 
-from app.common.config import API_KEY, MUB_KEY
+from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app, tmex
 from tests.common.polyfactory_ext import BaseModelFactory
@@ -36,12 +36,12 @@ def client() -> Iterator[TestClient]:
 
 @pytest.fixture(scope="session")
 def mub_client(client: TestClient) -> TestClient:
-    return TestClient(client.app, headers={"X-MUB-Secret": MUB_KEY})
+    return TestClient(client.app, headers={"X-MUB-Secret": settings.mub_key})
 
 
 @pytest.fixture(scope="session")
 def internal_client(client: TestClient) -> TestClient:
-    return TestClient(client.app, headers={"X-Api-Key": API_KEY})
+    return TestClient(client.app, headers={"X-Api-Key": settings.api_key})
 
 
 class ProxyAuthDataFactory(BaseModelFactory[ProxyAuthData]):
@@ -66,7 +66,7 @@ def authorized_internal_client(
         client.app,
         headers={
             **proxy_auth_data.as_headers,
-            "X-Api-Key": API_KEY,
+            "X-Api-Key": settings.api_key,
         },
     )
 

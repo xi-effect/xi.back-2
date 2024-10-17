@@ -1,36 +1,75 @@
-from os import getenv
 from pathlib import Path
 
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
-current_directory: Path = Path.cwd()
 
-AVATARS_PATH: Path = current_directory / "community_avatars"
-STORAGE_PATH: Path = current_directory / "storage"
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="_",
+        env_ignore_empty=True,
+    )
 
-PRODUCTION_MODE: bool = getenv("PRODUCTION", "0") == "1"
+    api_key: str = "local"  # common for now, split later
+    mub_key: str = "local"
 
-DB_URL: str = getenv("DB_LINK", "postgresql+psycopg://test:test@localhost:5432/test")
-DB_SCHEMA: str | None = getenv("DB_SCHEMA", None)
-DATABASE_MIGRATED: bool = getenv("DATABASE_MIGRATED", "0") == "1"
+    bridge_base_url: str = "http://localhost:8000"
 
-LOCAL_PORT: str = getenv("LOCAL_PORT", "8000")
+    base_path: Path = Path.cwd()
+    community_avatars_folder: Path = Path("community_avatars")
 
-BRIDGE_BASE_URL: str = getenv("BRIDGE_BASE_URL", f"http://localhost:{LOCAL_PORT}")
+    @computed_field
+    @property
+    def community_avatars_path(self) -> Path:
+        return self.base_path / self.community_avatars_folder
 
-API_KEY: str = getenv("API_KEY", "local")  # common for now, split later
-MUB_KEY: str = getenv("MUB_KEY", "local")
+    storage_folder: Path = Path("storage")
+
+    @computed_field
+    @property
+    def storage_path(self) -> Path:
+        return self.base_path / self.storage_folder
+
+    postgres_host: str = "localhost:5432"
+    postgres_username: str = "test"
+    postgres_password: str = "test"
+    postgres_database: str = "test"
+
+    @computed_field
+    @property
+    def postgres_dsn(self) -> str:
+        return (
+            "postgresql+psycopg://"
+            f"{self.postgres_username}"
+            f":{self.postgres_password}"
+            f"@{self.postgres_host}"
+            f"/{self.postgres_database}"
+        )
+
+    postgres_schema: str | None = None
+    postgres_automigrate: bool = True
+    postgres_echo: bool = True
+    postgres_pool_recycle: int = 280
+
+
+settings = Settings()
 
 engine = create_async_engine(
-    DB_URL,
-    echo=not PRODUCTION_MODE,
-    pool_recycle=280,
+    settings.postgres_dsn,
+    echo=settings.postgres_echo,
+    pool_recycle=settings.postgres_pool_recycle,
 )
-db_meta = MetaData(naming_convention=sqlalchemy_naming_convention, schema=DB_SCHEMA)
+db_meta = MetaData(
+    naming_convention=sqlalchemy_naming_convention,
+    schema=settings.postgres_schema,
+)
 sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 

@@ -3,15 +3,15 @@ from pydantic import TypeAdapter
 
 from app.common.access import AccessLevel
 from app.common.bridges.utils import validate_json_response
-from app.common.config import API_KEY, BRIDGE_BASE_URL
+from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 
 
 class CommunitiesBridge:
     def __init__(self) -> None:
         self.client = AsyncClient(
-            base_url=f"{BRIDGE_BASE_URL}/internal/community-service",
-            headers={"X-Api-Key": API_KEY},
+            base_url=f"{settings.bridge_base_url}/internal/community-service",
+            headers={"X-Api-Key": settings.api_key},
         )
 
     @validate_json_response(TypeAdapter(AccessLevel))

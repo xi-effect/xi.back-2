@@ -24,8 +24,7 @@ jobs:
 
     env:
       repository_cache_name: back-2
-      DB_LINK: 'postgresql+psycopg://test:test@localhost:5432/test'
-      DB_SCHEMA: ${{ inputs.database && 'xi_back_2' || '' }}
+      postgres_schema: ${{ inputs.database && 'xi_back_2' || '' }}
       MQ_URL: 'amqp://guest:guest@localhost/'
 
     services:
@@ -116,7 +115,7 @@ jobs:
       - name: Run pytest
         run: pytest tests -p no:cacheprovider --cov=app ${{ !inputs.coverage && '--cov-fail-under=0' || ''}}
         env:
-          DATABASE_MIGRATED: '1'
+          postgres_automigrate: false
 
       - name: Run pre-commit for all files
         if: success() || (failure() && steps.venv.conclusion == 'success')

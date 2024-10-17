@@ -7,7 +7,7 @@ from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.common.config import STORAGE_PATH, Base
+from app.common.config import Base, settings
 
 
 class FileKind(StrEnum):
@@ -44,7 +44,7 @@ class File(Base):
 
     @property
     def path(self) -> Path:
-        return STORAGE_PATH / FILE_KIND_TO_FOLDER[self.kind] / self.id.hex
+        return settings.storage_path / FILE_KIND_TO_FOLDER[self.kind] / self.id.hex
 
     @property
     def media_type(self) -> str | None:
