@@ -1,12 +1,10 @@
-from typing import Any, ClassVar, Generic, Self, TypeVar
+from typing import Any, ClassVar, Self
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
-
-ListID = TypeVar("ListID")
 
 
 class InvalidMoveException(Exception):
@@ -18,7 +16,7 @@ class InvalidMoveException(Exception):
         return f"Invalid move: {self.message}"
 
 
-class SpacedOrderedList(Base, Generic[ListID]):
+class SpacedOrderedList[ListID](Base):
     __abstract__ = True
 
     spacing: ClassVar[int] = 1 << 12

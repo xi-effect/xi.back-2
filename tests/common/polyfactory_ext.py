@@ -1,14 +1,12 @@
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
 
 from tests.common.types import AnyJSON
 
-T = TypeVar("T", bound=BaseModel)
 
-
-class BaseModelFactory(ModelFactory[T], Generic[T]):
+class BaseModelFactory[T: BaseModel](ModelFactory[T]):
     __is_base_factory__ = True
     __use_defaults__ = True
 
@@ -17,7 +15,7 @@ class BaseModelFactory(ModelFactory[T], Generic[T]):
         return cls.build(**kwargs).model_dump(mode="json")
 
 
-class BasePatchModelFactory(BaseModelFactory[T], Generic[T]):
+class BasePatchModelFactory[T: BaseModel](BaseModelFactory[T]):
     __is_base_factory__ = True
 
     @classmethod
