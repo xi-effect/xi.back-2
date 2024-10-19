@@ -8,7 +8,7 @@ from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 
 from app.common.access import AccessGroupKind
-from app.common.config import API_KEY
+from app.common.config import settings
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
@@ -54,7 +54,7 @@ async def test_post_channel_creation(
 
     assert_last_httpx_request(
         posts_bridge_mock,
-        expected_headers={"X-Api-Key": API_KEY},
+        expected_headers={"X-Api-Key": settings.api_key},
         expected_path=f"/internal/post-service/post-channels/{channel.id}/",
         expected_json={"community_id": community.id},
     )
@@ -129,7 +129,7 @@ async def test_board_channel_creation(
 
     assert_last_httpx_request(
         create_access_group_mock,
-        expected_headers={"X-Api-Key": API_KEY},
+        expected_headers={"X-Api-Key": settings.api_key},
         expected_json={
             "kind": AccessGroupKind.BOARD_CHANNEL.value,
             "related_id": str(channel.id),
@@ -137,7 +137,7 @@ async def test_board_channel_creation(
     )
     assert_last_httpx_request(
         create_ydoc_mock,
-        expected_headers={"X-Api-Key": API_KEY},
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 

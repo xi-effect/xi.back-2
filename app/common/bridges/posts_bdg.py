@@ -1,13 +1,13 @@
 from httpx import AsyncClient
 
-from app.common.config import API_KEY, BRIDGE_BASE_URL
+from app.common.config import settings
 
 
 class PostsBridge:
     def __init__(self) -> None:
         self.client = AsyncClient(
-            base_url=f"{BRIDGE_BASE_URL}/internal/post-service",
-            headers={"X-Api-Key": API_KEY},
+            base_url=f"{settings.bridge_base_url}/internal/post-service",
+            headers={"X-Api-Key": settings.api_key},
         )
 
     async def create_post_channel(self, channel_id: int, community_id: int) -> None:

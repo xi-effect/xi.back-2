@@ -5,7 +5,7 @@ from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.common.config import AVATARS_PATH, Base
+from app.common.config import Base, settings
 
 
 class Community(Base):
@@ -21,7 +21,7 @@ class Community(Base):
 
     @property
     def avatar_path(self) -> Path:
-        return AVATARS_PATH / f"{self.id}.webp"
+        return settings.community_avatars_path / f"{self.id}.webp"
 
 
 class CommunityIdSchema(BaseModel):

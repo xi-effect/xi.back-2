@@ -29,7 +29,7 @@ repos:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 24.4.2
+    rev: 24.10.0
     hooks:
       - id: black
 
@@ -48,8 +48,6 @@ repos:
         name: mypy (full)
         language: system
         entry: mypy
-        args:
-          - "--strict"
         require_serial: true
         types_or: [python, pyi]
         exclude: ^alembic/
@@ -57,8 +55,7 @@ repos:
   - repo: https://github.com/python-poetry/poetry
     rev: 1.8.2
     hooks:
-      - id: poetry-check
-        files: ^(pyproject.toml|poetry.lock)$
       - id: poetry-lock
-        files: ^(pyproject.toml|poetry.lock)$
         args: ["--no-update"]
+      - id: poetry-check
+      - id: poetry-install

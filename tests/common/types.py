@@ -18,3 +18,4 @@ class PytestRequest(Generic[ParamType]):
 
 
 AnyJSON = dict[str, Any]
+AnyKwargs = dict[str, Any]

@@ -12,13 +12,7 @@ from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPacka
 from tmexio.documentation import OpenAPIBuilder
 
 from app import communities, posts, storage
-from app.common.config import (
-    DATABASE_MIGRATED,
-    PRODUCTION_MODE,
-    Base,
-    engine,
-    sessionmaker,
-)
+from app.common.config import Base, engine, sessionmaker, settings
 from app.common.config_bdg import communities_bridge, posts_bridge, storage_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
@@ -70,7 +64,7 @@ async def reinit_database() -> None:  # pragma: no cover
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    if not PRODUCTION_MODE and not DATABASE_MIGRATED:
+    if settings.postgres_automigrate:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
