@@ -11,7 +11,7 @@ from starlette.staticfiles import StaticFiles
 from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
-from app import communities, posts, storage
+from app import communities, messenger, posts, storage
 from app.common.config import Base, engine, sessionmaker, settings
 from app.common.config_bdg import communities_bridge, posts_bridge, storage_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
@@ -29,6 +29,7 @@ tmex = TMEXIO(
     engineio_logger=True,
 )
 tmex.include_router(communities.event_router)
+tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
 
 
@@ -69,6 +70,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     async with AsyncExitStack() as stack:
         await stack.enter_async_context(communities.lifespan())
+        await stack.enter_async_context(messenger.lifespan())
         await stack.enter_async_context(posts.lifespan())
         await stack.enter_async_context(storage.lifespan())
 
@@ -114,6 +116,7 @@ app.add_middleware(
 app.mount("/socket.io/", tmex.build_asgi_app())
 
 app.include_router(communities.api_router)
+app.include_router(messenger.api_router)
 app.include_router(posts.api_router)
 app.include_router(storage.api_router)
 
