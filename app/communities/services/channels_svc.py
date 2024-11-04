@@ -1,5 +1,5 @@
-from app.common.access import AccessGroupKind
 from app.common.config_bdg import posts_bridge, storage_bridge
+from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.task_channels_db import TaskChannel
@@ -21,7 +21,7 @@ async def create_channel(
             await TaskChannel.create(id=channel.id)
         case ChannelType.BOARD:
             access_group = await storage_bridge.create_access_group(
-                kind=AccessGroupKind.BOARD_CHANNEL, related_id=channel.id
+                kind=StorageAccessGroupKind.BOARD_CHANNEL, related_id=channel.id
             )
             ydoc = await storage_bridge.create_ydoc(access_group_id=access_group.id)
             await BoardChannel.create(

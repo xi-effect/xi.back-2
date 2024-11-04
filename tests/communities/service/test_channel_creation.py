@@ -7,8 +7,8 @@ from httpx import Request, Response
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 
-from app.common.access import AccessGroupKind
 from app.common.config import settings
+from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
@@ -69,7 +69,7 @@ def create_access_group_mock_side_effect_factory(
         except (UnicodeDecodeError, json.JSONDecodeError):
             pytest.fail("Invalid request body")
 
-        assert_contains(json_data, {"kind": AccessGroupKind, "related_id": str})
+        assert_contains(json_data, {"kind": StorageAccessGroupKind, "related_id": str})
         return Response(
             status_code=201,
             json={
@@ -131,7 +131,7 @@ async def test_board_channel_creation(
         create_access_group_mock,
         expected_headers={"X-Api-Key": settings.api_key},
         expected_json={
-            "kind": AccessGroupKind.BOARD_CHANNEL.value,
+            "kind": StorageAccessGroupKind.BOARD_CHANNEL.value,
             "related_id": str(channel.id),
         },
     )
@@ -141,9 +141,46 @@ async def test_board_channel_creation(
     )
 
 
-@pytest.mark.parametrize(
-    "channel_kind", [ChannelType.TASKS, ChannelType.CHAT, ChannelType.CALL]
-)
+async def test_chat_channel_creation(
+    active_session: ActiveSession,
+    messenger_respx_mock: MockRouter,
+    community: Community,
+    channel_parent_category_id: int | None,
+) -> None:
+    channel_raw_data: Channel.InputSchema = factories.ChannelInputFactory.build(
+        kind=ChannelType.CHAT
+    )
+
+    messenger_bridge_mock = messenger_respx_mock.post(
+        path__regex=r"/chat-channels/(?P<channel_id>\d+)/",
+    ).respond(status_code=204)
+
+    async with active_session():
+        channel = await channels_svc.create_channel(
+            community_id=community.id,
+            category_id=channel_parent_category_id,
+            data=channel_raw_data,
+        )
+
+    assert_contains(
+        channel,
+        {
+            **channel_raw_data.model_dump(),
+            "id": int,
+            "community_id": community.id,
+            "category_id": channel_parent_category_id,
+            "list_id": [community.id, channel_parent_category_id],
+        },
+    )
+
+    assert_last_httpx_request(
+        messenger_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+        expected_path=f"/internal/messenger-service/chat-channels/{channel.id}/",
+    )
+
+
+@pytest.mark.parametrize("channel_kind", [ChannelType.TASKS, ChannelType.CALL])
 async def test_simple_channel_creation(
     active_session: ActiveSession,
     community: Community,
