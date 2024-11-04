@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, ClassVar, Self
 
 from pydantic import FutureDatetime, PositiveInt
@@ -11,6 +11,7 @@ from sqlalchemy.sql.functions import count, func
 from app.common.config import Base
 from app.common.cyptography import TokenGenerator
 from app.common.sqlalchemy_ext import db
+from app.common.utils.datetime import datetime_utc_now
 from app.communities.models.communities_db import Community
 
 invitation_token_generator = TokenGenerator(randomness=8, length=10)
@@ -106,6 +107,6 @@ class Invitation(Base):
         )
 
     def is_valid(self) -> bool:
-        return (
-            self.expiry is None or self.expiry >= datetime.now(tz=timezone.utc)
-        ) and (self.usage_limit is None or self.usage_limit > self.usage_count)
+        return (self.expiry is None or self.expiry >= datetime_utc_now()) and (
+            self.usage_limit is None or self.usage_limit > self.usage_count
+        )
