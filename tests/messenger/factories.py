@@ -7,6 +7,10 @@ class ChatInputFactory(BaseModelFactory[Chat.InputSchema]):
     __model__ = Chat.InputSchema
 
 
+class MessageInputFactory(BaseModelFactory[Message.InputSchema]):
+    __model__ = Message.InputSchema
+
+
 class MessageInputMUBFactory(BaseModelFactory[Message.InputMUBSchema]):
     __model__ = Message.InputMUBSchema
 

@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID
 
@@ -13,62 +12,57 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
+from tests.messenger.conftest import MESSAGE_LIST_SIZE
 from tests.messenger.factories import MessageInputMUBFactory, MessagePatchFactory
 
 pytestmark = pytest.mark.anyio
 
-MESSAGE_LIST_SIZE = 6
 
-
-@pytest.fixture()
-async def messages_data(
-    active_session: ActiveSession,
+@pytest.mark.parametrize(
+    "limit",
+    [
+        pytest.param(MESSAGE_LIST_SIZE, id="start_to_end"),
+        pytest.param(MESSAGE_LIST_SIZE // 2, id="start_to_middle"),
+    ],
+)
+async def test_latest_messages_listing(
+    mub_client: TestClient,
     chat: Chat,
-) -> AsyncIterator[list[AnyJSON]]:
-    async with active_session():
-        messages = [
-            await Message.create(
-                chat_id=chat.id,
-                **MessageInputMUBFactory.build_json(),
-            )
-            for _ in range(MESSAGE_LIST_SIZE)
-        ]
-    messages.sort(key=lambda message: message.created_at, reverse=True)
-
-    yield [
-        Message.ResponseSchema.model_validate(message, from_attributes=True).model_dump(
-            mode="json"
-        )
-        for message in messages
-    ]
-
-    async with active_session():
-        for message in messages:
-            await message.delete()
+    messages_data: list[AnyJSON],
+    limit: int,
+) -> None:
+    assert_response(
+        mub_client.get(
+            f"/mub/messenger-service/chats/{chat.id}/messages/",
+            params={"limit": limit},
+        ),
+        expected_json=messages_data[:limit],
+    )
 
 
 @pytest.mark.parametrize(
     ("offset", "limit"),
     [
-        pytest.param(0, MESSAGE_LIST_SIZE, id="start_to_end"),
+        pytest.param(1, MESSAGE_LIST_SIZE, id="second_to_end"),
+        pytest.param(1, MESSAGE_LIST_SIZE // 2, id="second_to_middle"),
         pytest.param(MESSAGE_LIST_SIZE // 2, MESSAGE_LIST_SIZE, id="middle_to_end"),
-        pytest.param(0, MESSAGE_LIST_SIZE // 2, id="start_to_middle"),
     ],
 )
-async def test_messages_listing(
-    active_session: ActiveSession,
+async def test_message_history_listing(
     mub_client: TestClient,
     chat: Chat,
     messages_data: list[AnyJSON],
     offset: int,
     limit: int,
 ) -> None:
+    created_before = messages_data[offset - 1]["created_at"]
+
     assert_response(
         mub_client.get(
             f"/mub/messenger-service/chats/{chat.id}/messages/",
-            params={"offset": offset, "limit": limit},
+            params={"created_before": created_before, "limit": limit},
         ),
-        expected_json=messages_data[offset:limit],
+        expected_json=messages_data[offset : limit + 1],
     )
 
 
@@ -106,9 +100,8 @@ async def test_message_creation(
         pytest.param("GET", None, id="list"),
     ],
 )
-async def test_chat_not_found(
+async def test_chat_not_finding_for_mub_messages(
     mub_client: TestClient,
-    active_session: ActiveSession,
     deleted_chat_id: int,
     method: str,
     body_factory: type[BaseModelFactory[Any]] | None,

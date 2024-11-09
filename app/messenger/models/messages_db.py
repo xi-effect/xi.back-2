@@ -41,13 +41,18 @@ class Message(Base):
     ResponseSchema = MappedModel.create(
         columns=[id, (content, ContentType), sender_user_id, created_at, updated_at]
     )
+    ServerEventSchema = ResponseSchema.extend(columns=[chat_id])
 
     @classmethod
-    async def find_paginated_by_chat_id(
+    async def find_by_chat_id_created_before(
         cls,
         chat_id: int,
-        offset: int,
+        created_before: datetime | None,
         limit: int,
     ) -> Sequence[Self]:
         stmt = select(cls).filter_by(chat_id=chat_id).order_by(cls.created_at.desc())
-        return await db.get_paginated(stmt, offset, limit)
+
+        if created_before is not None:
+            stmt = stmt.filter(cls.created_at < created_before)
+
+        return await db.get_all(stmt.limit(limit))

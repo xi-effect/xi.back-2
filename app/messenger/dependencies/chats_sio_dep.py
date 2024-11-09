@@ -8,11 +8,11 @@ chat_not_found = EventException(404, "Chat not found")
 
 
 @register_dependency(exceptions=[chat_not_found])
-async def chat_by_channel_id_dependency(channel_id: int) -> Chat:
-    chat = await Chat.find_first_by_kwargs(channel_id=channel_id)
+async def chat_by_id_dependency(chat_id: int) -> Chat:
+    chat = await Chat.find_first_by_id(chat_id)
     if chat is None:
         raise chat_not_found
     return chat
 
 
-ChatByChannelId = Annotated[Chat, chat_by_channel_id_dependency]
+ChatById = Annotated[Chat, chat_by_id_dependency]

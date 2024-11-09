@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.datetime import datetime_utc_now
@@ -15,11 +16,14 @@ router = APIRouterExt(tags=["messages mub"])
     summary="List paginated messages in a chat",
 )
 async def list_messages(
+    *,
     chat: ChatById,
-    offset: int,
+    created_before: datetime | None = None,
     limit: int,
 ) -> Sequence[Message]:
-    return await Message.find_paginated_by_chat_id(chat.id, offset, limit)
+    return await Message.find_by_chat_id_created_before(
+        chat_id=chat.id, created_before=created_before, limit=limit
+    )
 
 
 @router.post(
