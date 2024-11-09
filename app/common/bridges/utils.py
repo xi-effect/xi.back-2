@@ -1,16 +1,14 @@
 from collections.abc import Awaitable, Callable
-from typing import ParamSpec, TypeVar
 
 from httpx import Response
 from pydantic import TypeAdapter
 
-P = ParamSpec("P")
-R = TypeVar("R")
 
-
-def validate_json_response(
-    type_adapter: TypeAdapter[R],
-) -> Callable[[Callable[P, Awaitable[Response]]], Callable[P, Awaitable[R]]]:
+def validate_json_response[
+    **P, R
+](type_adapter: TypeAdapter[R]) -> Callable[
+    [Callable[P, Awaitable[Response]]], Callable[P, Awaitable[R]]
+]:
     def validate_json_response_wrapper(
         function: Callable[P, Awaitable[Response]]
     ) -> Callable[P, Awaitable[R]]:

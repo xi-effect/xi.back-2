@@ -6,7 +6,7 @@ from respx import MockRouter
 from starlette.testclient import TestClient
 
 from app.common.access import AccessLevel
-from app.common.config import API_KEY
+from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.ydocs_db import YDoc
@@ -76,7 +76,7 @@ async def test_ydoc_access_level_retrieving(
 
     assert_last_httpx_request(
         board_channel_access_level_mock,
-        expected_headers={"X-Api-Key": API_KEY, **proxy_auth_data.as_headers},
+        expected_headers={"X-Api-Key": settings.api_key, **proxy_auth_data.as_headers},
     )
 
 

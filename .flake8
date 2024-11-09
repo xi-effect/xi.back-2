@@ -18,29 +18,30 @@ max-line-length = 88
 extend-ignore =
   # # not required or shadowed by other plugins
   D I FI TC Q U101 S101 WPS400
-
-  # # black
-  WPS220 WPS348 WPS352 E501 C812 C815 C816 E203
-  # # pydantic-marshals & SQLAlchemy
+  # black
+  WPS220 WPS348 WPS352 E501 C812 C815 C816 C819 E203
+  # mypy (for __init__)
+  WPS410 WPS412
+  # sqlalchemy needs `id`
   VNE003 WPS115
+
   # # weird
   PIE803 C101 FNE007 FNE008 N812 ANN101 ANN102 WPS110 WPS111 WPS114 WPS338 WPS407 WPS414 VNE001 VNE002 CM001
+  # too many
+  WPS201 WPS202 WPS204 WPS210 WPS211 WPS214 WPS217 WPS218 WPS221 WPS230 WPS231 WPS234 WPS235 WPS238
+
   # # broken
-  PIE798 WPS226 WPS354 WPS432 WPS473 WPS507
+  PIE798 WPS226 WPS354 WPS432 WPS473 WPS507 FNE004
   # fails to understand `raise NotImplementedError` and overloading
   U100
   # fails to understand enums
   WPS115
-  # __init__
-  WPS410 WPS412
   # fails to understand overloading
   WPS428
   # fails to understand pipe-unions
   WPS465
   # fails to same-name class and instance attributes (pydantic & sqlalchemy)
   WPS601
-  # too many
-  WPS201 WPS202 WPS204 WPS210 WPS211 WPS214 WPS217 WPS218 WPS221 WPS230 WPS231 WPS234 WPS235 WPS238
 
   # # don't block features
   # utils is a module name
@@ -71,5 +72,5 @@ extend-ignore =
   WPS605
 
 per-file-ignores =
-  *test*: TN101 FNE005 SCS108 S311 VNE001 WPS118 WPS202 WPS211 WPS317 WPS407 WPS425 WPS432 WPS440 WPS437 WPS441 WPS442 WPS507 WPS520 WPS609
+  *test*: TN101 FNE005 SCS108 S311 VNE001 WPS118 WPS317 WPS407 WPS425 WPS432 WPS437 WPS440 WPS441 WPS442 WPS507 WPS520 WPS609
   alembic/versions/*: WPS102 PEA001 NU001 SIM907

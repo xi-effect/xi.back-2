@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from tmexio import EventRouter
 
-from app.common.config import AVATARS_PATH
+from app.common.config import settings
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
@@ -72,5 +72,5 @@ event_router.include_router(board_channels_sio.router)
 
 @asynccontextmanager
 async def lifespan() -> AsyncIterator[None]:
-    AVATARS_PATH.mkdir(exist_ok=True)
+    settings.community_avatars_path.mkdir(exist_ok=True)
     yield

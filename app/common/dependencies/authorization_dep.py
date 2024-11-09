@@ -64,11 +64,10 @@ def construct_proxy_auth_data(
     user_id_token: UserIDHeader = None,
     username_token: UsernameHeader = None,
 ) -> ProxyAuthData:
-    # may raise pydantic.ValidationError
     return ProxyAuthData(
-        session_id=session_id_token,  # type: ignore[arg-type]
-        user_id=user_id_token,  # type: ignore[arg-type]
-        username=username_token,  # type: ignore[arg-type]
+        session_id=session_id_token,
+        user_id=user_id_token,
+        username=username_token,
     )
 
 

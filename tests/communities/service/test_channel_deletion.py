@@ -3,7 +3,7 @@ from uuid import uuid4
 import pytest
 from respx import MockRouter
 
-from app.common.config import API_KEY
+from app.common.config import settings
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.communities_db import Community
@@ -46,7 +46,7 @@ async def test_post_channel_deletion(
 
     assert_last_httpx_request(
         posts_bridge_mock,
-        expected_headers={"X-Api-Key": API_KEY},
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 
@@ -87,7 +87,7 @@ async def test_board_channel_deletion(
 
     assert_last_httpx_request(
         delete_access_group_mock,
-        expected_headers={"X-Api-Key": API_KEY},
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 
