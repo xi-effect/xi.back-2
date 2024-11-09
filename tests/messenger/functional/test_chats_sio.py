@@ -17,7 +17,7 @@ pytestmark = pytest.mark.anyio
         pytest.param(MESSAGE_LIST_SIZE // 2, id="start_to_middle"),
     ],
 )
-async def test_latest_messages_listing(
+async def test_chat_opening(
     chat: Chat,
     tmexio_sender_client: TMEXIOTestClient,
     messages_data: list[AnyJSON],
@@ -25,11 +25,14 @@ async def test_latest_messages_listing(
 ) -> None:
     assert_ack(
         await tmexio_sender_client.emit(
-            "list-latest-chat-messages",
+            "open-chat",
             chat_id=chat.id,
             limit=limit,
         ),
-        expected_data=messages_data[:limit],
+        expected_data={
+            # TODO message_draft
+            "latest_messages": messages_data[:limit],
+        },
     )
     tmexio_sender_client.assert_no_more_events()
 
@@ -44,7 +47,7 @@ async def test_latest_messages_listing(
         pytest.param(MESSAGE_LIST_SIZE // 2, MESSAGE_LIST_SIZE, id="middle_to_end"),
     ],
 )
-async def test_message_history_listing(
+async def test_message_listing(
     chat: Chat,
     tmexio_sender_client: TMEXIOTestClient,
     messages_data: list[AnyJSON],
@@ -65,13 +68,13 @@ async def test_message_history_listing(
 
 
 message_list_events_params = [
-    pytest.param("list-latest-chat-messages", id="list-latest"),
+    pytest.param("open-chat", id="open"),
     pytest.param("list-chat-messages", id="list-history"),
 ]
 
 
 @pytest.mark.parametrize("event_name", message_list_events_params)
-async def test_chat_not_finding_for_messages_list(
+async def test_chat_not_finding_for_chats(
     deleted_chat_id: int,
     tmexio_outsider_client: TMEXIOTestClient,
     chat_room_listener: TMEXIOTestClient,
@@ -93,9 +96,7 @@ async def test_chat_not_finding_for_messages_list(
 # TODO test access to chat
 
 
-async def check_participants_list_closed(
-    tmexio_client: TMEXIOTestClient, chat_id: int
-) -> None:
+async def check_chat_closed(tmexio_client: TMEXIOTestClient, chat_id: int) -> None:
     await tmexio_client.enter_room(chat_room(chat_id))
 
     assert_ack(
@@ -108,9 +109,7 @@ async def check_participants_list_closed(
 
 
 async def test_chat_closing(chat: Chat, tmexio_sender_client: TMEXIOTestClient) -> None:
-    await check_participants_list_closed(
-        tmexio_client=tmexio_sender_client, chat_id=chat.id
-    )
+    await check_chat_closed(tmexio_client=tmexio_sender_client, chat_id=chat.id)
 
 
 # TODO test_chat_closing_deleted_user
@@ -119,6 +118,6 @@ async def test_chat_closing(chat: Chat, tmexio_sender_client: TMEXIOTestClient) 
 async def test_chat_closing_deleted_chat(
     deleted_chat_id: int, tmexio_outsider_client: TMEXIOTestClient
 ) -> None:
-    await check_participants_list_closed(
+    await check_chat_closed(
         tmexio_client=tmexio_outsider_client, chat_id=deleted_chat_id
     )

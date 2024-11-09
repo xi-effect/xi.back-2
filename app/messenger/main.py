@@ -6,7 +6,7 @@ from tmexio import EventRouter
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.messenger.routes import chats_int, messages_mub, messages_sio
+from app.messenger.routes import chats_int, chats_sio, messages_mub, my_messages_sio
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
@@ -25,7 +25,8 @@ api_router.include_router(internal_router)
 api_router.include_router(mub_router)
 
 event_router = EventRouter()
-event_router.include_router(messages_sio.router)
+event_router.include_router(chats_sio.router)
+event_router.include_router(my_messages_sio.router)
 
 
 @asynccontextmanager
