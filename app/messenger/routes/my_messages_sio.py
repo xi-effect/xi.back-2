@@ -43,33 +43,24 @@ async def send_message(
     return message
 
 
-UpdateMessageEmitter = Annotated[
-    Emitter[Message],
-    router.register_server_emitter(
-        Message.ServerEventSchema,
-        event_name="edit-chat-message",
-        summary="Message has been updated in the current chat",
-    ),
-]
-
-
 @router.on(
-    "edit-my-chat-message",
-    summary="Update any message from current user by id",
+    "edit-chat-message-content",
+    summary="Update content of a message by id sent by the current user",
+    server_summary="Content of a message in the current chat has been edited",
     # TODO dependencies=[allowed_reading_dependency],
 )
-async def update_message(
+async def edit_message_content(
     message: MyMessageByIDs,
-    data: Message.PatchSchema,
-    update_message_emitter: UpdateMessageEmitter,
+    data: Message.InputSchema,
+    duplex_emitter: Annotated[Emitter[Message], Message.ServerEventSchema],
 ) -> Annotated[Message, PydanticPackager(Message.ResponseSchema)]:
     message.update(
-        **data.model_dump(exclude_defaults=True),
+        **data.model_dump(),
         updated_at=datetime_utc_now(),
     )
     await db.session.commit()
 
-    await update_message_emitter.emit(
+    await duplex_emitter.emit(
         message,
         target=chat_room(message.chat_id),
         exclude_self=True,
@@ -87,7 +78,7 @@ DeleteMessageEmitter = Annotated[
     router.register_server_emitter(
         MessageIDsSchema,
         event_name="delete-chat-message",
-        summary="A user has left or has been kicked from the current community",
+        summary="Message has been deleted in the current chat",
     ),
 ]
 

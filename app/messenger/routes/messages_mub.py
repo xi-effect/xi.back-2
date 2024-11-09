@@ -50,9 +50,9 @@ async def retrieve_message(message: MessageById) -> Message:
     response_model=Message.ResponseSchema,
     summary="Update any message by id",
 )
-async def patch_message(message: MessageById, data: Message.PatchSchema) -> Message:
+async def patch_message(message: MessageById, data: Message.InputSchema) -> Message:
     message.update(
-        **data.model_dump(exclude_defaults=True),
+        **data.model_dump(),
         updated_at=datetime_utc_now(),
     )
     return message

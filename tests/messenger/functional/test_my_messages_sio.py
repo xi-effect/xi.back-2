@@ -71,11 +71,11 @@ async def test_my_message_updating(
     message: Message,
     message_data: AnyJSON,
 ) -> None:
-    message_patch_data = factories.MessagePatchFactory.build_json()
+    message_patch_data = factories.MessageInputFactory.build_json()
 
     assert_ack(
         await tmexio_sender_client.emit(
-            "edit-my-chat-message",
+            "edit-chat-message-content",
             chat_id=chat.id,
             message_id=message.id,
             data=message_patch_data,
@@ -89,7 +89,7 @@ async def test_my_message_updating(
     tmexio_sender_client.assert_no_more_events()
 
     chat_room_listener.assert_next_event(
-        expected_name="edit-chat-message",
+        expected_name="edit-chat-message-content",
         expected_data={
             **message_data,
             **message_patch_data,
@@ -129,7 +129,9 @@ async def test_my_message_deleting(
 
 my_messages_events_params = [
     pytest.param("send-chat-message", factories.MessageInputFactory, id="send"),
-    pytest.param("edit-my-chat-message", factories.MessagePatchFactory, id="edit"),
+    pytest.param(
+        "edit-chat-message-content", factories.MessageInputFactory, id="edit-content"
+    ),
     pytest.param("delete-my-chat-message", None, id="delete"),
 ]
 

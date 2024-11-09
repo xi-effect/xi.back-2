@@ -13,7 +13,7 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.messenger.conftest import MESSAGE_LIST_SIZE
-from tests.messenger.factories import MessageInputMUBFactory, MessagePatchFactory
+from tests.messenger.factories import MessageInputFactory, MessageInputMUBFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -135,7 +135,7 @@ async def test_message_updating(
     message: Message,
     message_data: AnyJSON,
 ) -> None:
-    message_patch_data = MessagePatchFactory.build_json()
+    message_patch_data = MessageInputFactory.build_json()
 
     assert_response(
         mub_client.patch(
@@ -167,7 +167,7 @@ async def test_message_deleting(
     ("method", "body_factory"),
     [
         pytest.param("GET", None, id="get"),
-        pytest.param("PATCH", MessagePatchFactory, id="patch"),
+        pytest.param("PATCH", MessageInputFactory, id="patch"),
         pytest.param("DELETE", None, id="delete"),
     ],
 )
