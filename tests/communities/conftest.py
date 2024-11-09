@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+from random import randint
 from typing import Any
 from uuid import uuid4
 
@@ -9,6 +10,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
+from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -507,6 +509,24 @@ async def deleted_board_channel_id(
     async with active_session():
         await board_channel.delete()
     return board_channel.id
+
+
+@pytest.fixture()
+async def chat_channel(active_session: ActiveSession, channel: Channel) -> ChatChannel:
+    async with active_session():
+        return await ChatChannel.create(
+            id=channel.id,
+            chat_id=randint(0, 10000),
+        )
+
+
+@pytest.fixture()
+async def deleted_chat_channel_id(
+    active_session: ActiveSession, chat_channel: BoardChannel
+) -> int:
+    async with active_session():
+        await chat_channel.delete()
+    return chat_channel.id
 
 
 @pytest.fixture()

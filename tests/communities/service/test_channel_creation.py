@@ -1,5 +1,6 @@
 import json
 from collections.abc import Callable
+from random import randint
 from uuid import uuid4
 
 import pytest
@@ -8,9 +9,11 @@ from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 
 from app.common.config import settings
+from app.common.schemas.messenger_sch import ChatAccessKind
 from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
+from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.communities_db import Community
 from app.communities.services import channels_svc
 from tests.common.active_session import ActiveSession
@@ -141,6 +144,26 @@ async def test_board_channel_creation(
     )
 
 
+def create_chat_mock_side_effect_factory(chat_id: int) -> Callable[[Request], Response]:
+    def create_chat_mock_side_effect(request: Request) -> Response:
+        try:
+            json_data = json.loads(request.content)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            pytest.fail("Invalid request body")
+
+        assert_contains(json_data, {"access_kind": ChatAccessKind, "related_id": str})
+        return Response(
+            status_code=201,
+            json={
+                "id": chat_id,
+                "access_kind": json_data["access_kind"],
+                "related_id": json_data["related_id"],
+            },
+        )
+
+    return create_chat_mock_side_effect
+
+
 async def test_chat_channel_creation(
     active_session: ActiveSession,
     messenger_respx_mock: MockRouter,
@@ -151,9 +174,11 @@ async def test_chat_channel_creation(
         kind=ChannelType.CHAT
     )
 
-    messenger_bridge_mock = messenger_respx_mock.post(
-        path__regex=r"/chat-channels/(?P<channel_id>\d+)/",
-    ).respond(status_code=204)
+    chat_id = randint(0, 10000)
+
+    create_chat_mock = messenger_respx_mock.post(path="/chats/").mock(
+        side_effect=create_chat_mock_side_effect_factory(chat_id)
+    )
 
     async with active_session():
         channel = await channels_svc.create_channel(
@@ -173,10 +198,17 @@ async def test_chat_channel_creation(
         },
     )
 
+    async with active_session():
+        chat_channel = await ChatChannel.find_first_by_id(channel.id)
+        assert_contains(chat_channel, {"chat_id": chat_id})
+
     assert_last_httpx_request(
-        messenger_bridge_mock,
+        create_chat_mock,
         expected_headers={"X-Api-Key": settings.api_key},
-        expected_path=f"/internal/messenger-service/chat-channels/{channel.id}/",
+        expected_json={
+            "access_kind": ChatAccessKind.CHAT_CHANNEL.value,
+            "related_id": str(channel.id),
+        },
     )
 
 

@@ -1,7 +1,9 @@
-from app.common.config_bdg import posts_bridge, storage_bridge
+from app.common.config_bdg import messenger_bridge, posts_bridge, storage_bridge
+from app.common.schemas.messenger_sch import ChatAccessKind
 from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.channels_db import Channel, ChannelType
+from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.task_channels_db import TaskChannel
 
 
@@ -27,6 +29,11 @@ async def create_channel(
             await BoardChannel.create(
                 id=channel.id, access_group_id=access_group.id, ydoc_id=ydoc.id
             )
+        case ChannelType.CHAT:
+            chat = await messenger_bridge.create_chat(
+                access_kind=ChatAccessKind.CHAT_CHANNEL, related_id=channel.id
+            )
+            await ChatChannel.create(id=channel.id, chat_id=chat.id)
 
     return channel
 
@@ -43,4 +50,9 @@ async def delete_channel(channel: Channel) -> None:
                 await storage_bridge.delete_access_group(
                     access_group_id=board_channel.access_group_id
                 )
+        case ChannelType.CHAT:
+            chat_channel = await ChatChannel.find_first_by_id(channel.id)
+            if chat_channel is not None:
+                await messenger_bridge.delete_chat(chat_id=chat_channel.chat_id)
+
     await channel.delete()
