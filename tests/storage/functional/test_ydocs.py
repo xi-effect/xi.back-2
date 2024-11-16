@@ -5,9 +5,9 @@ from faker import Faker
 from respx import MockRouter
 from starlette.testclient import TestClient
 
-from app.common.access import AccessLevel
-from app.common.config import API_KEY
+from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.storage_sch import YDocAccessLevel
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
@@ -53,7 +53,10 @@ async def test_ydoc_creating_access_group_not_found(
 
 @pytest.mark.parametrize(
     "access_level",
-    [pytest.param(access_level, id=access_level.value) for access_level in AccessLevel],
+    [
+        pytest.param(access_level, id=access_level.value)
+        for access_level in YDocAccessLevel
+    ],
 )
 async def test_ydoc_access_level_retrieving(
     communities_respx_mock: MockRouter,
@@ -61,7 +64,7 @@ async def test_ydoc_access_level_retrieving(
     authorized_internal_client: TestClient,
     access_group: AccessGroup,
     ydoc: YDoc,
-    access_level: AccessLevel,
+    access_level: YDocAccessLevel,
 ) -> None:
     board_channel_access_level_mock = communities_respx_mock.get(
         path=f"/channels/{access_group.related_id}/board/access-level/",
@@ -76,7 +79,7 @@ async def test_ydoc_access_level_retrieving(
 
     assert_last_httpx_request(
         board_channel_access_level_mock,
-        expected_headers={"X-Api-Key": API_KEY, **proxy_auth_data.as_headers},
+        expected_headers={"X-Api-Key": settings.api_key, **proxy_auth_data.as_headers},
     )
 
 

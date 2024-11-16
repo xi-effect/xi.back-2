@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import Any, ParamSpec, TypeVar
+from typing import Any
 
 from fastapi import Depends, HTTPException
 from fastapi.dependencies.models import Dependant
@@ -90,14 +90,9 @@ class APIRouterExt(APIRouter):
         super().__init__(route_class=route_class, **kwargs)
 
 
-P = ParamSpec("P")
-R = TypeVar("R")
-SameCallable = Callable[P, R]
-
-
-def with_responses(
-    responses: type[Responses],
-) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def with_responses[
+    **P, R
+](responses: type[Responses]) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def with_responses_inner(function: Callable[P, R]) -> Callable[P, R]:
         setattr(function, "__responses__", responses)  # noqa: B010
         return function

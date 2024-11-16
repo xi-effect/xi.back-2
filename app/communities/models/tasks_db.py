@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import StrEnum
 from typing import Any, Self
 
@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
+from app.common.utils.datetime import datetime_utc_now
 from app.communities.models.task_channels_db import TaskChannel
 
 
@@ -38,7 +39,7 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=datetime_utc_now
     )
 
     title: Mapped[str] = mapped_column(String(100))
@@ -75,7 +76,7 @@ class Task(Base):
 
     @property
     def is_active(self) -> bool:
-        return self.opening_at <= datetime.now(timezone.utc) < self.closing_at
+        return self.opening_at <= datetime_utc_now() < self.closing_at
 
     @classmethod
     async def find_paginated_by_filter(
@@ -90,7 +91,7 @@ class Task(Base):
         stmt = select(cls).filter_by(channel_id=channel_id)
 
         if is_only_active:
-            current_utc_time = datetime.now(timezone.utc)
+            current_utc_time = datetime_utc_now()
             stmt = stmt.filter(
                 and_(
                     cls.opening_at <= current_utc_time,

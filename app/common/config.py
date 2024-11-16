@@ -1,49 +1,75 @@
-import asyncio
-import sys
-from os import getenv
 from pathlib import Path
 
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from app.common.sqlalchemy_ext import MappingBase
+from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
-current_directory: Path = Path.cwd()
 
-if sys.platform == "win32":  # pragma: no cover
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="_",
+        env_ignore_empty=True,
+    )
 
-AVATARS_PATH: Path = current_directory / "community_avatars"
-STORAGE_PATH: Path = current_directory / "storage"
+    api_key: str = "local"  # common for now, split later
+    mub_key: str = "local"
 
-PRODUCTION_MODE: bool = getenv("PRODUCTION", "0") == "1"
+    bridge_base_url: str = "http://localhost:8000"
 
-DB_URL: str = getenv("DB_LINK", "postgresql+psycopg://test:test@localhost:5432/test")
-DB_SCHEMA: str | None = getenv("DB_SCHEMA", None)
-DATABASE_MIGRATED: bool = getenv("DATABASE_MIGRATED", "0") == "1"
+    base_path: Path = Path.cwd()
+    community_avatars_folder: Path = Path("community_avatars")
 
-LOCAL_PORT: str = getenv("LOCAL_PORT", "8000")
+    @computed_field
+    @property
+    def community_avatars_path(self) -> Path:
+        return self.base_path / self.community_avatars_folder
 
-BRIDGE_BASE_URL: str = getenv("BRIDGE_BASE_URL", f"http://localhost:{LOCAL_PORT}")
+    storage_folder: Path = Path("storage")
 
-API_KEY: str = getenv("API_KEY", "local")  # common for now, split later
-MUB_KEY: str = getenv("MUB_KEY", "local")
+    @computed_field
+    @property
+    def storage_path(self) -> Path:
+        return self.base_path / self.storage_folder
 
-convention = {
-    "ix": "ix_%(column_0_label)s",  # noqa: WPS323
-    "uq": "uq_%(table_name)s_%(column_0_name)s",  # noqa: WPS323
-    "ck": "ck_%(table_name)s_%(constraint_name)s",  # noqa: WPS323
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",  # noqa: WPS323
-    "pk": "pk_%(table_name)s",  # noqa: WPS323
-}
+    postgres_host: str = "localhost:5432"
+    postgres_username: str = "test"
+    postgres_password: str = "test"
+    postgres_database: str = "test"
+
+    @computed_field
+    @property
+    def postgres_dsn(self) -> str:
+        return (
+            "postgresql+psycopg://"
+            f"{self.postgres_username}"
+            f":{self.postgres_password}"
+            f"@{self.postgres_host}"
+            f"/{self.postgres_database}"
+        )
+
+    postgres_schema: str | None = None
+    postgres_automigrate: bool = True
+    postgres_echo: bool = True
+    postgres_pool_recycle: int = 280
+
+
+settings = Settings()
 
 engine = create_async_engine(
-    DB_URL,
-    pool_recycle=280,  # noqa: WPS432
-    echo=not PRODUCTION_MODE,
+    settings.postgres_dsn,
+    echo=settings.postgres_echo,
+    pool_recycle=settings.postgres_pool_recycle,
 )
-db_meta = MetaData(naming_convention=convention, schema=DB_SCHEMA)
+db_meta = MetaData(
+    naming_convention=sqlalchemy_naming_convention,
+    schema=settings.postgres_schema,
+)
 sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 

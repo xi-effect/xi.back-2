@@ -1,11 +1,11 @@
 from enum import StrEnum
 
 
-class AccessLevel(StrEnum):
+class StorageAccessGroupKind(StrEnum):
+    BOARD_CHANNEL = "board-channel"
+
+
+class YDocAccessLevel(StrEnum):
     NO_ACCESS = "no-access"
     READ_ONLY = "read-only"
     READ_WRITE = "read-write"
-
-
-class AccessGroupKind(StrEnum):
-    BOARD_CHANNEL = "board-channel"
