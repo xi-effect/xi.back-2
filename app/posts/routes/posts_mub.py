@@ -10,7 +10,6 @@ router = APIRouterExt(tags=["posts mub"])
 
 @router.get(
     "/post-channels/{channel_id}/posts/",
-    status_code=200,
     response_model=list[Post.ResponseSchema],
     summary="List paginated posts in a channel",
 )
@@ -34,7 +33,6 @@ async def create_post(channel: PostChannelById, data: Post.InputSchema) -> Post:
 
 @router.get(
     "/posts/{post_id}/",
-    status_code=200,
     response_model=Post.ResponseSchema,
     summary="Retrieve any post by id",
 )
@@ -44,7 +42,6 @@ async def retrieve_post(post: PostById) -> Post:
 
 @router.patch(
     "/posts/{post_id}/",
-    status_code=200,
     response_model=Post.ResponseSchema,
     summary="Update any post by id",
 )

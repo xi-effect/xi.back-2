@@ -1,8 +1,8 @@
 import pytest
 from starlette.testclient import TestClient
 
-from app.common.access import AccessLevel
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.storage_sch import YDocAccessLevel
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
@@ -15,8 +15,8 @@ pytestmark = pytest.mark.anyio
 @pytest.mark.parametrize(
     ("is_owner", "access_level"),
     [
-        pytest.param(True, AccessLevel.READ_WRITE, id="owner"),
-        pytest.param(False, AccessLevel.READ_ONLY, id="participant"),
+        pytest.param(True, YDocAccessLevel.READ_WRITE, id="owner"),
+        pytest.param(False, YDocAccessLevel.READ_ONLY, id="participant"),
     ],
 )
 async def test_board_channel_access_level_retrieving(
@@ -26,7 +26,7 @@ async def test_board_channel_access_level_retrieving(
     community: Community,
     board_channel: BoardChannel,
     is_owner: bool,
-    access_level: AccessLevel,
+    access_level: YDocAccessLevel,
 ) -> None:
     async with active_session():
         await Participant.create(
@@ -51,7 +51,7 @@ async def test_board_channel_access_level_retrieving_no_access(
         authorized_internal_client.get(
             f"/internal/community-service/channels/{board_channel.id}/board/access-level/",
         ),
-        expected_json=AccessLevel.NO_ACCESS,
+        expected_json=YDocAccessLevel.NO_ACCESS,
     )
 
 

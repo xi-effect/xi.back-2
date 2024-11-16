@@ -1,14 +1,14 @@
 from httpx import AsyncClient, Response
 from pydantic import BaseModel, TypeAdapter
 
-from app.common.access import AccessGroupKind
 from app.common.bridges.utils import validate_json_response
 from app.common.config import settings
+from app.common.schemas.storage_sch import StorageAccessGroupKind
 
 
 class AccessGroupMetaSchema(BaseModel):
     id: str
-    kind: AccessGroupKind
+    kind: StorageAccessGroupKind
     related_id: str
 
 
@@ -25,7 +25,7 @@ class StorageBridge:
 
     @validate_json_response(TypeAdapter(AccessGroupMetaSchema))
     async def create_access_group(
-        self, kind: AccessGroupKind, related_id: int | str
+        self, kind: StorageAccessGroupKind, related_id: int | str
     ) -> Response:
         return await self.client.post(
             "/access-groups/",

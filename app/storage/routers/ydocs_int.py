@@ -2,10 +2,10 @@ from typing import assert_never
 
 from fastapi import Response
 
-from app.common.access import AccessGroupKind, AccessLevel
 from app.common.config_bdg import communities_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.storage_sch import StorageAccessGroupKind, YDocAccessLevel
 from app.storage.dependencies.access_groups_dep import AccessGroupById
 from app.storage.dependencies.ydocs_dep import YDocById, YDocContent
 from app.storage.models.access_groups_db import AccessGroup
@@ -31,11 +31,11 @@ async def create_ydoc(access_group: AccessGroupById) -> YDoc:
 async def retrieve_ydoc_access_level(
     auth_data: AuthorizationData,
     ydoc: YDocById,
-) -> AccessLevel:
+) -> YDocAccessLevel:
     access_group: AccessGroup = await ydoc.awaitable_attrs.access_group
 
     match access_group.kind:
-        case AccessGroupKind.BOARD_CHANNEL:
+        case StorageAccessGroupKind.BOARD_CHANNEL:
             return await communities_bridge.retrieve_board_channel_access_level(
                 board_channel_id=access_group.related_id,
                 auth_data=auth_data,
