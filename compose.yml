@@ -52,8 +52,6 @@ services:
     profiles:
       - app
     depends_on:
-      mq:
-        condition: service_healthy
       db:
         condition: service_healthy
     build:
