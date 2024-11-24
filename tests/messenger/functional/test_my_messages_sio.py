@@ -66,7 +66,6 @@ async def test_message_sending(
 async def test_my_message_updating(
     chat: Chat,
     chat_room_listener: TMEXIOTestClient,
-    sender_user_id: int,
     tmexio_sender_client: TMEXIOTestClient,
     message: Message,
     message_data: AnyJSON,

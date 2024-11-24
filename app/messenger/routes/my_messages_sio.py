@@ -1,7 +1,5 @@
 from typing import Annotated
-from uuid import UUID
 
-from pydantic import BaseModel
 from tmexio import Emitter, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -9,11 +7,11 @@ from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.common.utils.datetime import datetime_utc_now
 from app.messenger.dependencies.chats_sio_dep import ChatById
-from app.messenger.dependencies.messages_sio_dep import MyMessageByIDs
-from app.messenger.models.messages_db import Message
+from app.messenger.dependencies.messages_sio_dep import MyMessageByIds
+from app.messenger.models.messages_db import Message, MessageIdsSchema
 from app.messenger.rooms import chat_room
 
-router = EventRouterExt(tags=["chat-messages"])
+router = EventRouterExt(tags=["my-messages"])
 
 
 @router.on(
@@ -50,7 +48,7 @@ async def send_message(
     # TODO dependencies=[allowed_reading_dependency],
 )
 async def edit_message_content(
-    message: MyMessageByIDs,
+    message: MyMessageByIds,
     data: Message.InputSchema,
     duplex_emitter: Annotated[Emitter[Message], Message.ServerEventSchema],
 ) -> Annotated[Message, PydanticPackager(Message.ResponseSchema)]:
@@ -68,15 +66,10 @@ async def edit_message_content(
     return message
 
 
-class MessageIDsSchema(BaseModel):
-    chat_id: int
-    message_id: UUID
-
-
 DeleteMessageEmitter = Annotated[
-    Emitter[MessageIDsSchema],
+    Emitter[MessageIdsSchema],
     router.register_server_emitter(
-        MessageIDsSchema,
+        MessageIdsSchema,
         event_name="delete-chat-message",
         summary="Message has been deleted in the current chat",
     ),
@@ -89,14 +82,14 @@ DeleteMessageEmitter = Annotated[
     # TODO dependencies=[allowed_reading_dependency],
 )
 async def delete_message(
-    message: MyMessageByIDs,
+    message: MyMessageByIds,
     delete_message_emitter: DeleteMessageEmitter,
 ) -> None:
     await message.delete()
     await db.session.commit()
 
     await delete_message_emitter.emit(
-        MessageIDsSchema(chat_id=message.chat_id, message_id=message.id),
+        MessageIdsSchema(chat_id=message.chat_id, message_id=message.id),
         target=chat_room(message.chat_id),
         exclude_self=True,
     )
