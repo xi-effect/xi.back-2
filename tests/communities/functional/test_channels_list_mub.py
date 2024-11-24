@@ -8,6 +8,7 @@ from app.communities.models.communities_db import Community
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
+from tests.common.utils import remove_none_values
 from tests.communities import factories
 from tests.communities.conftest import CHANNEL_LIST_SIZE
 
@@ -37,11 +38,7 @@ async def test_reindexing_channels(
     assert_nodata_response(
         mub_client.put(
             f"/mub/community-service/communities/{community.id}/channels/positions/",
-            params=(
-                None
-                if channel_parent_category_id is None
-                else {"category_id": channel_parent_category_id}
-            ),
+            params=remove_none_values({"category_id": channel_parent_category_id}),
         )
     )
 

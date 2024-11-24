@@ -11,6 +11,7 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.common.mock_stack import MockStack
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
+from tests.common.utils import remove_none_values
 from tests.communities.factories import ChannelPatchFactory
 
 pytestmark = pytest.mark.anyio
@@ -32,11 +33,7 @@ async def test_channel_creation(
     assert_response(
         mub_client.post(
             f"/mub/community-service/communities/{community.id}/channels/",
-            params=(
-                None
-                if channel_parent_category_id is None
-                else {"category_id": channel_parent_category_id}
-            ),
+            params=remove_none_values({"category_id": channel_parent_category_id}),
             json=channel_data,
         ),
         expected_code=201,
@@ -69,11 +66,7 @@ async def test_channel_creation_quantity_exceeded(
     assert_response(
         mub_client.post(
             f"/mub/community-service/communities/{community.id}/channels/",
-            params=(
-                None
-                if channel_parent_category_id is None
-                else {"category_id": channel_parent_category_id}
-            ),
+            params=remove_none_values({"category_id": channel_parent_category_id}),
             json=channel_data,
         ),
         expected_code=409,
