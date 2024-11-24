@@ -19,7 +19,7 @@ extend-ignore =
   # # not required or shadowed by other plugins
   D I FI TC Q U101 S101 WPS400
   # black
-  WPS220 WPS348 WPS352 E501 C812 C815 C816 C819 E203
+  WPS220 WPS317 WPS348 WPS352 E501 C812 C815 C816 C819 E203
   # mypy (for __init__)
   WPS410 WPS412
   # sqlalchemy needs `id`
