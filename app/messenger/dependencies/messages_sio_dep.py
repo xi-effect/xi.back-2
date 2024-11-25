@@ -18,7 +18,7 @@ async def message_by_ids_dependency(message_id: UUID, chat: ChatById) -> Message
     return message
 
 
-MessageByIDs = Annotated[Message, message_by_ids_dependency]
+MessageByIds = Annotated[Message, message_by_ids_dependency]
 
 
 not_your_message_exception = EventException(403, "Message is not yours")
@@ -26,11 +26,11 @@ not_your_message_exception = EventException(403, "Message is not yours")
 
 @register_dependency(exceptions=[not_your_message_exception])
 async def my_message_by_ids_dependency(
-    user: AuthorizedUser, message: MessageByIDs
+    user: AuthorizedUser, message: MessageByIds
 ) -> Message:
     if message.sender_user_id != user.user_id:
         raise not_your_message_exception
     return message
 
 
-MyMessageByIDs = Annotated[Message, my_message_by_ids_dependency]
+MyMessageByIds = Annotated[Message, my_message_by_ids_dependency]

@@ -67,9 +67,47 @@ async def test_message_listing(
     )
 
 
+@pytest.mark.parametrize(
+    "from_start",
+    [
+        pytest.param(True, id="from_start"),
+        pytest.param(False, id="from_second"),
+    ],
+)
+@pytest.mark.parametrize(
+    "limit",
+    [
+        pytest.param(1, id="limit_1"),
+        pytest.param(50, id="limit_50"),
+    ],
+)
+async def test_pinned_message_listing(
+    chat: Chat,
+    tmexio_sender_client: TMEXIOTestClient,
+    messages_data: list[AnyJSON],
+    from_start: bool,
+    limit: int,
+) -> None:
+    offset = 0 if from_start else 1
+    messages_data = [
+        message_data for message_data in messages_data if message_data["pinned"]
+    ]
+
+    assert_ack(
+        await tmexio_sender_client.emit(
+            "list-chat-pinned-messages",
+            chat_id=chat.id,
+            created_before=None if from_start else messages_data[0]["created_at"],
+            limit=limit,
+        ),
+        expected_data=messages_data[offset : offset + limit],
+    )
+
+
 message_list_events_params = [
     pytest.param("open-chat", id="open"),
     pytest.param("list-chat-messages", id="list-history"),
+    pytest.param("list-chat-pinned-messages", id="list-pinned"),
 ]
 
 

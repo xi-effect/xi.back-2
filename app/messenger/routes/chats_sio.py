@@ -47,10 +47,25 @@ async def open_chat(
 async def list_messages(
     chat: ChatById,
     created_before: datetime,
-    limit: Annotated[int, Field(gt=0, le=100)],
+    limit: Annotated[int, Field(gt=0, le=100)] = 50,
 ) -> Annotated[Sequence[Message], PydanticPackager(list[Message.ResponseSchema])]:
     return await Message.find_by_chat_id_created_before(
         chat_id=chat.id, created_before=created_before, limit=limit
+    )
+
+
+@router.on(
+    "list-chat-pinned-messages",
+    summary="List pinned messages in the chat",
+    # TODO dependencies=[allowed_reading_dependency],
+)
+async def list_pinned_messages(
+    chat: ChatById,
+    created_before: datetime | None = None,
+    limit: Annotated[int, Field(gt=0, le=100)] = 50,
+) -> Annotated[Sequence[Message], PydanticPackager(list[Message.ResponseSchema])]:
+    return await Message.find_by_chat_id_created_before(
+        chat_id=chat.id, created_before=created_before, limit=limit, only_pinned=True
     )
 
 

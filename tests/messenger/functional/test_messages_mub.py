@@ -12,8 +12,13 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
+from tests.common.utils import remove_none_values
 from tests.messenger.conftest import MESSAGE_LIST_SIZE
-from tests.messenger.factories import MessageInputFactory, MessageInputMUBFactory
+from tests.messenger.factories import (
+    MessageInputFactory,
+    MessageInputMUBFactory,
+    MessagePatchMUBFactory,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -63,6 +68,49 @@ async def test_message_history_listing(
             params={"created_before": created_before, "limit": limit},
         ),
         expected_json=messages_data[offset : limit + 1],
+    )
+
+
+@pytest.mark.parametrize(
+    "from_start",
+    [
+        pytest.param(True, id="from_start"),
+        pytest.param(False, id="from_second"),
+    ],
+)
+@pytest.mark.parametrize(
+    "limit",
+    [
+        pytest.param(1, id="limit_1"),
+        pytest.param(50, id="limit_50"),
+    ],
+)
+async def test_pinned_message_listing(
+    mub_client: TestClient,
+    chat: Chat,
+    messages_data: list[AnyJSON],
+    from_start: bool,
+    limit: int,
+) -> None:
+    offset = 0 if from_start else 1
+    messages_data = [
+        message_data for message_data in messages_data if message_data["pinned"]
+    ]
+
+    assert_response(
+        mub_client.get(
+            f"/mub/messenger-service/chats/{chat.id}/messages/",
+            params=remove_none_values(
+                {
+                    "created_before": (
+                        None if from_start else messages_data[0]["created_at"]
+                    ),
+                    "limit": limit,
+                    "only_pinned": True,
+                }
+            ),
+        ),
+        expected_json=messages_data[offset : offset + limit],
     )
 
 
@@ -129,23 +177,32 @@ async def test_message_retrieving(
     )
 
 
+@pytest.mark.parametrize(
+    "set_updated_at",
+    [
+        pytest.param(True, id="set_updated_at"),
+        pytest.param(False, id="keep_updated_at"),
+    ],
+)
 @freeze_time()
 async def test_message_updating(
     mub_client: TestClient,
     message: Message,
     message_data: AnyJSON,
+    set_updated_at: bool,
 ) -> None:
-    message_patch_data = MessageInputFactory.build_json()
+    message_patch_data = MessagePatchMUBFactory.build_json()
 
     assert_response(
         mub_client.patch(
             f"/mub/messenger-service/messages/{message.id}/",
+            params={"set_updated_at": set_updated_at},
             json=message_patch_data,
         ),
         expected_json={
             **message_data,
             **message_patch_data,
-            "updated_at": datetime_utc_now(),
+            **({"updated_at": datetime_utc_now()} if set_updated_at else {}),
         },
     )
 

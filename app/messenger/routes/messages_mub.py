@@ -1,5 +1,8 @@
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Annotated
+
+from pydantic import Field
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.datetime import datetime_utc_now
@@ -16,13 +19,16 @@ router = APIRouterExt(tags=["messages mub"])
     summary="List paginated messages in a chat",
 )
 async def list_messages(
-    *,
     chat: ChatById,
     created_before: datetime | None = None,
-    limit: int,
+    limit: Annotated[int, Field(gt=0, le=100)] = 50,
+    only_pinned: bool = False,
 ) -> Sequence[Message]:
     return await Message.find_by_chat_id_created_before(
-        chat_id=chat.id, created_before=created_before, limit=limit
+        chat_id=chat.id,
+        created_before=created_before,
+        limit=limit,
+        only_pinned=only_pinned,
     )
 
 
@@ -50,11 +56,14 @@ async def retrieve_message(message: MessageById) -> Message:
     response_model=Message.ResponseSchema,
     summary="Update any message by id",
 )
-async def patch_message(message: MessageById, data: Message.InputSchema) -> Message:
-    message.update(
-        **data.model_dump(),
-        updated_at=datetime_utc_now(),
-    )
+async def patch_message(
+    message: MessageById,
+    data: Message.PatchMUBSchema,
+    set_updated_at: bool = True,
+) -> Message:
+    message.update(**data.model_dump(exclude_defaults=True))
+    if set_updated_at:
+        message.updated_at = datetime_utc_now()
     return message
 
 
