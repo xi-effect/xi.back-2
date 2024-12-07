@@ -8,13 +8,15 @@ from httpx import Request, Response
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 
-from app.common.config import settings
+from app.common.config import Base, settings
 from app.common.schemas.messenger_sch import ChatAccessKind
 from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
+from app.communities.models.call_channels_db import CallChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.communities_db import Community
+from app.communities.models.task_channels_db import TaskChannel
 from app.communities.services import channels_svc
 from tests.common.active_session import ActiveSession
 from tests.common.respx_ext import assert_last_httpx_request
@@ -212,12 +214,19 @@ async def test_chat_channel_creation(
     )
 
 
-@pytest.mark.parametrize("channel_kind", [ChannelType.TASKS, ChannelType.CALL])
+@pytest.mark.parametrize(
+    ("channel_kind", "channel_model"),
+    [
+        (ChannelType.TASKS, TaskChannel),
+        (ChannelType.CALL, CallChannel),
+    ],
+)
 async def test_simple_channel_creation(
     active_session: ActiveSession,
     community: Community,
     channel_parent_category_id: int | None,
     channel_kind: ChannelType,
+    channel_model: Base,
 ) -> None:
     channel_raw_data: Channel.InputSchema = factories.ChannelInputFactory.build(
         kind=channel_kind
@@ -240,3 +249,7 @@ async def test_simple_channel_creation(
             "list_id": [community.id, channel_parent_category_id],
         },
     )
+
+    async with active_session():
+        specific_channel = await channel_model.find_first_by_id(channel.id)
+        assert_contains(specific_channel, {"id": channel.id})
