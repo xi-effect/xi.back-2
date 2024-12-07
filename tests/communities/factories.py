@@ -3,6 +3,7 @@ from functools import partial
 from typing import Annotated
 
 from polyfactory import PostGenerated
+from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import AwareDatetime, PastDatetime, PositiveInt
 
 from app.communities.models.categories_db import Category
@@ -11,6 +12,7 @@ from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
 from app.communities.models.tasks_db import Task
+from app.communities.routes.call_channels_mub import TokenRequestSchema
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
@@ -75,3 +77,7 @@ class TaskInputFactory(BaseModelFactory[Task.InputSchema]):
 
 class TaskPatchFactory(BasePatchModelFactory[Task.PatchSchema]):
     __model__ = Task.PatchSchema
+
+
+class TokenRequestSchemaFactory(ModelFactory[TokenRequestSchema]):
+    __model__ = TokenRequestSchema

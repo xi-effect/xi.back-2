@@ -2,6 +2,7 @@ from app.common.config_bdg import messenger_bridge, posts_bridge, storage_bridge
 from app.common.schemas.messenger_sch import ChatAccessKind
 from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.communities.models.board_channels_db import BoardChannel
+from app.communities.models.call_channels_db import CallChannel
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.task_channels_db import TaskChannel
@@ -34,6 +35,8 @@ async def create_channel(
                 access_kind=ChatAccessKind.CHAT_CHANNEL, related_id=channel.id
             )
             await ChatChannel.create(id=channel.id, chat_id=chat.id)
+        case ChannelType.CALL:
+            await CallChannel.create(id=channel.id)
 
     return channel
 
@@ -54,5 +57,7 @@ async def delete_channel(channel: Channel) -> None:
             chat_channel = await ChatChannel.find_first_by_id(channel.id)
             if chat_channel is not None:
                 await messenger_bridge.delete_chat(chat_id=chat_channel.chat_id)
+        case ChannelType.CALL:
+            pass
 
     await channel.delete()
