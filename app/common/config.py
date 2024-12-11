@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     postgres_echo: bool = True
     postgres_pool_recycle: int = 280
 
+    livekit_url: str = "ws://localhost:7880"
+    livekit_api_key: str = "devkey"
+    livekit_api_secret: str = "secret"
+    livekit_demo_base_url: str = "https://meet.livekit.io/custom"
+
 
 settings = Settings()
 

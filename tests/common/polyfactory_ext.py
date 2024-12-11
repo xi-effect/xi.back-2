@@ -12,7 +12,7 @@ class BaseModelFactory[T: BaseModel](ModelFactory[T]):
 
     @classmethod
     def build_json(cls, **kwargs: Any) -> AnyJSON:
-        return cls.build(**kwargs).model_dump(mode="json")
+        return cls.build(**kwargs).model_dump(mode="json", by_alias=True)
 
     @classmethod
     def build_python(cls, **kwargs: Any) -> AnyKwargs:
@@ -24,7 +24,9 @@ class BasePatchModelFactory[T: BaseModel](BaseModelFactory[T]):
 
     @classmethod
     def build_json(cls, **kwargs: Any) -> AnyJSON:
-        return cls.build(**kwargs).model_dump(mode="json", exclude_defaults=True)
+        return cls.build(**kwargs).model_dump(
+            mode="json", by_alias=True, exclude_defaults=True
+        )
 
     @classmethod
     def build_python(cls, **kwargs: Any) -> AnyKwargs:
