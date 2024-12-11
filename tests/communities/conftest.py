@@ -8,6 +8,7 @@ from faker import Faker
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.communities.models.board_channels_db import BoardChannel
+from app.communities.models.call_channels_db import CallChannel
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel, ChannelType
 from app.communities.models.chat_channels_db import ChatChannel
@@ -572,3 +573,18 @@ async def deleted_task_id(
     async with active_session():
         await task.delete()
     return task.id
+
+
+@pytest.fixture()
+async def call_channel(active_session: ActiveSession, channel: Channel) -> CallChannel:
+    async with active_session():
+        return await CallChannel.create(id=channel.id)
+
+
+@pytest.fixture()
+async def deleted_call_channel_id(
+    active_session: ActiveSession, call_channel: CallChannel
+) -> int:
+    async with active_session():
+        await call_channel.delete()
+    return call_channel.id
