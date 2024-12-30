@@ -9,6 +9,7 @@ from app.communities.models.tasks_db import Task, TaskKind, TaskOrderingType
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
+from tests.common.utils import remove_none_values
 from tests.communities import factories
 
 pytestmark = pytest.mark.anyio
@@ -110,13 +111,15 @@ async def test_tasks_listing(
     assert_response(
         mub_client.get(
             f"/mub/community-service/task-channels/{task_channel.id}/tasks/",
-            params={
-                "offset": offset,
-                "limit": limit,
-                "ordering_type": ordering_type,
-                **({"kind": kind} if kind is not None else {}),
-                "is_only_active": is_only_active,
-            },
+            params=remove_none_values(
+                {
+                    "offset": offset,
+                    "limit": limit,
+                    "ordering_type": ordering_type,
+                    "kind": kind,
+                    "is_only_active": is_only_active,
+                }
+            ),
         ),
         expected_json=[
             task_data for _, task_data in sorted_tasks_data[offset : offset + limit]
