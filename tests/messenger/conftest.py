@@ -95,6 +95,19 @@ async def message(
 
 
 @pytest.fixture()
+async def pinned_message(
+    active_session: ActiveSession, chat: Chat, sender_user_id: int
+) -> Message:
+    async with active_session():
+        return await Message.create(
+            chat_id=chat.id,
+            sender_user_id=sender_user_id,
+            pinned=True,
+            **factories.MessageInputFactory.build_python(),
+        )
+
+
+@pytest.fixture()
 def message_data(message: Message) -> AnyJSON:
     return Message.ResponseSchema.model_validate(
         message, from_attributes=True
@@ -123,9 +136,9 @@ async def messages_data(
         messages = [
             await Message.create(
                 chat_id=chat.id,
-                **factories.MessageInputMUBFactory.build_json(),
+                **factories.MessageInputMUBFactory.build_python(pinned=i % 2 == 0),
             )
-            for _ in range(MESSAGE_LIST_SIZE)
+            for i in range(MESSAGE_LIST_SIZE)
         ]
     messages.sort(key=lambda message: message.created_at, reverse=True)
 
