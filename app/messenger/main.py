@@ -7,6 +7,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.messenger.routes import (
+    chat_users_mub,
     chats_int,
     chats_sio,
     messages_management_sio,
@@ -24,6 +25,7 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/messenger-service",
 )
+mub_router.include_router(chat_users_mub.router)
 mub_router.include_router(messages_mub.router)
 
 api_router = APIRouterExt()
