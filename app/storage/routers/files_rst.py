@@ -20,22 +20,30 @@ router = APIRouterExt(tags=["files"])
 # TODO check access rights for reading and deleting
 
 
-@router.post(
+@router.post(  # TODO remove in 41239612
     "/files/attachments/",
     status_code=201,
     response_model=File.ResponseSchema,
-    summary="Upload a new attachment",
+    summary="Use POST /access-groups/public/file-kinds/uncategorized/files/ instead",
+    deprecated=True,
 )
-async def upload_attachment(
-    attachment: UploadFile, auth_data: AuthorizationData
+@router.post(
+    "/access-groups/public/file-kinds/uncategorized/files/",
+    status_code=201,
+    response_model=File.ResponseSchema,
+    summary="Upload a new public uncategorized file",
+)
+async def upload_public_uncategorized_file(
+    auth_data: AuthorizationData,
+    upload: UploadFile,
 ) -> File:
     file = await File.create(
-        name=attachment.filename,
-        kind=FileKind.ATTACHMENT,
+        name=upload.filename,
+        kind=FileKind.UNCATEGORIZED,
         creator_user_id=auth_data.user_id,
     )
     with file.path.open("wb") as f:
-        copyfileobj(attachment.file, f)
+        copyfileobj(upload.file, f)
     return file
 
 
@@ -43,24 +51,34 @@ class ImageFormatResponses(Responses):
     WRONG_FORMAT = (415, "Invalid image format")
 
 
-@router.post(
+@router.post(  # TODO remove in 41239612
     "/files/images/",
     status_code=201,
     response_model=File.ResponseSchema,
-    responses=ImageFormatResponses.responses(),
-    summary="Upload a new image",
+    summary="Use POST /access-groups/public/file-kinds/image/files/ instead",
+    deprecated=True,
 )
-async def upload_image(image: UploadFile, auth_data: AuthorizationData) -> File:
-    if not filetype.match(image.file, [Webp()]):
+@router.post(
+    "/access-groups/public/file-kinds/image/files/",
+    status_code=201,
+    response_model=File.ResponseSchema,
+    responses=ImageFormatResponses.responses(),
+    summary="Upload a new public image file",
+)
+async def upload_public_image_file(
+    auth_data: AuthorizationData,
+    upload: UploadFile,
+) -> File:
+    if not filetype.match(upload.file, [Webp()]):
         raise ImageFormatResponses.WRONG_FORMAT
 
     file = await File.create(
-        name=image.filename,
+        name=upload.filename,
         kind=FileKind.IMAGE,
         creator_user_id=auth_data.user_id,
     )
     with file.path.open("wb") as f:
-        copyfileobj(image.file, f)  # TODO may be convert to async
+        copyfileobj(upload.file, f)  # TODO may be convert to async
     return file
 
 

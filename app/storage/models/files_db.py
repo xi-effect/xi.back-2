@@ -11,22 +11,22 @@ from app.common.config import Base, settings
 
 
 class FileKind(StrEnum):
-    ATTACHMENT = "attachment"
+    UNCATEGORIZED = "uncategorized"
     IMAGE = "image"
 
 
 ContentDisposition = Literal["inline", "attachment"]
 
 FILE_KIND_TO_FOLDER: dict[FileKind, str] = {
-    FileKind.ATTACHMENT: "files",
+    FileKind.UNCATEGORIZED: "uncategorized",
     FileKind.IMAGE: "images",
 }
 FILE_KIND_TO_MEDIA_TYPE: dict[FileKind, str | None] = {
-    FileKind.ATTACHMENT: None,
+    FileKind.UNCATEGORIZED: None,
     FileKind.IMAGE: "image/webp",
 }
 FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
-    FileKind.ATTACHMENT: "attachment",
+    FileKind.UNCATEGORIZED: "attachment",
     FileKind.IMAGE: "inline",
 }
 
