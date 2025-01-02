@@ -51,12 +51,12 @@ def missing_ydoc_id() -> UUID:
 
 
 @pytest.fixture()
-def attachment(faker: Faker) -> bytes:
+def uncategorized_file(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
 
 
 @pytest.fixture()
-def image(faker: Faker) -> bytes:
+def image_file(faker: Faker) -> bytes:
     return faker.graphic_webp_file(raw=True)  # type: ignore[no-any-return]
 
 
@@ -71,16 +71,18 @@ def file_kind(request: PytestRequest[FileKind]) -> FileKind:
 
 
 @pytest.fixture()
-def file_content(file_kind: FileKind, attachment: bytes, image: bytes) -> bytes:
+def file_content(
+    file_kind: FileKind, uncategorized_file: bytes, image_file: bytes
+) -> bytes:
     match file_kind:
-        case FileKind.ATTACHMENT:
-            return attachment
+        case FileKind.UNCATEGORIZED:
+            return uncategorized_file
         case FileKind.IMAGE:
-            return image
+            return image_file
 
 
 FILE_KIND_TO_CONTENT_TYPE: dict[FileKind, str] = {
-    FileKind.ATTACHMENT: "application/x-tar",
+    FileKind.UNCATEGORIZED: "application/x-tar",
     FileKind.IMAGE: "image/webp",
 }
 
@@ -91,7 +93,7 @@ def file_content_type(file_kind: FileKind) -> str:
 
 
 FILE_KIND_TO_EXTENSION: dict[FileKind, str] = {
-    FileKind.ATTACHMENT: "tar",
+    FileKind.UNCATEGORIZED: "tar",
     FileKind.IMAGE: "webp",
 }
 
