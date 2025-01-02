@@ -5,7 +5,7 @@ from faker import Faker
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.storage.models.files_db import File
+from app.storage.models.files_db import File, FileKind
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 
@@ -26,25 +26,27 @@ async def retrieve_and_validate_file(
     return file
 
 
-async def test_attachment_uploading(
+async def test_uncategorized_file_uploading(
     faker: Faker,
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     authorized_client: TestClient,
-    attachment: bytes,
+    uncategorized_file: bytes,
 ) -> None:
     filename: str = faker.file_name()
 
     file_id = assert_response(
         authorized_client.post(
-            "/api/protected/storage-service/files/attachments/",
-            files={"attachment": (filename, attachment, "application/octet-stream")},
+            "/api/protected/storage-service/file-kinds/uncategorized/files/",
+            files={
+                "upload": (filename, uncategorized_file, "application/octet-stream")
+            },
         ),
         expected_code=201,
         expected_json={
             "id": UUID,
             "name": filename,
-            "kind": "attachment",
+            "kind": FileKind.UNCATEGORIZED,
             "creator_user_id": proxy_auth_data.user_id,
         },
     ).json()["id"]
@@ -52,32 +54,32 @@ async def test_attachment_uploading(
     file = await retrieve_and_validate_file(
         active_session=active_session,
         file_id=file_id,
-        expected_content=attachment,
+        expected_content=uncategorized_file,
     )
 
     async with active_session():
         await file.delete()
 
 
-async def test_image_uploading(
+async def test_image_file_uploading(
     faker: Faker,
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     authorized_client: TestClient,
-    image: bytes,
+    image_file: bytes,
 ) -> None:
     filename: str = faker.file_name(extension="webp")
 
     file_id = assert_response(
         authorized_client.post(
-            "/api/protected/storage-service/files/images/",
-            files={"image": (filename, image, "image/webp")},
+            "/api/protected/storage-service/file-kinds/image/files/",
+            files={"upload": (filename, image_file, "image/webp")},
         ),
         expected_code=201,
         expected_json={
             "id": UUID,
             "name": filename,
-            "kind": "image",
+            "kind": FileKind.IMAGE,
             "creator_user_id": proxy_auth_data.user_id,
         },
     ).json()["id"]
@@ -85,7 +87,7 @@ async def test_image_uploading(
     file = await retrieve_and_validate_file(
         active_session=active_session,
         file_id=file_id,
-        expected_content=image,
+        expected_content=image_file,
     )
 
     async with active_session():
@@ -106,10 +108,10 @@ async def test_image_uploading(
         pytest.param("webp", id="extension_webp"),
     ],
 )
-async def test_image_uploading_wrong_format(
+async def test_image_file_uploading_wrong_format(
     faker: Faker,
     authorized_client: TestClient,
-    attachment: bytes,
+    uncategorized_file: bytes,
     content_type: str,
     extension: str,
 ) -> None:
@@ -117,9 +119,9 @@ async def test_image_uploading_wrong_format(
         authorized_client.post(
             "/api/protected/storage-service/files/images/",
             files={
-                "image": (
+                "upload": (
                     faker.file_name(extension=extension),
-                    attachment,
+                    uncategorized_file,
                     content_type,
                 )
             },
