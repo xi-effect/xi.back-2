@@ -18,5 +18,4 @@ async def get_invitation_by_id(invitation_id: Annotated[int, Path()]) -> Invitat
     return invitation
 
 
-InvitationByIdDependency = Depends(get_invitation_by_id)
-InvitationById = Annotated[Invitation, InvitationByIdDependency]
+InvitationById = Annotated[Invitation, Depends(get_invitation_by_id)]

@@ -19,5 +19,4 @@ async def get_file_by_id(file_id: Annotated[UUID, Path()]) -> File:
     return file
 
 
-FileByIdDependency = Depends(get_file_by_id)
-FileById = Annotated[File, FileByIdDependency]
+FileById = Annotated[File, Depends(get_file_by_id)]

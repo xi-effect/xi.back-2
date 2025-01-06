@@ -19,7 +19,6 @@ async def get_ydoc_by_id(ydoc_id: Annotated[UUID, Path()]) -> YDoc:
     return ydoc
 
 
-YDocByIdDependency = Depends(get_ydoc_by_id)
-YDocById = Annotated[YDoc, YDocByIdDependency]
+YDocById = Annotated[YDoc, Depends(get_ydoc_by_id)]
 
 YDocContent = Annotated[bytes, Body(..., media_type="application/octet-stream")]

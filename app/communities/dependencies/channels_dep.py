@@ -18,5 +18,4 @@ async def get_channel_by_id(channel_id: Annotated[int, Path()]) -> Channel:
     return channel
 
 
-ChannelByIdDependency = Depends(get_channel_by_id)
-ChannelById = Annotated[Channel, ChannelByIdDependency]
+ChannelById = Annotated[Channel, Depends(get_channel_by_id)]

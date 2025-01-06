@@ -18,5 +18,4 @@ async def get_participant_by_id(participant_id: Annotated[int, Path()]) -> Parti
     return participant
 
 
-ParticipantByIdDependency = Depends(get_participant_by_id)
-ParticipantById = Annotated[Participant, ParticipantByIdDependency]
+ParticipantById = Annotated[Participant, Depends(get_participant_by_id)]

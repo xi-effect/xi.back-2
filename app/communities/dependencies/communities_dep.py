@@ -18,5 +18,4 @@ async def get_community_by_id(community_id: Annotated[int, Path()]) -> Community
     return community
 
 
-CommunityByIdDependency = Depends(get_community_by_id)
-CommunityById = Annotated[Community, CommunityByIdDependency]
+CommunityById = Annotated[Community, Depends(get_community_by_id)]

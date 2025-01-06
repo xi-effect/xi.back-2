@@ -19,8 +19,7 @@ async def get_category_by_id(category_id: Annotated[int, Path()]) -> Category:
     return category
 
 
-CategoryByIdDependency = Depends(get_category_by_id)
-CategoryById = Annotated[Category, CategoryByIdDependency]
+CategoryById = Annotated[Category, Depends(get_category_by_id)]
 
 
 @with_responses(CategoriesResponses)
@@ -38,7 +37,6 @@ async def validate_optional_category_id(
     return category.id
 
 
-ValidatedOptionalCategoryIdDependency = Depends(validate_optional_category_id)
 ValidatedOptionalCategoryId = Annotated[
-    int | None, ValidatedOptionalCategoryIdDependency
+    int | None, Depends(validate_optional_category_id)
 ]

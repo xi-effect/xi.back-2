@@ -21,5 +21,4 @@ async def get_access_group_by_id(
     return access_group
 
 
-AccessGroupByIdDependency = Depends(get_access_group_by_id)
-AccessGroupById = Annotated[AccessGroup, AccessGroupByIdDependency]
+AccessGroupById = Annotated[AccessGroup, Depends(get_access_group_by_id)]
