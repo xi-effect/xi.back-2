@@ -3,6 +3,7 @@ import pytest
 from app.communities.models.board_channels_db import BoardChannel
 from app.communities.models.communities_db import Community
 from tests.common.tmexio_testing import TMEXIOTestClient, assert_ack
+from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
 
@@ -11,6 +12,7 @@ async def test_board_channel_retrieving(
     community: Community,
     tmexio_actor_client: TMEXIOTestClient,
     board_channel: BoardChannel,
+    board_channel_data: AnyJSON,
 ) -> None:
     assert_ack(
         await tmexio_actor_client.emit(
@@ -18,7 +20,7 @@ async def test_board_channel_retrieving(
             community_id=community.id,
             channel_id=board_channel.id,
         ),
-        expected_data={"ydoc_id": board_channel.ydoc_id},
+        expected_data=board_channel_data,
     )
     tmexio_actor_client.assert_no_more_events()
 

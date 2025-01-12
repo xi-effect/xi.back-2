@@ -19,4 +19,4 @@ class BoardChannel(Base):
     access_group_id: Mapped[str] = mapped_column()
     ydoc_id: Mapped[str] = mapped_column()
 
-    ResponseSchema = MappedModel.create(columns=[ydoc_id])
+    ResponseSchema = MappedModel.create(columns=[access_group_id, ydoc_id])

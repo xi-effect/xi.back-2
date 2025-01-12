@@ -1,23 +1,19 @@
 from datetime import datetime
 from os import stat
-from shutil import copyfileobj
 from typing import Annotated
 
 from fastapi import Header, UploadFile
-from filetype import filetype  # type: ignore[import-untyped]
-from filetype.types.image import Webp  # type: ignore[import-untyped]
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
 
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.fastapi_ext import APIRouterExt
+from app.storage.dependencies.access_groups_dep import AccessGroupById
 from app.storage.dependencies.files_dep import FileById
+from app.storage.dependencies.uploads_dep import ValidatedImageUpload
 from app.storage.models.files_db import File, FileKind
 
 router = APIRouterExt(tags=["files"])
-
-
-# TODO check access rights for reading and deleting
 
 
 @router.post(  # TODO remove in 41239612
@@ -37,18 +33,33 @@ async def upload_public_uncategorized_file(
     auth_data: AuthorizationData,
     upload: UploadFile,
 ) -> File:
-    file = await File.create(
-        name=upload.filename,
-        kind=FileKind.UNCATEGORIZED,
+    return await File.create_with_content(
+        content=upload.file,
+        filename=upload.filename,
+        file_kind=FileKind.UNCATEGORIZED,
         creator_user_id=auth_data.user_id,
     )
-    with file.path.open("wb") as f:
-        copyfileobj(upload.file, f)
-    return file
 
 
-class ImageFormatResponses(Responses):
-    WRONG_FORMAT = (415, "Invalid image format")
+@router.post(
+    "/access-groups/{access_group_id}/file-kinds/uncategorized/files/",
+    status_code=201,
+    response_model=File.ResponseSchema,
+    summary="Upload a new uncategorized file to an access group",
+)
+async def upload_private_uncategorized_file(
+    auth_data: AuthorizationData,
+    access_group: AccessGroupById,
+    upload: UploadFile,
+) -> File:
+    # TODO check if allowed to upload (41239612 / 44012321)
+    return await File.create_with_content(
+        content=upload.file,
+        filename=upload.filename,
+        file_kind=FileKind.UNCATEGORIZED,
+        creator_user_id=auth_data.user_id,
+        access_group_id=access_group.id,
+    )
 
 
 @router.post(  # TODO remove in 41239612
@@ -62,24 +73,39 @@ class ImageFormatResponses(Responses):
     "/access-groups/public/file-kinds/image/files/",
     status_code=201,
     response_model=File.ResponseSchema,
-    responses=ImageFormatResponses.responses(),
     summary="Upload a new public image file",
 )
 async def upload_public_image_file(
     auth_data: AuthorizationData,
-    upload: UploadFile,
+    upload: ValidatedImageUpload,
 ) -> File:
-    if not filetype.match(upload.file, [Webp()]):
-        raise ImageFormatResponses.WRONG_FORMAT
-
-    file = await File.create(
-        name=upload.filename,
-        kind=FileKind.IMAGE,
+    return await File.create_with_content(
+        content=upload.file,
+        filename=upload.filename,
+        file_kind=FileKind.IMAGE,
         creator_user_id=auth_data.user_id,
     )
-    with file.path.open("wb") as f:
-        copyfileobj(upload.file, f)  # TODO may be convert to async
-    return file
+
+
+@router.post(
+    "/access-groups/{access_group_id}/file-kinds/image/files/",
+    status_code=201,
+    response_model=File.ResponseSchema,
+    summary="Upload a new image file to an access group",
+)
+async def upload_private_image_file(
+    auth_data: AuthorizationData,
+    access_group: AccessGroupById,
+    upload: ValidatedImageUpload,
+) -> File:
+    # TODO check if allowed to upload (41239612 / 44012321)
+    return await File.create_with_content(
+        content=upload.file,
+        filename=upload.filename,
+        file_kind=FileKind.IMAGE,
+        creator_user_id=auth_data.user_id,
+        access_group_id=access_group.id,
+    )
 
 
 @router.get(
@@ -88,6 +114,7 @@ async def upload_public_image_file(
     summary="Read meta of any file by id",
 )
 async def retrieve_file_meta(file: FileById) -> File:
+    # TODO check access to file (41239612 / 44012321)
     return file
 
 
@@ -107,6 +134,8 @@ async def read_file(
     if_none_match: Annotated[str, Header()] = "",
     if_modified_since: Annotated[str | None, Header()] = None,
 ) -> Response:
+    # TODO check access to file (41239612 / 44012321)
+
     response = FileResponse(
         path=file.path,
         filename=file.name,
@@ -137,4 +166,5 @@ async def read_file(
     summary="Delete any file by id",
 )
 async def delete_file(file: FileById) -> None:
+    # TODO check access to file or disable method(?) (41239612 / 44012321)
     await file.delete()

@@ -504,6 +504,13 @@ async def board_channel(
 
 
 @pytest.fixture()
+async def board_channel_data(board_channel: BoardChannel) -> AnyJSON:
+    return BoardChannel.ResponseSchema.model_validate(
+        board_channel, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
 async def deleted_board_channel_id(
     active_session: ActiveSession, board_channel: BoardChannel
 ) -> int:
