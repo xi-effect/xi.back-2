@@ -38,7 +38,7 @@ jobs:
             docker pull ${{ env.pull_image }}
             docker tag ${{ env.pull_image }} ${{ env.deploy_image }}
             docker tag ${{ env.pull_image }} ${{ env.deploy_image }}-backup
-            docker compose up back-2-migrate
+            docker compose run --rm back-2-migrate
             docker compose up -d back-2
           script_stop: true
 

@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from os import stat
+from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,7 +9,7 @@ from starlette.responses import FileResponse
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.storage.models.access_groups_db import AccessGroup
-from app.storage.models.files_db import File, FileKind
+from app.storage.models.files_db import FILE_KIND_TO_CONTENT_DISPOSITION, File, FileKind
 from app.storage.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
@@ -50,13 +51,20 @@ def missing_ydoc_id() -> UUID:
     return uuid4()
 
 
+@pytest.fixture(params=[True, False], ids=["public_file", "private_file"])
+def access_group_id_or_public(
+    request: PytestRequest[bool], access_group: AccessGroup
+) -> str:
+    return "public" if request.param else str(access_group.id)
+
+
 @pytest.fixture()
-def attachment(faker: Faker) -> bytes:
+def uncategorized_file(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
 
 
 @pytest.fixture()
-def image(faker: Faker) -> bytes:
+def image_file(faker: Faker) -> bytes:
     return faker.graphic_webp_file(raw=True)  # type: ignore[no-any-return]
 
 
@@ -71,16 +79,18 @@ def file_kind(request: PytestRequest[FileKind]) -> FileKind:
 
 
 @pytest.fixture()
-def file_content(file_kind: FileKind, attachment: bytes, image: bytes) -> bytes:
+def file_content(
+    file_kind: FileKind, uncategorized_file: bytes, image_file: bytes
+) -> bytes:
     match file_kind:
-        case FileKind.ATTACHMENT:
-            return attachment
+        case FileKind.UNCATEGORIZED:
+            return uncategorized_file
         case FileKind.IMAGE:
-            return image
+            return image_file
 
 
 FILE_KIND_TO_CONTENT_TYPE: dict[FileKind, str] = {
-    FileKind.ATTACHMENT: "application/x-tar",
+    FileKind.UNCATEGORIZED: "application/x-tar",
     FileKind.IMAGE: "image/webp",
 }
 
@@ -91,9 +101,14 @@ def file_content_type(file_kind: FileKind) -> str:
 
 
 FILE_KIND_TO_EXTENSION: dict[FileKind, str] = {
-    FileKind.ATTACHMENT: "tar",
+    FileKind.UNCATEGORIZED: "tar",
     FileKind.IMAGE: "webp",
 }
+
+
+@pytest.fixture()
+def file_name(faker: Faker, file_kind: FileKind) -> str:
+    return cast(str, faker.file_name(extension=FILE_KIND_TO_EXTENSION[file_kind]))
 
 
 @pytest.fixture()
@@ -103,10 +118,11 @@ async def file(
     proxy_auth_data: ProxyAuthData,
     file_kind: FileKind,
     file_content: bytes,
+    file_name: str,
 ) -> AsyncIterator[File]:
     async with active_session():
         file = await File.create(
-            name=faker.file_name(extension=FILE_KIND_TO_EXTENSION[file_kind]),
+            name=file_name,
             kind=file_kind,
             creator_user_id=proxy_auth_data.user_id,
         )
@@ -135,6 +151,12 @@ def file_etag(file_response: FileResponse) -> str | None:
 @pytest.fixture()
 def file_last_modified(file_response: FileResponse) -> str | None:
     return file_response.headers["last-modified"]
+
+
+@pytest.fixture()
+def file_content_disposition(file_kind: FileKind, file_name: str) -> str:
+    disposition_type = FILE_KIND_TO_CONTENT_DISPOSITION.get(file_kind, "attachment")
+    return f'{disposition_type}; filename="{file_name}"'
 
 
 @pytest.fixture()
