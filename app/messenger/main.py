@@ -10,6 +10,7 @@ from app.messenger.routes import (
     chat_users_mub,
     chats_int,
     chats_sio,
+    message_drafts_mub,
     messages_management_sio,
     messages_mub,
     my_messages_sio,
@@ -27,6 +28,7 @@ mub_router = APIRouterExt(
 )
 mub_router.include_router(chat_users_mub.router)
 mub_router.include_router(messages_mub.router)
+mub_router.include_router(message_drafts_mub.router)
 
 api_router = APIRouterExt()
 api_router.include_router(internal_router)
