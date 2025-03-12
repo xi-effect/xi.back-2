@@ -14,9 +14,6 @@ class InvitationResponsesError(RuntimeError):
     def __init__(self, *args: Any) -> None:
         self.message: str = "Invitation not found"
 
-    def __str__(self) -> str:
-        return self.message
-
 
 @with_responses(InvitationResponses)
 async def get_invitation_by_id(invitation_id: Annotated[int, Path()]) -> Invitation:
