@@ -2,10 +2,10 @@ from collections.abc import Sequence
 
 from fastapi import HTTPException
 
-from app.common.dependencies import authorization_dep
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.fastapi_ext import APIRouterExt
 from app.tutors.dependencies.invitations_dep import InvitationById
-from app.tutors.models.tutor_invitations_db import Invitation
+from app.tutors.models.invitations_db import Invitation
 
 router = APIRouterExt(tags=["tutor's invitation"])
 
@@ -16,10 +16,9 @@ router = APIRouterExt(tags=["tutor's invitation"])
     response_model=Invitation.ResponseSchema,
     summary="Create the invitation for tutor.",
 )
-async def create_invitation() -> Invitation:
+async def create_invitation(auth: ProxyAuthData) -> Invitation:
     # getting user id
-    user_id = authorization_dep.construct_proxy_auth_data().user_id
-    return await Invitation.create(tutor_id=user_id)
+    return await Invitation.create(tutor_id=auth.user_id)
 
 
 @router.delete(
@@ -27,13 +26,9 @@ async def create_invitation() -> Invitation:
     status_code=204,
     summary="Delete any invitation by id",
 )
-async def delete_invitation(invitation: InvitationById) -> None:
-    # getting user id
-    user_id = authorization_dep.construct_proxy_auth_data().user_id
-
-    if invitation.tutor_id != user_id:
+async def delete_invitation(invitation: InvitationById, auth: ProxyAuthData) -> None:
+    if invitation.tutor_id != auth.user_id:
         raise HTTPException(status_code=403, detail="Forbidden")
-
     await invitation.delete()
 
 
@@ -42,10 +37,8 @@ async def delete_invitation(invitation: InvitationById) -> None:
     response_model=list[Invitation.ResponseSchema],
     summary="List invitations for the tutor",
 )
-async def list_invitations() -> Sequence[Invitation]:
-    user_id = authorization_dep.construct_proxy_auth_data().user_id
-
+async def list_invitations(auth: ProxyAuthData) -> Sequence[Invitation]:
     return await Invitation.find_all_by_kwargs(
         Invitation.created_at,
-        tutor_id=user_id,
+        tutor_id=auth.user_id,
     )
