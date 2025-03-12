@@ -1,5 +1,6 @@
 from app.messenger.models.chat_users_db import ChatUser
 from app.messenger.models.chats_db import Chat
+from app.messenger.models.message_drafts_db import MessageDraft
 from app.messenger.models.messages_db import Message
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
@@ -26,3 +27,11 @@ class MessageInputMUBFactory(BaseModelFactory[Message.InputMUBSchema]):
 
 class MessagePatchMUBFactory(BasePatchModelFactory[Message.PatchMUBSchema]):
     __model__ = Message.PatchMUBSchema
+
+
+class MessageDraftInputMUBFactory(BaseModelFactory[MessageDraft.InputSchema]):
+    __model__ = MessageDraft.InputSchema
+
+
+class MessageDraftPatchMUBFactory(BasePatchModelFactory[MessageDraft.PatchSchema]):
+    __model__ = MessageDraft.PatchSchema

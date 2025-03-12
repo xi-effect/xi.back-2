@@ -8,6 +8,7 @@ import pytest
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.messenger.models.chat_users_db import ChatUser
 from app.messenger.models.chats_db import Chat
+from app.messenger.models.message_drafts_db import MessageDraft
 from app.messenger.models.messages_db import Message
 from app.messenger.rooms import chat_room
 from tests.common.active_session import ActiveSession
@@ -207,3 +208,34 @@ async def messages_data(
     async with active_session():
         for message in messages:
             await message.delete()
+
+
+@pytest.fixture()
+async def message_draft(
+    active_session: ActiveSession,
+    chat: Chat,
+    sender_user_id: int,
+) -> MessageDraft:
+    async with active_session():
+        return await MessageDraft.create(
+            chat_id=chat.id,
+            user_id=sender_user_id,
+            **factories.MessageDraftInputMUBFactory.build_json(),
+        )
+
+
+@pytest.fixture()
+async def message_draft_data(message_draft: MessageDraft) -> AnyJSON:
+    return MessageDraft.ResponseSchema.model_validate(
+        message_draft, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_message_draft(
+    active_session: ActiveSession,
+    message_draft: MessageDraft,
+) -> MessageDraft:
+    async with active_session():
+        await message_draft.delete()
+    return message_draft
