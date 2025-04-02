@@ -5,6 +5,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
+from app.payments.routes import history_payments
 
 outside_router = APIRouterExt(prefix="/api/public/scheduler-service")
 
@@ -22,6 +23,8 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/scheduler-service",
 )
+
+authorized_router.include_router(history_payments.router)
 
 api_router = APIRouterExt()
 api_router.include_router(outside_router)
