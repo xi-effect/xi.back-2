@@ -5,6 +5,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
+from app.scheduler.routes import events_mub
 
 outside_router = APIRouterExt(prefix="/api/public/scheduler-service")
 
@@ -17,6 +18,7 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/scheduler-service",
 )
+mub_router.include_router(events_mub.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
