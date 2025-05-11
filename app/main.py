@@ -74,14 +74,6 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
-        await stack.enter_async_context(communities.lifespan())
-        await stack.enter_async_context(messenger.lifespan())
-        await stack.enter_async_context(payments.lifespan())
-        await stack.enter_async_context(posts.lifespan())
-        await stack.enter_async_context(scheduler.lifespan())
-        await stack.enter_async_context(storage.lifespan())
-        await stack.enter_async_context(tutors.lifespan())
-
         await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(messenger_bridge.client)
         await stack.enter_async_context(posts_bridge.client)

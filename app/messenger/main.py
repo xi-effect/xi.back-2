@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from tmexio import EventRouter
 
@@ -30,7 +31,13 @@ mub_router.include_router(chat_users_mub.router)
 mub_router.include_router(messages_mub.router)
 mub_router.include_router(message_drafts_mub.router)
 
-api_router = APIRouterExt()
+
+@asynccontextmanager
+async def lifespan(_: Any) -> AsyncIterator[None]:
+    yield
+
+
+api_router = APIRouterExt(lifespan=lifespan)
 api_router.include_router(internal_router)
 api_router.include_router(mub_router)
 
@@ -38,8 +45,3 @@ event_router = EventRouter()
 event_router.include_router(chats_sio.router)
 event_router.include_router(my_messages_sio.router)
 event_router.include_router(messages_management_sio.router)
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncIterator[None]:
-    yield
