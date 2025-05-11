@@ -13,7 +13,7 @@ class AccessGroupResponses(Responses):
 
 @with_responses(AccessGroupResponses)
 async def get_access_group_by_id(
-    access_group_id: Annotated[UUID, Path()]
+    access_group_id: Annotated[UUID, Path()],
 ) -> AccessGroup:
     access_group = await AccessGroup.find_first_by_id(access_group_id)
     if access_group is None:

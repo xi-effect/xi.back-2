@@ -90,9 +90,9 @@ class APIRouterExt(APIRouter):
         super().__init__(route_class=route_class, **kwargs)
 
 
-def with_responses[
-    **P, R
-](responses: type[Responses]) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def with_responses[**P, R](
+    responses: type[Responses],
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
     def with_responses_inner(function: Callable[P, R]) -> Callable[P, R]:
         setattr(function, "__responses__", responses)  # noqa: B010
         return function
