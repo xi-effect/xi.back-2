@@ -16,7 +16,7 @@ class PublicUsersBridge:
         self, vacancy_form: VacancyFormSchema, resume: tuple[str, BinaryIO, str]
     ) -> None:
         response = await self.client.post(
-            "/api/v2/vacancy-applications/",
+            "/api/public/user-service/v2/vacancy-applications/",
             data=vacancy_form.model_dump(),
             files={"resume": resume},
         )

@@ -1,5 +1,3 @@
-from typing import BinaryIO
-
 import pytest
 from aiogram import Bot
 from aiogram.fsm.state import State
@@ -507,7 +505,7 @@ async def test_sending_resume_unsupported_document(
 async def test_sending_comment(
     faker: Faker,
     users_respx_mock: MockRouter,
-    pdf_data: tuple[str, BinaryIO, str],
+    pdf_data: tuple[str, bytes, str],
     vacancy_form_data: AnyJSON,
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -521,7 +519,7 @@ async def test_sending_comment(
         vacancy_form_data["message"] = None
 
     public_users_bridge_mock = users_respx_mock.post(
-        path="/api/v2/vacancy-applications/",
+        path="/v2/vacancy-applications/",
         data=vacancy_form_data,
         files={"resume": pdf_data},
     ).respond(status_code=204)
@@ -556,10 +554,7 @@ async def test_sending_comment(
     )
     mocked_bot.assert_no_more_api_calls()
 
-    assert_last_httpx_request(
-        public_users_bridge_mock,
-        expected_path="/api/v2/vacancy-applications/",
-    )
+    assert_last_httpx_request(public_users_bridge_mock)
 
 
 @pytest.mark.anyio()
