@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import Request
 
@@ -22,7 +23,14 @@ telegram_app.include_router(vacancy_tgm.router)
 telegram_app.include_router(support_tgm.router)
 telegram_app.include_router(support_team_tgm.router)
 
-api_router = APIRouterExt(prefix="/api/telegram")
+
+@asynccontextmanager
+async def lifespan(_: Any) -> AsyncIterator[None]:
+    await maybe_initialize_telegram_app(telegram_app)
+    yield
+
+
+api_router = APIRouterExt(prefix="/api/telegram", lifespan=lifespan)
 
 
 @api_router.post("/updates/", status_code=204, summary="Execute telegram webhook")
@@ -30,9 +38,3 @@ async def feed_update_from_telegram(request: Request) -> None:
     await telegram_app.dispatcher.feed_webhook_update(
         telegram_app.bot, await request.json()
     )
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncIterator[None]:
-    await maybe_initialize_telegram_app(telegram_app)
-    yield

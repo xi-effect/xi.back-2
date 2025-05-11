@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import Depends
 
@@ -41,14 +42,15 @@ mub_router = APIRouterExt(prefix="/mub", dependencies=[MUBProtection])
 mub_router.include_router(users_mub.router, prefix="/users")
 mub_router.include_router(sessions_mub.router, prefix="/users/{user_id}/sessions")
 
-api_router = APIRouterExt()
+
+@asynccontextmanager
+async def lifespan(_: Any) -> AsyncIterator[None]:
+    settings.avatars_path.mkdir(exist_ok=True)
+    yield
+
+
+api_router = APIRouterExt(lifespan=lifespan)
 api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(mub_router)
 api_router.include_router(proxy_rst.router)
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncIterator[None]:
-    settings.avatars_path.mkdir(exist_ok=True)
-    yield
