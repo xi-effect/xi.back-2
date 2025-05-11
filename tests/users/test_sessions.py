@@ -30,7 +30,7 @@ async def test_getting_current_session(
     session: Session,
 ) -> None:
     assert_response(
-        authorized_client.get("/api/sessions/current/"),
+        authorized_client.get("/api/protected/user-service/sessions/current/"),
         expected_json=session_checker(session),
     )
 
@@ -41,7 +41,9 @@ async def test_disabling_session(
     authorized_client: TestClient,
     session: Session,
 ) -> None:
-    assert_nodata_response(authorized_client.delete(f"/api/sessions/{session.id}/"))
+    assert_nodata_response(
+        authorized_client.delete(f"/api/protected/user-service/sessions/{session.id}/")
+    )
     async with active_session():
         db_session = await Session.find_first_by_id(session.id)
         assert db_session is not None
@@ -63,7 +65,9 @@ async def test_disabling_session_non_found(
     authorized_client: TestClient, deleted_session_id: int
 ) -> None:
     assert_response(
-        authorized_client.delete(f"/api/sessions/{deleted_session_id}/"),
+        authorized_client.delete(
+            f"/api/protected/user-service/sessions/{deleted_session_id}/"
+        ),
         expected_code=404,
         expected_json={"detail": "Session not found"},
     )
@@ -74,7 +78,7 @@ async def test_disabling_session_foreign_user(
     other_client: TestClient, session: Session
 ) -> None:
     assert_response(
-        other_client.delete(f"/api/sessions/{session.id}/"),
+        other_client.delete(f"/api/protected/user-service/sessions/{session.id}/"),
         expected_code=404,
         expected_json={"detail": "Session not found"},
     )
@@ -91,7 +95,7 @@ async def test_listing_sessions(
     sessions: list[Session],
 ) -> None:
     assert_response(
-        authorized_client.get("/api/sessions/"),
+        authorized_client.get("/api/protected/user-service/sessions/"),
         expected_json=[session_checker(session) for session in sessions],
     )
 
@@ -103,7 +107,9 @@ async def test_disabling_all_other_sessions(
     session: Session,
     authorized_client: TestClient,
 ) -> None:
-    assert_nodata_response(authorized_client.delete("/api/sessions/"))
+    assert_nodata_response(
+        authorized_client.delete("/api/protected/user-service/sessions/")
+    )
     async with active_session():
         for db_session in await Session.find_by_user(user.id, exclude_id=session.id):
             assert db_session.invalid
@@ -120,10 +126,24 @@ async def test_disabling_all_other_sessions(
 @pytest.mark.parametrize(
     ("method", "path"),
     [
-        pytest.param("GET", "/api/sessions/", id="list_sessions"),
-        pytest.param("DELETE", "/api/sessions/", id="delete_other_sessions"),
-        pytest.param("GET", "/api/sessions/current/", id="get_current_session"),
-        pytest.param("DELETE", "/api/sessions/{session_id}/", id="disable_session"),
+        pytest.param(
+            "GET", "/api/protected/user-service/sessions/", id="list_sessions"
+        ),
+        pytest.param(
+            "DELETE",
+            "/api/protected/user-service/sessions/",
+            id="delete_other_sessions",
+        ),
+        pytest.param(
+            "GET",
+            "/api/protected/user-service/sessions/current/",
+            id="get_current_session",
+        ),
+        pytest.param(
+            "DELETE",
+            "/api/protected/user-service/sessions/{session_id}/",
+            id="disable_session",
+        ),
     ],
 )
 async def test_sessions_unauthorized(

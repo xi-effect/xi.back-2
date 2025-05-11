@@ -16,7 +16,7 @@ router = APIRouterExt(tags=["password reset"])
 
 
 @router.post(
-    "/requests/",
+    "/password-reset/requests/",
     responses=UserResponses.responses(),
     summary="Request for a password reset",
     status_code=202,
@@ -41,7 +41,7 @@ class ResetCredentials(ConfirmationTokenData):
 
 
 @router.post(
-    "/confirmations/",
+    "/password-reset/confirmations/",
     responses=TokenVerificationResponses.responses(),
     summary="Confirm password reset and set a new password",
     status_code=204,

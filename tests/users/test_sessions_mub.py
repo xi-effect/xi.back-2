@@ -27,7 +27,7 @@ async def test_making_mub_session(
     user: User,
 ) -> None:
     response = assert_nodata_response(
-        mub_client.post(f"/mub/users/{user.id}/sessions/"),
+        mub_client.post(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_code=201,
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
@@ -66,7 +66,7 @@ async def test_upserting_mub_session(
     user: User,
 ) -> None:
     response = assert_nodata_response(
-        mub_client.put(f"/mub/users/{user.id}/sessions/"),
+        mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-Session-ID": int,
@@ -104,7 +104,7 @@ async def test_upserting_existing_mub_session(
     mub_session: Session,
 ) -> None:
     assert_nodata_response(
-        mub_client.put(f"/mub/users/{user.id}/sessions/"),
+        mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: mub_session.token},
         expected_headers={
             "X-Session-ID": str(mub_session.id),
@@ -125,7 +125,7 @@ async def test_upserting_expired_mub_session(
 ) -> None:
     await session_factory(mub=True, expiry=datetime.fromtimestamp(0))
     response = assert_nodata_response(
-        mub_client.put(f"/mub/users/{user.id}/sessions/"),
+        mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-Session-ID": int,
@@ -165,7 +165,7 @@ async def test_upserting_disabled_mub_session(
 ) -> None:
     await session_factory(mub=True, disabled=True)
     response = assert_nodata_response(
-        mub_client.put(f"/mub/users/{user.id}/sessions/"),
+        mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-Session-ID": int,
@@ -204,7 +204,7 @@ async def test_mub_disabling_session(
     user: User,
 ) -> None:
     assert_nodata_response(
-        mub_client.delete(f"/mub/users/{user.id}/sessions/{session.id}/"),
+        mub_client.delete(f"/mub/user-service/users/{user.id}/sessions/{session.id}/"),
     )
 
     async with active_session():
@@ -220,7 +220,7 @@ async def test_mub_deleting_session(
 ) -> None:
     assert_nodata_response(
         mub_client.delete(
-            f"/mub/users/{user.id}/sessions/{session.id}/",
+            f"/mub/user-service/users/{user.id}/sessions/{session.id}/",
             params={"delete_session": "true"},
         ),
     )
@@ -237,7 +237,8 @@ async def test_authorized_method_with_mub_session(
 ) -> None:
     assert_response(
         mub_client.get(
-            "/api/users/current/home/", cookies={AUTH_COOKIE_NAME: mub_session.token}
+            "/api/protected/user-service/users/current/home/",
+            cookies={AUTH_COOKIE_NAME: mub_session.token},
         ),
         expected_json={
             "email": user.email,
@@ -254,7 +255,9 @@ async def test_retrieving_mub_session_user_not_found(
     method: str,
 ) -> None:
     assert_response(
-        mub_client.request(method, f"/mub/users/{deleted_user.id}/sessions/"),
+        mub_client.request(
+            method, f"/mub/user-service/users/{deleted_user.id}/sessions/"
+        ),
         expected_json={"detail": "User not found"},
         expected_code=404,
     )
@@ -270,7 +273,7 @@ async def test_mub_disabling_session_user_not_found(
 ) -> None:
     assert_response(
         mub_client.delete(
-            f"/mub/users/{deleted_user.id}/sessions/{session.id}/",
+            f"/mub/user-service/users/{deleted_user.id}/sessions/{session.id}/",
             params={"delete_session": delete_session},
         ),
         expected_json={"detail": "User not found"},
@@ -292,7 +295,7 @@ async def test_disabled_session_not_found(
 
     assert_response(
         mub_client.delete(
-            f"/mub/users/{user.id}/sessions/{session.id}/",
+            f"/mub/user-service/users/{user.id}/sessions/{session.id}/",
             params={"delete_session": delete_session},
         ),
         expected_json={"detail": "Session not found"},
@@ -305,7 +308,9 @@ async def test_listing_sessions_but_mub(
     authorized_client: TestClient,
     mub_session: Session,
 ) -> None:
-    assert_response(authorized_client.get("/api/sessions/"), expected_json=[])
+    assert_response(
+        authorized_client.get("/api/protected/user-service/sessions/"), expected_json=[]
+    )
 
 
 @pytest.mark.anyio()
@@ -314,7 +319,9 @@ async def test_disabling_session_mub_not_found(
     mub_session: Session,
 ) -> None:
     assert_response(
-        authorized_client.delete(f"/api/sessions/{mub_session.id}"),
+        authorized_client.delete(
+            f"/api/protected/user-service/sessions/{mub_session.id}"
+        ),
         expected_json={"detail": "Session not found"},
         expected_code=404,
     )
@@ -334,7 +341,9 @@ async def test_disabling_all_other_sessions_but_mub(
     active_session: ActiveSession,
     mub_sessions: list[Session],
 ) -> None:
-    assert_nodata_response(authorized_client.delete("/api/sessions/"))
+    assert_nodata_response(
+        authorized_client.delete("/api/protected/user-service/sessions/")
+    )
 
     async with active_session():
         for session in mub_sessions:
@@ -349,7 +358,7 @@ async def test_mub_getting_all_sessions(
     mub_sessions: list[Session],
 ) -> None:
     assert_response(
-        mub_client.get(f"/mub/users/{user.id}/sessions/"),
+        mub_client.get(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_json=[
             session_checker(session, check_mub=True) for session in mub_sessions
         ],
@@ -367,7 +376,7 @@ async def test_retrieving_mub_session_invalid_mub_key(
     assert_response(
         client.request(
             method,
-            f"/mub/users/{user.id}/sessions/",
+            f"/mub/user-service/users/{user.id}/sessions/",
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
@@ -384,7 +393,7 @@ async def test_mub_disabling_session_invalid_mub_key(
 ) -> None:
     assert_response(
         client.delete(
-            f"/mub/users/{user.id}/sessions/{session.id}",
+            f"/mub/user-service/users/{user.id}/sessions/{session.id}",
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},

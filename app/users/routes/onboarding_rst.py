@@ -56,7 +56,7 @@ async def make_onboarding_transition(
 
 
 @router.put(
-    "/stages/community-choice/",
+    "/onboarding/stages/community-choice/",
     status_code=204,
     responses=OnboardingResponses.responses(),
     summary="Proceed to the community choice onboarding stage",
@@ -70,7 +70,7 @@ async def proceed_to_community_choice(
 
 
 @router.put(
-    "/stages/{stage}/",
+    "/onboarding/stages/{stage}/",
     status_code=204,
     responses=OnboardingResponses.responses(),
     summary="Proceed to the specified onboarding stage",
@@ -83,7 +83,7 @@ async def proceed_to_specified_stage(
 
 
 @router.delete(
-    "/stages/{stage}/",
+    "/onboarding/stages/{stage}/",
     status_code=204,
     responses=OnboardingResponses.responses(),
     summary="Return to the previous onboarding stage",

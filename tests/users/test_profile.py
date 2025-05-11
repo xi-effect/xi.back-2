@@ -40,7 +40,9 @@ async def test_profile_updating(
         update_data["theme"] = "new_theme"
 
     assert_response(
-        authorized_client.patch("/api/users/current/profile/", json=update_data),
+        authorized_client.patch(
+            "/api/protected/user-service/users/current/profile/", json=update_data
+        ),
         expected_json={**user_data, **update_data, "id": user.id, "password": None},
     )
 
@@ -52,7 +54,8 @@ async def test_profile_updating_conflict(
 ) -> None:
     assert_response(
         authorized_client.patch(
-            "/api/users/current/profile/", json={"username": other_user.username}
+            "/api/protected/user-service/users/current/profile/",
+            json={"username": other_user.username},
         ),
         expected_code=409,
         expected_json={"detail": "Username already in use"},
@@ -68,7 +71,8 @@ async def test_profile_updating_invalid_username(
 
     assert_response(
         authorized_client.patch(
-            "/api/users/current/profile/", json={"username": invalid_username}
+            "/api/protected/user-service/users/current/profile/",
+            json={"username": invalid_username},
         ),
         expected_code=422,
         expected_json={
@@ -93,7 +97,7 @@ async def test_profile_updating_display_name_with_whitespaces(
 
     assert_response(
         authorized_client.patch(
-            "/api/users/current/profile/",
+            "/api/protected/user-service/users/current/profile/",
             json={"display_name": new_display_name},
         ),
         expected_json={
@@ -123,7 +127,8 @@ async def test_profile_updating_invalid_display_name(
 
     assert_response(
         authorized_client.patch(
-            "/api/users/current/profile/", json={"display_name": invalid_display_name}
+            "/api/protected/user-service/users/current/profile/",
+            json={"display_name": invalid_display_name},
         ),
         expected_code=422,
         expected_json={
@@ -151,7 +156,7 @@ async def test_changing_user_email(
     with freeze_time():
         assert_response(
             authorized_client.put(
-                "/api/users/current/email/",
+                "/api/protected/user-service/users/current/email/",
                 json={"password": user_data["password"], "new_email": new_email},
             ),
             expected_json={**user_data, "email": new_email, "password": None},
@@ -182,7 +187,7 @@ async def test_changing_user_email_too_many_emails(
 
     assert_response(
         authorized_client.put(
-            "/api/users/current/email/",
+            "/api/protected/user-service/users/current/email/",
             json={"password": user_data["password"], "new_email": new_email},
         ),
         expected_code=429,
@@ -198,7 +203,7 @@ async def test_changing_user_email_conflict(
 ) -> None:
     assert_response(
         authorized_client.put(
-            "/api/users/current/email/",
+            "/api/protected/user-service/users/current/email/",
             json={"password": user_data["password"], "new_email": other_user.email},
         ),
         expected_code=409,
@@ -213,7 +218,7 @@ async def test_changing_user_email_wrong_password(
 ) -> None:
     assert_response(
         authorized_client.put(
-            "/api/users/current/email/",
+            "/api/protected/user-service/users/current/email/",
             json={"password": faker.password(), "new_email": faker.email()},
         ),
         expected_code=401,
@@ -237,7 +242,7 @@ async def test_changing_user_password(
 
     assert_response(
         authorized_client.put(
-            "/api/users/current/password/",
+            "/api/protected/user-service/users/current/password/",
             json={"password": user_data["password"], "new_password": new_password},
         ),
         expected_json={**user_data, "password": None},
@@ -259,7 +264,7 @@ async def test_changing_user_password_wrong_password(
 ) -> None:
     assert_response(
         authorized_client.put(
-            "/api/users/current/password/",
+            "/api/protected/user-service/users/current/password/",
             json={"new_password": faker.password(), "password": faker.password()},
         ),
         expected_code=401,
@@ -274,7 +279,7 @@ async def test_changing_user_password_old_password(
 ) -> None:
     assert_response(
         authorized_client.put(
-            "/api/users/current/password/",
+            "/api/protected/user-service/users/current/password/",
             json={
                 "new_password": user_data["password"],
                 "password": user_data["password"],

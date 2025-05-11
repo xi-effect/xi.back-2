@@ -20,7 +20,7 @@ class EmailConfirmationResponses(Responses):
 
 
 @router.post(
-    "/confirmations/",
+    "/email-confirmation/confirmations/",
     responses=TokenVerificationResponses.responses(),
     summary="Confirm user's email",
     status_code=204,
@@ -38,7 +38,7 @@ async def confirm_email(confirmation_token: ConfirmationTokenData) -> None:
 
 
 @router.post(
-    "/requests/",
+    "/email-confirmation/requests/",
     responses=EmailResendResponses.responses(),
     summary="Resend email confirmation message",
     status_code=204,

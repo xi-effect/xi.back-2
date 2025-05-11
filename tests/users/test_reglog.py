@@ -27,7 +27,7 @@ async def test_signing_up(
 ) -> None:
     response = assert_response(
         client.post(
-            "/api/signup/",
+            "/api/public/user-service/signup/",
             json=user_data,
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
@@ -63,7 +63,7 @@ async def test_signing_up_conflict(
 ) -> None:
     assert_response(
         client.post(
-            "/api/signup/",
+            "/api/public/user-service/signup/",
             json={**user_data, **data_mod},
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
@@ -83,7 +83,7 @@ async def test_signing_in(
 ) -> None:
     response = assert_response(
         client.post(
-            "/api/signin/",
+            "/api/public/user-service/signin/",
             json=user_data,
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
@@ -111,7 +111,9 @@ async def test_signing_in_invalid_credentials(
     error: str,
 ) -> None:
     assert_response(
-        client.post("/api/signin/", json={**user_data, altered_key: "alter"}),
+        client.post(
+            "/api/public/user-service/signin/", json={**user_data, altered_key: "alter"}
+        ),
         expected_code=401,
         expected_json={"detail": error},
         expected_headers={"Set-Cookie": None},
@@ -124,7 +126,7 @@ async def test_signing_out(
     active_session: ActiveSession,
     session_token: str,
 ) -> None:
-    assert_nodata_response(authorized_client.post("/api/signout"))
+    assert_nodata_response(authorized_client.post("/api/public/user-service/signout"))
 
     async with active_session():
         await assert_session(session_token, invalid=True)
@@ -132,7 +134,7 @@ async def test_signing_out(
 
 def test_signing_out_unauthorized(client: TestClient) -> None:
     assert_response(
-        client.post("/api/signout/"),
+        client.post("/api/public/user-service/signout/"),
         expected_code=401,
         expected_json={"detail": "Authorization is missing"},
     )
@@ -144,7 +146,7 @@ async def test_signing_out_invalid_session(
 ) -> None:
     assert_response(
         client.post(
-            "/api/signout/",
+            "/api/public/user-service/signout/",
             cookies={AUTH_COOKIE_NAME: invalid_token} if use_cookie_auth else {},
             headers={} if use_cookie_auth else {AUTH_HEADER_NAME: invalid_token},
         ),

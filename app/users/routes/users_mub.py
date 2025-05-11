@@ -12,7 +12,7 @@ router = APIRouterExt(tags=["users mub"])
 
 
 @router.post(
-    "/",
+    "/users/",
     status_code=201,
     response_model=User.FullModel,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
@@ -27,7 +27,7 @@ async def create_user(user_data: User.InputModel) -> User:
 
 
 @router.get(
-    "/{user_id}/",
+    "/users/{user_id}/",
     response_model=User.FullModel,
     summary="Retrieve any user by id",
 )
@@ -36,7 +36,7 @@ async def retrieve_user(user: TargetUser) -> User:
 
 
 @router.patch(
-    "/{user_id}/",
+    "/users/{user_id}/",
     response_model=User.FullModel,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Update any user's data by id",
@@ -50,7 +50,7 @@ async def update_user(user: TargetUser, user_data: User.FullPatchModel) -> User:
     return user
 
 
-@router.delete("/{user_id}/", status_code=204, summary="Delete any user by id")
+@router.delete("/users/{user_id}/", status_code=204, summary="Delete any user by id")
 async def delete_user(user: TargetUser) -> None:
     await user.delete()
     user.avatar_path.unlink(missing_ok=True)

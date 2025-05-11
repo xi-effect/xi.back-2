@@ -22,7 +22,10 @@ async def test_requesting_password_reset(
     user: User,
 ) -> None:
     assert_nodata_response(
-        client.post("/api/password-reset/requests/", json={"email": user.email}),
+        client.post(
+            "/api/public/user-service/password-reset/requests/",
+            json={"email": user.email},
+        ),
         expected_code=202,
     )
 
@@ -37,7 +40,10 @@ async def test_requesting_password_reset_user_not_found(
     client: TestClient,
 ) -> None:
     assert_response(
-        client.post("/api/password-reset/requests/", json={"email": faker.email()}),
+        client.post(
+            "/api/public/user-service/password-reset/requests/",
+            json={"email": faker.email()},
+        ),
         expected_code=404,
         expected_json={"detail": "User not found"},
     )
@@ -58,7 +64,7 @@ async def test_confirming_password_reset(
 
     assert_nodata_response(
         client.post(
-            "/api/password-reset/confirmations/",
+            "/api/public/user-service/password-reset/confirmations/",
             json={
                 "token": password_reset_cryptography.encrypt(reset_token),
                 "new_password": new_password,
@@ -80,7 +86,7 @@ async def test_confirming_password_reset_invalid_token(
 ) -> None:
     assert_response(
         client.post(
-            "/api/password-reset/confirmations/",
+            "/api/public/user-service/password-reset/confirmations/",
             json={"token": faker.text(), "new_password": faker.password()},
         ),
         expected_code=401,
@@ -104,7 +110,7 @@ async def test_confirming_password_reset_expired_token(
 
     assert_response(
         client.post(
-            "/api/password-reset/confirmations/",
+            "/api/public/user-service/password-reset/confirmations/",
             json={
                 "token": expired_reset_token.decode(),
                 "new_password": faker.password(),
@@ -122,7 +128,7 @@ async def test_confirming_password_reset_no_started_reset(
 ) -> None:
     assert_response(
         client.post(
-            "/api/password-reset/confirmations/",
+            "/api/public/user-service/password-reset/confirmations/",
             json={
                 "token": password_reset_cryptography.encrypt(faker.text()),
                 "new_password": faker.password(),
@@ -147,7 +153,7 @@ async def test_confirming_password_reset_with_old_password(
 
     assert_nodata_response(
         client.post(
-            "/api/password-reset/confirmations/",
+            "/api/public/user-service/password-reset/confirmations/",
             json={
                 "token": password_reset_cryptography.encrypt(reset_token),
                 "new_password": user_data["password"],

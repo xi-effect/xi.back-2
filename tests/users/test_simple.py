@@ -21,7 +21,7 @@ async def test_retrieving_home_data(
     user: User,
 ) -> None:
     assert_response(
-        authorized_client.get("/api/users/current/home/"),
+        authorized_client.get("/api/protected/user-service/users/current/home/"),
         expected_json={**user_data, "id": user.id, "password": None},
     )
 
@@ -132,7 +132,7 @@ async def test_renewing_session_in_proxy_auth(
 
 
 @pytest.fixture(
-    params=["/api/users/current/home/", "/proxy/auth/"],
+    params=["/api/protected/user-service/users/current/home/", "/proxy/auth/"],
     ids=["home", "proxy_auth"],
 )
 def missing_auth_path(request: PytestRequest[str]) -> str:

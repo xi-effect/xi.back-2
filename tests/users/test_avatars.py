@@ -27,7 +27,7 @@ async def test_avatar_uploading(
 ) -> None:
     assert_nodata_response(
         authorized_client.put(
-            "/api/users/current/avatar/",
+            "/api/protected/user-service/users/current/avatar/",
             files={"avatar": ("avatar.webp", image, "image/webp")},
         )
     )
@@ -45,7 +45,7 @@ async def test_avatar_uploading_wrong_format(
 ) -> None:
     assert_response(
         authorized_client.put(
-            "/api/users/current/avatar/",
+            "/api/protected/user-service/users/current/avatar/",
             files={"avatar": ("avatar", faker.random.randbytes(100), "image/webp")},
         ),
         expected_code=415,
@@ -61,7 +61,7 @@ async def test_avatar_replacing(
     image_2 = faker.graphic_webp_file(raw=True)
     assert_nodata_response(
         authorized_client.put(
-            "/api/users/current/avatar/",
+            "/api/protected/user-service/users/current/avatar/",
             files={"avatar": ("avatar.webp", image_2, "image/webp")},
         )
     )
@@ -74,7 +74,9 @@ async def test_avatar_replacing(
 @pytest.mark.anyio()
 @pytest.mark.usefixtures("_create_avatar")
 async def test_avatar_deletion(authorized_client: TestClient, user: User) -> None:
-    assert_nodata_response(authorized_client.delete("/api/users/current/avatar/"))
+    assert_nodata_response(
+        authorized_client.delete("/api/protected/user-service/users/current/avatar/")
+    )
 
     assert not user.avatar_path.is_file()
 
@@ -84,6 +86,6 @@ async def test_avatar_deletion(authorized_client: TestClient, user: User) -> Non
 async def test_mub_user_deletion_with_avatar(
     mub_client: TestClient, user: User
 ) -> None:
-    assert_nodata_response(mub_client.delete(f"/mub/users/{user.id}/"))
+    assert_nodata_response(mub_client.delete(f"/mub/user-service/users/{user.id}/"))
 
     assert not user.avatar_path.is_file()

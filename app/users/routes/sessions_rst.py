@@ -10,7 +10,7 @@ router = APIRouterExt(tags=["user sessions"])
 
 
 @router.get(
-    "/current/",
+    "/sessions/current/",
     response_model=Session.FullModel,
     summary="Retrieve current session's data",
 )
@@ -19,7 +19,7 @@ async def get_current_session(session: AuthorizedSession) -> Session:
 
 
 @router.get(
-    "/",
+    "/sessions/",
     response_model=list[Session.FullModel],
     summary="List all current user's sessions but the current one",
 )
@@ -30,7 +30,7 @@ async def list_sessions(
 
 
 @router.delete(
-    "/",
+    "/sessions/",
     status_code=204,
     summary="Disable all current user's sessions but the current one",
 )
@@ -43,7 +43,7 @@ class SessionResponses(Responses):
 
 
 @router.delete(
-    "/{session_id}/",
+    "/sessions/{session_id}/",
     responses=SessionResponses.responses(),
     status_code=204,
     summary="Disable a specific user session",

@@ -15,7 +15,7 @@ class AvatarResponses(Responses):
 
 
 @router.put(
-    "/",
+    "/users/current/avatar/",
     status_code=204,
     responses=AvatarResponses.responses(),
     summary="Upload a new user avatar",
@@ -31,6 +31,10 @@ async def update_or_create_avatar(
         file.write(await avatar.read())
 
 
-@router.delete("/", status_code=204, summary="Remove current user avatar")
+@router.delete(
+    "/users/current/avatar/",
+    status_code=204,
+    summary="Remove current user avatar",
+)
 async def delete_avatar(user: AuthorizedUser) -> None:
     user.avatar_path.unlink(missing_ok=True)

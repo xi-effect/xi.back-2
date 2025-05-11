@@ -16,7 +16,7 @@ async def test_user_creation(
     user_data: dict[str, Any],
 ) -> None:
     user_id: int = assert_response(
-        mub_client.post("/mub/users/", json=user_data),
+        mub_client.post("/mub/user-service/users/", json=user_data),
         expected_code=201,
         expected_json={**user_data, "id": int, "password": None},
     ).json()["id"]
@@ -51,7 +51,9 @@ async def test_user_creation_conflict(
         data_modification["password"] = faker.password()
 
     assert_response(
-        mub_client.post("/mub/users/", json={**user_data, **data_modification}),
+        mub_client.post(
+            "/mub/user-service/users/", json={**user_data, **data_modification}
+        ),
         expected_code=409,
         expected_json={"detail": error},
     )
@@ -62,7 +64,7 @@ async def test_user_getting(
     mub_client: TestClient, user: User, user_data: dict[str, Any]
 ) -> None:
     assert_response(
-        mub_client.get(f"/mub/users/{user.id}/"),
+        mub_client.get(f"/mub/user-service/users/{user.id}/"),
         expected_json={**user_data, "id": user.id, "password": None},
     )
 
@@ -97,7 +99,7 @@ async def test_user_updating(
         )
 
     assert_response(
-        mub_client.patch(f"/mub/users/{user.id}/", json=new_user_data),
+        mub_client.patch(f"/mub/user-service/users/{user.id}/", json=new_user_data),
         expected_json={**user_data, **new_user_data, "id": user.id, "password": None},
     )
 
@@ -110,7 +112,7 @@ async def test_user_updating_same_data(
 ) -> None:
     assert_response(
         mub_client.patch(
-            f"/mub/users/{user.id}/",
+            f"/mub/user-service/users/{user.id}/",
             json=user_data,
         ),
         expected_json={**user_data, "id": user.id, "password": None},
@@ -141,7 +143,7 @@ async def test_user_updating_conflict(
         data_modification["username"] = other_user.username
 
     assert_response(
-        mub_client.patch(f"/mub/users/{user.id}/", json=data_modification),
+        mub_client.patch(f"/mub/user-service/users/{user.id}/", json=data_modification),
         expected_code=409,
         expected_json={"detail": error},
     )
@@ -149,7 +151,7 @@ async def test_user_updating_conflict(
 
 @pytest.mark.anyio()
 async def test_user_deleting(mub_client: TestClient, user: User) -> None:
-    assert_nodata_response(mub_client.delete(f"/mub/users/{user.id}/"))
+    assert_nodata_response(mub_client.delete(f"/mub/user-service/users/{user.id}/"))
 
 
 @pytest.mark.anyio()
@@ -160,7 +162,7 @@ async def test_user_not_found(
     assert_response(
         mub_client.request(
             method,
-            f"/mub/users/{deleted_user.id}/",
+            f"/mub/user-service/users/{deleted_user.id}/",
             json={} if method == "PATCH" else None,
         ),
         expected_code=404,
@@ -176,7 +178,8 @@ async def test_user_updating_username_in_use(
 ) -> None:
     assert_response(
         mub_client.patch(
-            f"/mub/users/{user.id}/", json={"username": other_user.username}
+            f"/mub/user-service/users/{user.id}/",
+            json={"username": other_user.username},
         ),
         expected_code=409,
         expected_json={"detail": "Username already in use"},
@@ -191,7 +194,7 @@ async def test_user_creation_invalid_mub_key(
 ) -> None:
     assert_response(
         client.post(
-            "/mub/users/",
+            "/mub/user-service/users/",
             json=user_data,
             headers=invalid_mub_key_headers,
         ),
@@ -211,7 +214,7 @@ async def test_user_operations_invalid_mub_key(
     assert_response(
         client.request(
             method,
-            f"/mub/users/{user.id}/",
+            f"/mub/user-service/users/{user.id}/",
             json={},
             headers=invalid_mub_key_headers,
         ),

@@ -25,7 +25,7 @@ async def test_demo_form_submitting(
 
     assert_nodata_response(
         client.post(
-            "/api/demo-applications/",
+            "/api/public/user-service/demo-applications/",
             json={
                 "name": faker.name(),
                 "contacts": [faker.ascii_free_email(), faker.phone_number()],
@@ -42,7 +42,7 @@ async def test_demo_form_submitting_missing_webhook_url(
 ) -> None:
     assert_response(
         client.post(
-            "/api/demo-applications/",
+            "/api/public/user-service/demo-applications/",
             json={
                 "name": faker.name(),
                 "contacts": [faker.ascii_free_email(), faker.phone_number()],
@@ -71,7 +71,7 @@ async def test_vacancy_form_submitting(
 
     assert_nodata_response(
         client.post(
-            "/api/v2/vacancy-applications/",
+            "/api/public/user-service/v2/vacancy-applications/",
             data=vacancy_form_data,
             files={"resume": pdf_data},
         )
@@ -86,7 +86,7 @@ async def test_vacancy_form_submitting_invalid_file_format(
 ) -> None:
     assert_response(
         client.post(
-            "/api/v2/vacancy-applications/",
+            "/api/public/user-service/v2/vacancy-applications/",
             data=vacancy_form_data,
             files={
                 "resume": ("resume.pdf", faker.random.randbytes(100), "application/pdf")
@@ -105,7 +105,7 @@ async def test_vacancy_form_submitting_missing_webhook_url(
 ) -> None:
     assert_response(
         client.post(
-            "/api/v2/vacancy-applications/",
+            "/api/public/user-service/v2/vacancy-applications/",
             data=vacancy_form_data,
             files={"resume": pdf_data},
         ),

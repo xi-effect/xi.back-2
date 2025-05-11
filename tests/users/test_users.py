@@ -12,7 +12,9 @@ async def test_getting_profile_by_id(
     other_user: User,
 ) -> None:
     assert_response(
-        authorized_client.get(f"/api/users/by-id/{other_user.id}/profile/"),
+        authorized_client.get(
+            f"/api/protected/user-service/users/by-id/{other_user.id}/profile/"
+        ),
         expected_json={
             "id": other_user.id,
             "username": other_user.username,
@@ -30,7 +32,9 @@ async def test_getting_profile_by_id_not_found(
     async with active_session():
         await other_user.delete()
     assert_response(
-        authorized_client.get(f"/api/users/by-id/{other_user.id}/profile/"),
+        authorized_client.get(
+            f"/api/protected/user-service/users/by-id/{other_user.id}/profile/"
+        ),
         expected_json={"detail": "User not found"},
         expected_code=404,
     )
@@ -42,7 +46,7 @@ async def test_getting_profile_by_id_unauthorized(
     other_user: User,
 ) -> None:
     assert_response(
-        client.get(f"/api/users/by-id/{other_user.id}/profile/"),
+        client.get(f"/api/protected/user-service/users/by-id/{other_user.id}/profile/"),
         expected_json={"detail": "Authorization is missing"},
         expected_code=401,
     )
@@ -54,7 +58,9 @@ async def test_getting_profile_by_username(
     other_user: User,
 ) -> None:
     assert_response(
-        authorized_client.get(f"/api/users/by-username/{other_user.username}/profile/"),
+        authorized_client.get(
+            f"/api/protected/user-service/users/by-username/{other_user.username}/profile/"
+        ),
         expected_json={
             "id": other_user.id,
             "username": other_user.username,
@@ -72,7 +78,9 @@ async def test_getting_profile_by_username_not_found(
     async with active_session():
         await other_user.delete()
     assert_response(
-        authorized_client.get(f"/api/users/by-username/{other_user.username}/profile/"),
+        authorized_client.get(
+            f"/api/protected/user-service/users/by-username/{other_user.username}/profile/"
+        ),
         expected_json={"detail": "User not found"},
         expected_code=404,
     )
@@ -84,7 +92,9 @@ async def test_getting_profile_by_username_unauthorized(
     other_user: User,
 ) -> None:
     assert_response(
-        client.get(f"/api/users/by-username/{other_user.username}/profile/"),
+        client.get(
+            f"/api/protected/user-service/users/by-username/{other_user.username}/profile/"
+        ),
         expected_json={"detail": "Authorization is missing"},
         expected_code=401,
     )

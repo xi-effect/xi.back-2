@@ -26,7 +26,9 @@ async def test_onboarding_unauthorized(
     stage: OnboardingStage,
 ) -> None:
     assert_response(
-        client.request(method, f"/api/onboarding/stages/{stage.value}/"),
+        client.request(
+            method, f"/api/protected/user-service/onboarding/stages/{stage.value}/"
+        ),
         expected_json={"detail": "Authorization is missing"},
         expected_code=401,
     )
@@ -41,7 +43,7 @@ async def test_proceeding_to_community_choice_in_onboarding(
 ) -> None:
     assert_nodata_response(
         authorized_client.put(
-            "/api/onboarding/stages/community-choice/",
+            "/api/protected/user-service/onboarding/stages/community-choice/",
             json={"display_name": faker.name()},
         )
     )
@@ -73,7 +75,9 @@ async def test_proceeding_in_onboarding(
         (await get_db_user(user)).onboarding_stage = current_stage
 
     assert_nodata_response(
-        authorized_client.put(f"/api/onboarding/stages/{target_stage.value}/")
+        authorized_client.put(
+            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/"
+        )
     )
 
     async with active_session():
@@ -109,7 +113,7 @@ async def test_proceeding_in_onboarding_invalid_transition(
 
     assert_response(
         authorized_client.put(
-            f"/api/onboarding/stages/{target_stage.value}/",
+            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
         ),
         expected_json={"detail": "Invalid transition"},
         expected_code=409,
@@ -139,7 +143,9 @@ async def test_returning_in_onboarding(
         (await get_db_user(user)).onboarding_stage = current_stage
 
     assert_nodata_response(
-        authorized_client.delete(f"/api/onboarding/stages/{current_stage.value}/")
+        authorized_client.delete(
+            f"/api/protected/user-service/onboarding/stages/{current_stage.value}/"
+        )
     )
 
     async with active_session():
@@ -176,7 +182,7 @@ async def test_returning_in_onboarding_invalid_transition(
 
     assert_response(
         authorized_client.delete(
-            f"/api/onboarding/stages/{target_stage.value}/",
+            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
         ),
         expected_json={"detail": "Invalid transition"},
         expected_code=409,

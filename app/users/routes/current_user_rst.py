@@ -20,7 +20,7 @@ router = APIRouterExt(tags=["current user"])
 
 
 @router.get(
-    "/home/",
+    "/users/current/home/",
     response_model=User.FullModel,
     summary="Retrieve current user's profile data",
 )
@@ -29,7 +29,7 @@ async def get_user_data(user: AuthorizedUser) -> User:
 
 
 @router.patch(
-    "/profile/",
+    "/users/current/profile/",
     response_model=User.FullModel,
     responses=UsernameResponses.responses(),
     summary="Update current user's profile data",
@@ -52,7 +52,7 @@ class EmailChangeModel(User.PasswordModel):
 
 
 @router.put(
-    "/email/",
+    "/users/current/email/",
     response_model=User.FullModel,
     responses=Responses.chain(
         PasswordProtectedResponses, UserEmailResponses, EmailResendResponses
@@ -98,7 +98,7 @@ class PasswordChangeResponses(Responses):
 
 
 @router.put(
-    "/password/",
+    "/users/current/password/",
     response_model=User.FullModel,
     responses=Responses.chain(PasswordChangeResponses, PasswordProtectedResponses),
     summary="Update current user's password",

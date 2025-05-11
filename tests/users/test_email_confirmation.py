@@ -23,7 +23,7 @@ async def test_confirming_email(
 ) -> None:
     assert_nodata_response(
         client.post(
-            "/api/email-confirmation/confirmations/",
+            "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": email_confirmation_cryptography.encrypt(user.email)},
         ),
     )
@@ -39,7 +39,7 @@ async def test_confirming_email_user_not_found(
 ) -> None:
     assert_response(
         client.post(
-            "/api/email-confirmation/confirmations/",
+            "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": email_confirmation_cryptography.encrypt(faker.email())},
         ),
         expected_code=401,
@@ -54,7 +54,7 @@ async def test_confirming_email_invalid_token(
 ) -> None:
     assert_response(
         client.post(
-            "/api/email-confirmation/confirmations/",
+            "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": faker.text()},
         ),
         expected_code=401,
@@ -79,7 +79,7 @@ async def test_confirming_email_expired_token(
 
     assert_response(
         client.post(
-            "/api/email-confirmation/confirmations/",
+            "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": expired_confirmation_token.decode()},
         ),
         expected_code=401,
@@ -97,7 +97,7 @@ async def test_resending_confirmation(
     with freeze_time():
         assert_nodata_response(
             authorized_client.post(
-                "/api/email-confirmation/requests/",
+                "/api/public/user-service/email-confirmation/requests/",
             )
         )
 
@@ -119,7 +119,7 @@ async def test_resending_confirmation_timeout_not_passed(
 
     assert_response(
         authorized_client.post(
-            "/api/email-confirmation/requests/",
+            "/api/public/user-service/email-confirmation/requests/",
         ),
         expected_code=429,
         expected_json={"detail": "Too many emails"},

@@ -23,7 +23,7 @@ def add_mub_session_to_response(response: Response, session: Session) -> None:
 
 
 @router.post(
-    "/",
+    "/users/{user_id}/sessions/",
     status_code=201,
     summary="Create a new admin session",
 )
@@ -33,7 +33,7 @@ async def make_mub_session(response: Response, user: TargetUser) -> None:
 
 
 @router.put(
-    "/",
+    "/users/{user_id}/sessions/",
     status_code=204,
     summary="Retrieve or create an admin session",
 )
@@ -45,7 +45,7 @@ async def upsert_mub_session(response: Response, user: TargetUser) -> None:
 
 
 @router.get(
-    "/",
+    "/users/{user_id}/sessions/",
     response_model=list[Session.MUBFullModel],
     summary="List all user sessions",
 )
@@ -58,7 +58,7 @@ class SessionResponses(Responses):
 
 
 @router.delete(
-    "/{session_id}/",
+    "/users/{user_id}/sessions/{session_id}/",
     status_code=204,
     responses=SessionResponses.responses(),
     summary="Disable or delete any user session",
