@@ -14,7 +14,6 @@ from app.users.utils.authorization import (
     remove_session_from_response,
 )
 from app.users.utils.users import (
-    UserConflictResponses,
     UserEmailResponses,
     UsernameResponses,
     is_email_unique,
@@ -27,7 +26,7 @@ router = APIRouterExt(tags=["reglog"])
 @router.post(
     "/signup/",
     response_model=User.FullModel,
-    responses=UserConflictResponses.responses(),
+    responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Register a new account",
 )
 async def signup(

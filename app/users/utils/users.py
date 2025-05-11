@@ -6,7 +6,6 @@ from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.users.models.users_db import User
-from app.users.utils.magic import include_responses
 
 
 class UsernameResponses(Responses):
@@ -46,8 +45,3 @@ async def get_user_by_id(user_id: Annotated[int, Path()]) -> User:
 
 
 TargetUser = Annotated[User, Depends(get_user_by_id)]
-
-
-@include_responses(UsernameResponses, UserEmailResponses)
-class UserConflictResponses(Responses):
-    pass

@@ -1,8 +1,7 @@
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.users_db import User
 from app.users.utils.users import (
     TargetUser,
-    UserConflictResponses,
     UserEmailResponses,
     UsernameResponses,
     is_email_unique,
@@ -16,7 +15,7 @@ router = APIRouterExt(tags=["users mub"])
     "/",
     status_code=201,
     response_model=User.FullModel,
-    responses=UserConflictResponses.responses(),
+    responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Create a new user",
 )
 async def create_user(user_data: User.InputModel) -> User:
@@ -39,7 +38,7 @@ async def retrieve_user(user: TargetUser) -> User:
 @router.patch(
     "/{user_id}/",
     response_model=User.FullModel,
-    responses=UserConflictResponses.responses(),
+    responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Update any user's data by id",
 )
 async def update_user(user: TargetUser, user_data: User.FullPatchModel) -> User:

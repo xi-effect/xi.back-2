@@ -9,7 +9,6 @@ from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.users_db import User
 from app.users.utils.authorization import AuthorizedSession, AuthorizedUser
 from app.users.utils.confirmations import EmailResendResponses
-from app.users.utils.magic import include_responses
 from app.users.utils.users import (
     UserEmailResponses,
     UsernameResponses,
@@ -52,15 +51,12 @@ class EmailChangeModel(User.PasswordModel):
     new_email: Annotated[str, Field(max_length=100)]
 
 
-@include_responses(PasswordProtectedResponses, UserEmailResponses, EmailResendResponses)
-class EmailChangeResponses(Responses):
-    pass
-
-
 @router.put(
     "/email/",
     response_model=User.FullModel,
-    responses=EmailChangeResponses.responses(),
+    responses=Responses.chain(
+        PasswordProtectedResponses, UserEmailResponses, EmailResendResponses
+    ),
     summary="Update current user's email",
 )
 async def change_user_email(user: AuthorizedUser, put_data: EmailChangeModel) -> User:
@@ -94,8 +90,7 @@ class PasswordChangeModel(User.PasswordModel):
     new_password: Annotated[str, Field(min_length=6, max_length=100)]
 
 
-@include_responses(PasswordProtectedResponses)
-class PasswordChangeResponse(Responses):
+class PasswordChangeResponses(Responses):
     PASSWORD_MATCHES_CURRENT = (
         HTTP_409_CONFLICT,
         "New password matches the current one",
@@ -105,7 +100,7 @@ class PasswordChangeResponse(Responses):
 @router.put(
     "/password/",
     response_model=User.FullModel,
-    responses=PasswordChangeResponse.responses(),
+    responses=Responses.chain(PasswordChangeResponses, PasswordProtectedResponses),
     summary="Update current user's password",
 )
 async def change_user_password(
@@ -115,7 +110,7 @@ async def change_user_password(
         raise PasswordProtectedResponses.WRONG_PASSWORD
 
     if user.is_password_valid(put_data.new_password):
-        raise PasswordChangeResponse.PASSWORD_MATCHES_CURRENT
+        raise PasswordChangeResponses.PASSWORD_MATCHES_CURRENT
 
     user.change_password(put_data.new_password)
     await session.disable_all_other()

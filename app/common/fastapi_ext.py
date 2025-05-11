@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import Any
+from typing import Any, Self
 
 from fastapi import Depends, HTTPException
 from fastapi.dependencies.models import Dependant
@@ -35,6 +35,13 @@ class Responses(HTTPException, Enum):
                     }
                 },
             }
+        return result
+
+    @classmethod
+    def chain(cls, *responses_classes: type[Self]) -> ResponsesSchema:
+        result: ResponsesSchema = {}
+        for responses_class in responses_classes:
+            result = responses_class.responses(result)
         return result
 
 
