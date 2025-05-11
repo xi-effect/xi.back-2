@@ -2,8 +2,9 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Self
 
+from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, ForeignKey, Index, delete, select, update
+from sqlalchemy import CHAR, DateTime, ForeignKey, Index, delete, select, update
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
@@ -27,7 +28,7 @@ class Session(Base):
     max_history_timedelta: ClassVar[timedelta] = timedelta(days=7)
 
     @staticmethod
-    def generate_expiry() -> datetime:
+    def generate_expiry() -> AwareDatetime:
         return datetime_utc_now() + Session.expiry_timeout
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -37,7 +38,9 @@ class Session(Base):
 
     # Security
     token: Mapped[str] = mapped_column(CHAR(session_token_generator.token_length))
-    expiry: Mapped[datetime] = mapped_column(default=generate_expiry)
+    expiry: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=generate_expiry
+    )
     disabled: Mapped[bool] = mapped_column(default=False)
 
     @property
@@ -45,7 +48,9 @@ class Session(Base):
         return self.disabled or self.expiry < datetime_utc_now()
 
     # User info
-    created: Mapped[datetime] = mapped_column(default=datetime_utc_now)
+    created: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
     cross_site: Mapped[bool] = mapped_column(default=False)
 
     # Admin

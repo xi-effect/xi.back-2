@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Annotated, ClassVar
 
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
-from pydantic import AfterValidator, Field, StringConstraints
+from pydantic import AfterValidator, AwareDatetime, Field, StringConstraints
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, Enum, Index, String
+from sqlalchemy import CHAR, DateTime, Enum, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
@@ -46,11 +46,13 @@ class User(Base):
     reset_token: Mapped[str | None] = mapped_column(
         CHAR(password_reset_token_generator.token_length)
     )
-    last_password_change: Mapped[datetime] = mapped_column(default=datetime_utc_now)
+    last_password_change: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
 
     email_confirmed: Mapped[bool] = mapped_column(default=False)
     allowed_confirmation_resend: Mapped[datetime] = mapped_column(
-        default=datetime_utc_now
+        DateTime(timezone=True), default=datetime_utc_now
     )
 
     __table_args__ = (
@@ -91,8 +93,8 @@ class User(Base):
             id,
             email,
             email_confirmed,
-            last_password_change,
-            allowed_confirmation_resend,
+            (last_password_change, AwareDatetime),
+            (allowed_confirmation_resend, AwareDatetime),
             onboarding_stage,
         ]
     )
