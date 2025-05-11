@@ -9,14 +9,7 @@ from starlette.testclient import TestClient
 from app.common.config import EmailSettings
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
-
-
-@pytest.fixture()
-def email_form_data(faker: Faker) -> dict[str, str]:
-    return {
-        "receiver": faker.email(),
-        "subject": faker.sentence(),
-    }
+from tests.pochta.factories import EmailFormDataFactory, EmailFormDataSchema
 
 
 @pytest.fixture()
@@ -32,9 +25,10 @@ async def test_sending_email_from_file(
     faker: Faker,
     mock_stack: MockStack,
     mub_client: TestClient,
-    email_form_data: dict[str, str],
     html_filename_and_content: tuple[str, bytes],
 ) -> None:
+    email_form_data: EmailFormDataSchema = EmailFormDataFactory.build()
+
     send_message_mock = mock_stack.enter_async_mock(
         "app.pochta.routes.pochta_mub.smtp_client"
     ).__aenter__.return_value.send_message
@@ -51,7 +45,7 @@ async def test_sending_email_from_file(
     assert_nodata_response(
         mub_client.post(
             "/mub/pochta-service/emails-from-file/",
-            data=email_form_data,
+            data=email_form_data.model_dump(mode="json"),
             files={"file": html_filename_and_content},
         ),
     )
@@ -65,8 +59,8 @@ async def test_sending_email_from_file(
         },
         {
             "Headers": {
-                "To": email_form_data["receiver"],
-                "Subject": email_form_data["subject"],
+                "To": email_form_data.receiver,
+                "Subject": email_form_data.subject,
                 "From": email_username,
                 "Content-Type": 'text/html; charset="utf-8"',
                 "Content-Transfer-Encoding": "7bit",
@@ -81,7 +75,6 @@ async def test_sending_email_from_file(
 async def test_sending_email_from_file_config_not_set(
     mock_stack: MockStack,
     mub_client: TestClient,
-    email_form_data: dict[str, str],
     html_filename_and_content: tuple[str, bytes],
 ) -> None:
     mock_stack.enter_patch("app.pochta.routes.pochta_mub.smtp_client", new=None)
@@ -89,7 +82,7 @@ async def test_sending_email_from_file_config_not_set(
     assert_response(
         mub_client.post(
             "/mub/pochta-service/emails-from-file/",
-            data=email_form_data,
+            data=EmailFormDataFactory.build_json(),
             files={"file": html_filename_and_content},
         ),
         expected_code=500,

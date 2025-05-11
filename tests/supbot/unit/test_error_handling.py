@@ -8,7 +8,6 @@ from tests.common.mock_stack import MockStack
 from tests.supbot.factories import UpdateFactory
 
 
-# This is a unit test
 @pytest.mark.anyio()
 async def test_handling_errors(
     mock_stack: MockStack,

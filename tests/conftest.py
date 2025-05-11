@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterator, Iterator
 from contextlib import AsyncExitStack
-from typing import Any
 
 import pytest
 from faker import Faker
@@ -12,12 +11,14 @@ from fastapi.testclient import TestClient
 from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app, tmex
+from tests import factories
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
     TMEXIOTestClient,
     TMEXIOTestServer,
 )
+from tests.common.types import AnyJSON
 
 pytest_plugins = (
     "anyio",
@@ -39,7 +40,7 @@ def client() -> Iterator[TestClient]:
         yield client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def mub_client(client: TestClient) -> TestClient:
     return TestClient(
         client.app,
@@ -48,7 +49,7 @@ def mub_client(client: TestClient) -> TestClient:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def internal_client(client: TestClient) -> TestClient:
     return TestClient(client.app, headers={"X-Api-Key": settings.api_key})
 
@@ -117,10 +118,5 @@ async def pdf_data(faker: Faker) -> tuple[str, bytes, str]:
 
 
 @pytest.fixture()
-def vacancy_form_data(faker: Faker) -> dict[str, Any]:
-    return {
-        "position": faker.sentence(nb_words=2),
-        "name": faker.name(),
-        "telegram": faker.url(),
-        "message": faker.sentence(),
-    }
+def vacancy_form_data() -> AnyJSON:
+    return factories.VacancyFormWithMessageFactory.build_json()

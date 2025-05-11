@@ -1,4 +1,3 @@
-from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -10,64 +9,54 @@ from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME, AUTH_HEADER_NAME
 from tests.common.active_session import ActiveSession
-from tests.common.types import Factory, PytestRequest
+from tests.common.types import AnyJSON, Factory, PytestRequest
+from tests.users import factories
+
+
+@pytest.fixture(scope="session")
+async def user_factory(active_session: ActiveSession) -> Factory[User]:
+    async def session_factory_inner(**kwargs: Any) -> User:
+        kwargs["password"] = User.generate_hash(kwargs["password"])
+
+        async with active_session():
+            return await User.create(**kwargs)
+
+    return session_factory_inner
 
 
 @pytest.fixture()
-async def user_data(faker: Faker) -> dict[str, Any]:
-    return {
-        "username": faker.username(),
-        "email": faker.email(),
-        "password": faker.password(),
-    }
+async def user_data() -> AnyJSON:
+    return factories.UserInputFactory.build_json()
 
 
 @pytest.fixture()
 async def user(
-    active_session: ActiveSession,
-    user_data: dict[str, Any],
+    user_factory: Factory[User],
+    user_data: AnyJSON,
 ) -> User:
-    async with active_session():
-        return await User.create(
-            **{**user_data, "password": User.generate_hash(user_data["password"])},
-        )
+    return await user_factory(**user_data)
 
 
 @pytest.fixture()
-async def other_user_data(faker: Faker) -> dict[str, Any]:
-    return {
-        "username": faker.username(),
-        "email": faker.email(),
-        "password": faker.password(),
-    }
+async def other_user_data() -> AnyJSON:
+    return factories.UserInputFactory.build_json()
 
 
 @pytest.fixture()
 async def other_user(
-    faker: Faker,
-    active_session: ActiveSession,
-    other_user_data: dict[str, Any],
+    user_factory: Factory[User],
+    other_user_data: AnyJSON,
 ) -> User:
-    async with active_session():
-        return await User.create(
-            **{
-                **other_user_data,
-                "password": User.generate_hash(other_user_data["password"]),
-            },
-        )
+    return await user_factory(**other_user_data)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 async def deleted_user(
-    faker: Faker,
     active_session: ActiveSession,
+    user_factory: Factory[User],
 ) -> User:
+    user = await user_factory(**factories.UserInputFactory.build_json())
     async with active_session():
-        user = await User.create(
-            username=faker.username(),
-            email=faker.email(),
-            password=User.generate_hash(faker.password()),
-        )
         await user.delete()
     return user
 
@@ -98,30 +87,23 @@ def use_cookie_auth(request: PytestRequest[bool]) -> bool:
     return request.param
 
 
-@pytest.fixture(scope="session")
-def authorized_client_base(client: TestClient) -> TestClient:
-    return TestClient(client.app, base_url=f"http://{settings.cookie_domain}")
-
-
 @pytest.fixture()
 def authorized_client(
-    authorized_client_base: TestClient,
+    client: TestClient,
     session_token: str,
     use_cookie_auth: bool,
-) -> Iterator[TestClient]:
-    # property setter allows it, but mypy doesn't get it
+) -> TestClient:
     if use_cookie_auth:
-        authorized_client_base.cookies = {  # type: ignore[assignment]
-            AUTH_COOKIE_NAME: session_token
-        }
-        yield authorized_client_base
-        authorized_client_base.cookies = {}  # type: ignore[assignment]
-    else:
-        authorized_client_base.headers = {  # type: ignore[assignment]
-            AUTH_HEADER_NAME: session_token
-        }
-        yield authorized_client_base
-        authorized_client_base.headers = {}  # type: ignore[assignment]
+        return TestClient(
+            client.app,
+            base_url=f"http://{settings.cookie_domain}",
+            cookies={AUTH_COOKIE_NAME: session_token},
+        )
+    return TestClient(
+        client.app,
+        base_url=f"http://{settings.cookie_domain}",
+        headers={AUTH_HEADER_NAME: session_token},
+    )
 
 
 @pytest.fixture()
@@ -135,18 +117,13 @@ def other_session_token(other_session: Session) -> str:
     return other_session.token
 
 
-@pytest.fixture(scope="session")
-def other_client_base(client: TestClient) -> TestClient:
-    return TestClient(client.app, base_url=f"http://{settings.cookie_domain}")
-
-
 @pytest.fixture()
-def other_client(other_client_base: TestClient, other_session_token: str) -> TestClient:
-    # property setter allows it, but mypy doesn't get it
-    other_client_base.cookies = {  # type: ignore[assignment]
-        AUTH_COOKIE_NAME: other_session_token
-    }
-    return other_client_base
+def other_client(client: TestClient, other_session_token: str) -> TestClient:
+    return TestClient(
+        client.app,
+        base_url=f"http://{settings.cookie_domain}",
+        cookies={AUTH_COOKIE_NAME: other_session_token},
+    )
 
 
 @pytest.fixture()

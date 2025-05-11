@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 from starlette.testclient import TestClient
 
@@ -8,7 +6,7 @@ from app.users.utils.authorization import AUTH_COOKIE_NAME, AUTH_HEADER_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
-from tests.common.types import PytestRequest
+from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session, assert_session_from_cookie
 
 
@@ -22,7 +20,7 @@ async def test_signing_up(
     mock_stack: MockStack,
     client: TestClient,
     active_session: ActiveSession,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     is_cross_site: bool,
 ) -> None:
     response = assert_response(
@@ -55,10 +53,10 @@ async def test_signing_up(
 async def test_signing_up_conflict(
     client: TestClient,
     active_session: ActiveSession,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
     is_cross_site: bool,
-    data_mod: dict[str, Any],
+    data_mod: AnyJSON,
     error: str,
 ) -> None:
     assert_response(
@@ -77,7 +75,7 @@ async def test_signing_up_conflict(
 async def test_signing_in(
     client: TestClient,
     active_session: ActiveSession,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
     is_cross_site: bool,
 ) -> None:
@@ -106,7 +104,7 @@ async def test_signing_in(
 )
 async def test_signing_in_invalid_credentials(
     client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     altered_key: str,
     error: str,
 ) -> None:

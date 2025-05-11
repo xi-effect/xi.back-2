@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-from typing import Any
 
 import pytest
 from faker import Faker
@@ -8,9 +7,12 @@ from starlette.testclient import TestClient
 
 from app.common.config import password_reset_cryptography
 from app.users.models.users_db import User
+from app.users.routes.password_reset_rst import ResetCredentials
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
+from tests.common.types import AnyJSON
+from tests.users import factories
 from tests.users.utils import get_db_user
 
 
@@ -51,7 +53,6 @@ async def test_requesting_password_reset_user_not_found(
 
 @pytest.mark.anyio()
 async def test_confirming_password_reset(
-    faker: Faker,
     active_session: ActiveSession,
     client: TestClient,
     user: User,
@@ -60,34 +61,33 @@ async def test_confirming_password_reset(
         db_user = await get_db_user(user)
         reset_token: str = db_user.generated_reset_token
         previous_last_password_change: datetime = db_user.last_password_change
-    new_password: str = faker.password()
+
+    reset_data: ResetCredentials = factories.ResetCredentialsFactory.build(
+        token=password_reset_cryptography.encrypt(reset_token)
+    )
 
     assert_nodata_response(
         client.post(
             "/api/public/user-service/password-reset/confirmations/",
-            json={
-                "token": password_reset_cryptography.encrypt(reset_token),
-                "new_password": new_password,
-            },
+            json=reset_data.model_dump(mode="json"),
         ),
     )
 
     async with active_session():
         user_after_reset = await get_db_user(user)
-        assert user_after_reset.is_password_valid(new_password)
+        assert user_after_reset.is_password_valid(reset_data.new_password)
         assert user_after_reset.last_password_change > previous_last_password_change
         assert user_after_reset.reset_token is None
 
 
 @pytest.mark.anyio()
 async def test_confirming_password_reset_invalid_token(
-    faker: Faker,
     client: TestClient,
 ) -> None:
     assert_response(
         client.post(
             "/api/public/user-service/password-reset/confirmations/",
-            json={"token": faker.text(), "new_password": faker.password()},
+            json=factories.ResetCredentialsFactory.build_json(),
         ),
         expected_code=401,
         expected_json={"detail": "Invalid token"},
@@ -96,7 +96,6 @@ async def test_confirming_password_reset_invalid_token(
 
 @pytest.mark.anyio()
 async def test_confirming_password_reset_expired_token(
-    faker: Faker,
     active_session: ActiveSession,
     client: TestClient,
     user: User,
@@ -111,10 +110,9 @@ async def test_confirming_password_reset_expired_token(
     assert_response(
         client.post(
             "/api/public/user-service/password-reset/confirmations/",
-            json={
-                "token": expired_reset_token.decode(),
-                "new_password": faker.password(),
-            },
+            json=factories.ResetCredentialsFactory.build_json(
+                token=expired_reset_token
+            ),
         ),
         expected_code=401,
         expected_json={"detail": "Invalid token"},
@@ -129,10 +127,9 @@ async def test_confirming_password_reset_no_started_reset(
     assert_response(
         client.post(
             "/api/public/user-service/password-reset/confirmations/",
-            json={
-                "token": password_reset_cryptography.encrypt(faker.text()),
-                "new_password": faker.password(),
-            },
+            json=factories.ResetCredentialsFactory.build_json(
+                token=password_reset_cryptography.encrypt(faker.text()),
+            ),
         ),
         expected_code=401,
         expected_json={"detail": "Invalid token"},
@@ -143,8 +140,8 @@ async def test_confirming_password_reset_no_started_reset(
 async def test_confirming_password_reset_with_old_password(
     active_session: ActiveSession,
     client: TestClient,
+    user_data: AnyJSON,
     user: User,
-    user_data: dict[str, Any],
 ) -> None:
     async with active_session():
         db_user = await get_db_user(user)

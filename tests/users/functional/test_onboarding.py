@@ -1,10 +1,10 @@
 import pytest
-from faker import Faker
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import OnboardingStage, User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.users import factories
 from tests.users.utils import get_db_user
 
 
@@ -36,15 +36,14 @@ async def test_onboarding_unauthorized(
 
 @pytest.mark.anyio()
 async def test_proceeding_to_community_choice_in_onboarding(
-    authorized_client: TestClient,
     active_session: ActiveSession,
+    authorized_client: TestClient,
     user: User,
-    faker: Faker,
 ) -> None:
     assert_nodata_response(
         authorized_client.put(
             "/api/protected/user-service/onboarding/stages/community-choice/",
-            json={"display_name": faker.name()},
+            json=factories.CommunityChoiceFactory.build_json(),
         )
     )
 
@@ -65,11 +64,11 @@ async def test_proceeding_to_community_choice_in_onboarding(
     ],
 )
 async def test_proceeding_in_onboarding(
+    active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
-    active_session: ActiveSession,
 ) -> None:
     async with active_session():
         (await get_db_user(user)).onboarding_stage = current_stage
@@ -102,11 +101,11 @@ async def test_proceeding_in_onboarding(
     ],
 )
 async def test_proceeding_in_onboarding_invalid_transition(
+    active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
-    active_session: ActiveSession,
 ) -> None:
     async with active_session():
         (await get_db_user(user)).onboarding_stage = current_stage
@@ -133,11 +132,11 @@ async def test_proceeding_in_onboarding_invalid_transition(
     ],
 )
 async def test_returning_in_onboarding(
+    active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
-    active_session: ActiveSession,
 ) -> None:
     async with active_session():
         (await get_db_user(user)).onboarding_stage = current_stage
@@ -171,11 +170,11 @@ async def test_returning_in_onboarding(
     ],
 )
 async def test_returning_in_onboarding_invalid_transition(
+    active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
-    active_session: ActiveSession,
 ) -> None:
     async with active_session():
         (await get_db_user(user)).onboarding_stage = current_stage

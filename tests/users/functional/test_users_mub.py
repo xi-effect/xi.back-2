@@ -7,13 +7,15 @@ from starlette.testclient import TestClient
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.types import AnyJSON
+from tests.users import factories
 
 
 @pytest.mark.anyio()
 async def test_user_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
 ) -> None:
     user_id: int = assert_response(
         mub_client.post("/mub/user-service/users/", json=user_data),
@@ -38,13 +40,13 @@ async def test_user_creation(
 async def test_user_creation_conflict(
     faker: Faker,
     mub_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
     pass_unique_email: bool,
     pass_unique_password: bool,
     error: str,
 ) -> None:
-    data_modification: dict[str, Any] = {}
+    data_modification: AnyJSON = {}
     if pass_unique_email:
         data_modification["email"] = faker.email()
     if pass_unique_password:
@@ -61,7 +63,7 @@ async def test_user_creation_conflict(
 
 @pytest.mark.anyio()
 async def test_user_getting(
-    mub_client: TestClient, user: User, user_data: dict[str, Any]
+    mub_client: TestClient, user: User, user_data: AnyJSON
 ) -> None:
     assert_response(
         mub_client.get(f"/mub/user-service/users/{user.id}/"),
@@ -70,33 +72,13 @@ async def test_user_getting(
 
 
 @pytest.mark.anyio()
-@pytest.mark.parametrize("pass_email", [False, True], ids=["no_email", "with_email"])
-@pytest.mark.parametrize(
-    "pass_password", [False, True], ids=["no_password", "with_password"]
-)
-@pytest.mark.parametrize(
-    "pass_profile_data", [False, True], ids=["no_profile_data", "with_profile_data"]
-)
 async def test_user_updating(
     faker: Faker,
     mub_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
-    pass_email: bool,
-    pass_password: bool,
-    pass_profile_data: bool,
 ) -> None:
-    new_user_data: dict[str, Any] = {}
-    if pass_email:
-        new_user_data["email"] = faker.email()
-    if pass_password:
-        new_user_data["password"] = faker.password()
-    if pass_profile_data:
-        new_user_data.update(
-            username=faker.username(),
-            display_name=faker.name(),
-            theme="new_theme",
-        )
+    new_user_data: AnyJSON = factories.UserFullPatchFactory.build_json()
 
     assert_response(
         mub_client.patch(f"/mub/user-service/users/{user.id}/", json=new_user_data),
@@ -107,7 +89,7 @@ async def test_user_updating(
 @pytest.mark.anyio()
 async def test_user_updating_same_data(
     mub_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
 ) -> None:
     assert_response(
@@ -136,7 +118,7 @@ async def test_user_updating_conflict(
     pass_used_username: bool,
     error: str,
 ) -> None:
-    data_modification: dict[str, Any] = {}
+    data_modification: AnyJSON = {}
     if pass_used_email:
         data_modification["email"] = other_user.email
     if pass_used_username:
@@ -189,7 +171,7 @@ async def test_user_updating_username_in_use(
 @pytest.mark.anyio()
 async def test_user_creation_invalid_mub_key(
     client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     invalid_mub_key_headers: dict[str, Any] | None,
 ) -> None:
     assert_response(

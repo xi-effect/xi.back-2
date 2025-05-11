@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from typing import Any
 
 import pytest
+import rstr
 from faker import Faker
 from freezegun import freeze_time
 from starlette.testclient import TestClient
@@ -11,7 +11,8 @@ from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.mock_stack import MockStack
-from tests.users.utils import get_db_user
+from tests.common.types import AnyJSON
+from tests.users.utils import get_db_user, generate_username
 
 
 @pytest.mark.anyio()
@@ -25,15 +26,15 @@ from tests.users.utils import get_db_user
 async def test_profile_updating(
     faker: Faker,
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
     pass_username: bool,
     pass_display_name: bool,
     pass_theme: bool,
 ) -> None:
-    update_data: dict[str, Any] = {}
+    update_data: AnyJSON = {}
     if pass_username:
-        update_data["username"] = faker.username()
+        update_data["username"] = generate_username()
     if pass_display_name:
         update_data["display_name"] = faker.name()
     if pass_theme:
@@ -64,10 +65,9 @@ async def test_profile_updating_conflict(
 
 @pytest.mark.anyio()
 async def test_profile_updating_invalid_username(
-    faker: Faker,
     authorized_client: TestClient,
 ) -> None:
-    invalid_username: str = faker.generate_regex("^[^a-z0-9_.]{4,30}$")
+    invalid_username: str = rstr.xeger("^[^a-z0-9_.]{4,30}$")
 
     assert_response(
         authorized_client.patch(
@@ -90,10 +90,10 @@ async def test_profile_updating_invalid_username(
 async def test_profile_updating_display_name_with_whitespaces(
     faker: Faker,
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
 ) -> None:
-    new_display_name: str = faker.generate_regex(r"^\s[a-zA-Z0-9]{2,30}\s$")
+    new_display_name: str = rstr.xeger(r"^\s[a-zA-Z0-9]{2,30}\s$")
 
     assert_response(
         authorized_client.patch(
@@ -148,7 +148,7 @@ async def test_changing_user_email(
     active_session: ActiveSession,
     mock_stack: MockStack,
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
 ) -> None:
     new_email = faker.email()
@@ -176,9 +176,9 @@ async def test_changing_user_email(
 async def test_changing_user_email_too_many_emails(
     faker: Faker,
     active_session: ActiveSession,
-    user_data: dict[str, Any],
-    user: User,
     authorized_client: TestClient,
+    user_data: AnyJSON,
+    user: User,
 ) -> None:
     new_email = faker.email()
 
@@ -198,7 +198,7 @@ async def test_changing_user_email_too_many_emails(
 @pytest.mark.anyio()
 async def test_changing_user_email_conflict(
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     other_user: User,
 ) -> None:
     assert_response(
@@ -231,7 +231,7 @@ async def test_changing_user_password(
     faker: Faker,
     active_session: ActiveSession,
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
 ) -> None:
     async with active_session():
@@ -275,7 +275,7 @@ async def test_changing_user_password_wrong_password(
 @pytest.mark.anyio()
 async def test_changing_user_password_old_password(
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
 ) -> None:
     assert_response(
         authorized_client.put(

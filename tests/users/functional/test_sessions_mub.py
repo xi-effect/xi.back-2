@@ -11,8 +11,11 @@ from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import Factory
-from tests.users.test_sessions import session_checker
-from tests.users.utils import assert_session_from_cookie, get_db_session
+from tests.users.utils import (
+    assert_session_from_cookie,
+    get_db_session,
+    session_checker,
+)
 
 
 @pytest.fixture()

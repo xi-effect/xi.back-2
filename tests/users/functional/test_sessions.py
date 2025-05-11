@@ -1,5 +1,4 @@
 import pytest
-from pydantic_marshals.contains import TypeChecker
 from starlette.testclient import TestClient
 
 from app.users.models.sessions_db import Session
@@ -8,20 +7,7 @@ from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import Factory
-
-
-def session_checker(
-    session: Session, check_mub: bool = False, is_invalid: bool = False
-) -> TypeChecker:
-    return {
-        "id": session.id,
-        "created_at": session.created_at,
-        "expires_at": session.expires_at,
-        "is_disabled": is_invalid,
-        "is_invalid": is_invalid,
-        "token": None,
-        "is_mub": session.is_mub if check_mub else None,
-    }
+from tests.users.utils import session_checker
 
 
 @pytest.mark.anyio()
@@ -52,7 +38,8 @@ async def test_disabling_session(
 
 @pytest.fixture()
 async def deleted_session_id(
-    session_factory: Factory[Session], active_session: ActiveSession
+    active_session: ActiveSession,
+    session_factory: Factory[Session],
 ) -> int:
     session = await session_factory()
     async with active_session():
@@ -103,9 +90,9 @@ async def test_listing_sessions(
 @pytest.mark.anyio()
 async def test_disabling_all_other_sessions(
     active_session: ActiveSession,
+    authorized_client: TestClient,
     user: User,
     session: Session,
-    authorized_client: TestClient,
 ) -> None:
     assert_nodata_response(
         authorized_client.delete("/api/protected/user-service/sessions/")

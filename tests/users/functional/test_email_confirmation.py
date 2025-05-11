@@ -11,7 +11,6 @@ from app.common.utils.datetime import datetime_utc_now
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.common.mock_stack import MockStack
 from tests.users.utils import get_db_user
 
 
@@ -64,7 +63,6 @@ async def test_confirming_email_invalid_token(
 
 @pytest.mark.anyio()
 async def test_confirming_email_expired_token(
-    faker: Faker,
     client: TestClient,
     user: User,
 ) -> None:
@@ -90,7 +88,6 @@ async def test_confirming_email_expired_token(
 @pytest.mark.anyio()
 async def test_resending_confirmation(
     active_session: ActiveSession,
-    mock_stack: MockStack,
     user: User,
     authorized_client: TestClient,
 ) -> None:

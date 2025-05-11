@@ -1,13 +1,18 @@
 from http.cookiejar import Cookie
 
 import pytest
+import rstr
 from httpx import Response
-from pydantic_marshals.contains import assert_contains
+from pydantic_marshals.contains import TypeChecker, assert_contains
 
 from app.common.config import settings
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME
+
+
+def generate_username() -> str:
+    return rstr.xeger("^[a-z0-9_.]{4,30}$")
 
 
 async def get_db_user(user: User) -> User:
@@ -73,3 +78,17 @@ async def assert_session_from_cookie(
         },
     )
     return session
+
+
+def session_checker(
+    session: Session, check_mub: bool = False, is_invalid: bool = False
+) -> TypeChecker:
+    return {
+        "id": session.id,
+        "created_at": session.created_at,
+        "expires_at": session.expires_at,
+        "is_disabled": is_invalid,
+        "is_invalid": is_invalid,
+        "token": None,
+        "is_mub": session.is_mub if check_mub else None,
+    }

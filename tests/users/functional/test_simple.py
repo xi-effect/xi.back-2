@@ -10,14 +10,14 @@ from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME, AUTH_HEADER_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.common.types import PytestRequest
+from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session_from_cookie
 
 
 @pytest.mark.anyio()
 async def test_retrieving_home_data(
     authorized_client: TestClient,
-    user_data: dict[str, Any],
+    user_data: AnyJSON,
     user: User,
 ) -> None:
     assert_response(

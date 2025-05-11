@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO
+from typing import BinaryIO
 
 import pytest
 from aiogram import Bot
@@ -15,6 +15,7 @@ from app.supbot.routers.vacancy_tgm import VacancyStates
 from app.supbot.utils.filters import DocumentErrorType, DocumentFilter
 from tests.common.mock_stack import MockStack
 from tests.common.respx_ext import assert_last_httpx_request
+from tests.common.types import AnyJSON
 from tests.supbot.conftest import (
     EXPECTED_MAIN_MENU_KEYBOARD_MARKUP,
     MockedBot,
@@ -507,7 +508,7 @@ async def test_sending_comment(
     faker: Faker,
     users_respx_mock: MockRouter,
     pdf_data: tuple[str, BinaryIO, str],
-    vacancy_form_data: dict[str, Any],
+    vacancy_form_data: AnyJSON,
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
@@ -606,7 +607,7 @@ async def test_going_back(
     tg_user_id: int,
     current_state: State,
     expected_message: str,
-    expected_keyboard: dict[str, Any],
+    expected_keyboard: AnyJSON,
 ) -> None:
     await bot_storage.set_state(bot_storage_key, current_state)
 

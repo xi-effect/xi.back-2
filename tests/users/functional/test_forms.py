@@ -1,4 +1,4 @@
-from typing import Any, BinaryIO
+from typing import BinaryIO
 from unittest.mock import Mock
 
 import pytest
@@ -8,11 +8,14 @@ from starlette.testclient import TestClient
 
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
+from tests.common.types import AnyJSON
+from tests.users import factories
 
 
 @pytest.mark.anyio()
 async def test_demo_form_submitting(
-    faker: Faker, mock_stack: MockStack, client: TestClient
+    mock_stack: MockStack,
+    client: TestClient,
 ) -> None:
     response_mock = Mock()
     response_mock.raise_for_status = Mock()
@@ -26,10 +29,7 @@ async def test_demo_form_submitting(
     assert_nodata_response(
         client.post(
             "/api/public/user-service/demo-applications/",
-            json={
-                "name": faker.name(),
-                "contacts": [faker.ascii_free_email(), faker.phone_number()],
-            },
+            json=factories.DemoFormFactory.build_json(),
         )
     )
     execute_mock.assert_called_once()
@@ -37,16 +37,11 @@ async def test_demo_form_submitting(
 
 
 @pytest.mark.anyio()
-async def test_demo_form_submitting_missing_webhook_url(
-    faker: Faker, client: TestClient
-) -> None:
+async def test_demo_form_submitting_missing_webhook_url(client: TestClient) -> None:
     assert_response(
         client.post(
             "/api/public/user-service/demo-applications/",
-            json={
-                "name": faker.name(),
-                "contacts": [faker.ascii_free_email(), faker.phone_number()],
-            },
+            json=factories.DemoFormFactory.build_json(),
         ),
         expected_code=500,
         expected_json={"detail": "Webhook url is not set"},
@@ -58,7 +53,7 @@ async def test_vacancy_form_submitting(
     mock_stack: MockStack,
     client: TestClient,
     pdf_data: tuple[str, BinaryIO, str],
-    vacancy_form_data: dict[str, Any],
+    vacancy_form_data: AnyJSON,
 ) -> None:
     response_mock = Mock()
     response_mock.raise_for_status = Mock()
@@ -82,7 +77,9 @@ async def test_vacancy_form_submitting(
 
 @pytest.mark.anyio()
 async def test_vacancy_form_submitting_invalid_file_format(
-    faker: Faker, client: TestClient, vacancy_form_data: dict[str, Any]
+    faker: Faker,
+    client: TestClient,
+    vacancy_form_data: AnyJSON,
 ) -> None:
     assert_response(
         client.post(
@@ -101,7 +98,7 @@ async def test_vacancy_form_submitting_invalid_file_format(
 async def test_vacancy_form_submitting_missing_webhook_url(
     client: TestClient,
     pdf_data: tuple[str, BinaryIO, str],
-    vacancy_form_data: dict[str, Any],
+    vacancy_form_data: AnyJSON,
 ) -> None:
     assert_response(
         client.post(
