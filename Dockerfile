@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /backend
 RUN pip install --upgrade pip
 
-RUN pip install poetry==1.8.2
+RUN pip install poetry==2.1.3
 RUN poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock ./

@@ -4,9 +4,9 @@
 Эта установка нужна для запуска бэкенда локально и запуска форматеров, линтеров и тайп чекеров перед каждым коммитом. Для корректной работы требуется Python 3.12
 
 ```sh
-pip install poetry==1.8.2
+pip install poetry==2.1.3
 poetry install
-pre-commit install
+pre-commit install --install-hooks
 ```
 
 ### Run

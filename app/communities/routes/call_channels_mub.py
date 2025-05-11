@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from livekit.api import AccessToken, VideoGrants  # type: ignore[attr-defined]
+from livekit.api import AccessToken, VideoGrants
 from pydantic import BaseModel, Field, HttpUrl
 from starlette.datastructures import URL
 

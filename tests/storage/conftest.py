@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterator
 from os import stat
-from typing import cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -108,7 +107,7 @@ FILE_KIND_TO_EXTENSION: dict[FileKind, str] = {
 
 @pytest.fixture()
 def file_name(faker: Faker, file_kind: FileKind) -> str:
-    return cast(str, faker.file_name(extension=FILE_KIND_TO_EXTENSION[file_kind]))
+    return faker.file_name(extension=FILE_KIND_TO_EXTENSION[file_kind])
 
 
 @pytest.fixture()
