@@ -30,9 +30,9 @@ def add_session_to_response(response: Response, session: Session) -> None:
     response.set_cookie(
         AUTH_COOKIE_NAME,
         session.token,
-        expires=session.expiry.astimezone(timezone.utc),
+        expires=session.expires_at.astimezone(timezone.utc),
         domain=settings.cookie_domain,
-        samesite="none" if session.cross_site else "strict",
+        samesite="none" if session.is_cross_site else "strict",
         httponly=True,
         secure=True,
     )
@@ -57,7 +57,7 @@ async def authorize_session(
         raise AuthorizedResponses.HEADER_MISSING.value
 
     session = await Session.find_first_by_kwargs(token=token)
-    if session is None or session.invalid:
+    if session is None or session.is_invalid:
         raise AuthorizedResponses.INVALID_SESSION.value
 
     return session

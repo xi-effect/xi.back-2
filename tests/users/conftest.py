@@ -151,7 +151,7 @@ def other_client(other_client_base: TestClient, other_session_token: str) -> Tes
 
 @pytest.fixture()
 async def invalid_session(session_factory: Factory[Session]) -> Session:
-    return await session_factory(disabled=True)
+    return await session_factory(is_disabled=True)
 
 
 @pytest.fixture()

@@ -38,40 +38,45 @@ class Session(Base):
 
     # Security
     token: Mapped[str] = mapped_column(CHAR(session_token_generator.token_length))
-    expiry: Mapped[datetime] = mapped_column(
+    expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=generate_expiry
     )
-    disabled: Mapped[bool] = mapped_column(default=False)
+    is_disabled: Mapped[bool] = mapped_column(default=False)
 
     @property
-    def invalid(self) -> bool:  # noqa: FNE005
-        return self.disabled or self.expiry < datetime_utc_now()
+    def is_invalid(self) -> bool:  # noqa: FNE005
+        return self.is_disabled or self.expires_at < datetime_utc_now()
 
     # User info
-    created: Mapped[datetime] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
     )
-    cross_site: Mapped[bool] = mapped_column(default=False)
+    is_cross_site: Mapped[bool] = mapped_column(default=False)
 
     # Admin
-    mub: Mapped[bool] = mapped_column(default=False)
+    is_mub: Mapped[bool] = mapped_column(default=False)
 
     __table_args__ = (
         Index("hash_index_session_token", token, postgresql_using="hash"),
     )
 
     FullModel = MappedModel.create(
-        columns=[id, created, expiry, disabled],
-        properties=[invalid],
+        columns=[
+            id,
+            (created_at, AwareDatetime),
+            (expires_at, AwareDatetime),
+            is_disabled,
+        ],
+        properties=[is_invalid],
     )
-    MUBFullModel = FullModel.extend(columns=[mub])
+    MUBFullModel = FullModel.extend(columns=[is_mub])
 
     def is_renewal_required(self) -> bool:
-        return self.expiry - self.renew_period_length < datetime_utc_now()
+        return self.expires_at - self.renew_period_length < datetime_utc_now()
 
     def renew(self) -> None:
         self.token = session_token_generator.generate_token()
-        self.expiry = self.generate_expiry()
+        self.expires_at = self.generate_expiry()
 
     @classmethod
     async def create(cls, **kwargs: Any) -> Self:
@@ -90,8 +95,8 @@ class Session(Base):
     ) -> Sequence[Self]:
         stmt = (
             select(cls)
-            .filter_by(user_id=user_id, mub=False)
-            .order_by(cls.expiry.desc())
+            .filter_by(user_id=user_id, is_mub=False)
+            .order_by(cls.expires_at.desc())
         )
         if exclude_id is not None:
             stmt = stmt.filter(cls.id != exclude_id)
@@ -102,11 +107,11 @@ class Session(Base):
             update(type(self))
             .where(
                 type(self).id != self.id,
-                type(self).mub.is_(False),
+                type(self).is_mub.is_(False),
                 type(self).user_id == self.user_id,
-                type(self).disabled.is_(False),
+                type(self).is_disabled.is_(False),
             )
-            .values(disabled=True)
+            .values(is_disabled=True)
         )
 
     @classmethod
@@ -114,9 +119,9 @@ class Session(Base):
         """Disable sessions above :py:attr:`max_concurrent_sessions`"""
         first_outside_limit: Self | None = await db.get_first(
             select(cls)
-            .filter(cls.disabled.is_(False), cls.expiry >= datetime_utc_now())
-            .filter_by(user_id=user_id, mub=False)
-            .order_by(cls.expiry.desc())
+            .filter(cls.is_disabled.is_(False), cls.expires_at >= datetime_utc_now())
+            .filter_by(user_id=user_id, is_mub=False)
+            .order_by(cls.expires_at.desc())
             .offset(cls.max_concurrent_sessions)
         )
         if first_outside_limit is not None:
@@ -124,11 +129,11 @@ class Session(Base):
                 update(cls)
                 .where(
                     cls.user_id == user_id,
-                    cls.mub.is_(False),
-                    cls.expiry <= first_outside_limit.expiry,
-                    cls.disabled.is_(False),
+                    cls.is_mub.is_(False),
+                    cls.expires_at <= first_outside_limit.expires_at,
+                    cls.is_disabled.is_(False),
                 )
-                .values(disabled=True)
+                .values(is_disabled=True)
             )
 
     @classmethod
@@ -142,12 +147,12 @@ class Session(Base):
         max_outside_timestamp = datetime_utc_now() - cls.max_history_timedelta
         outside_limit: datetime = (
             await db.get_first(
-                select(cls.expiry)
+                select(cls.expires_at)
                 .filter(
-                    cls.expiry > max_outside_timestamp
+                    cls.expires_at > max_outside_timestamp
                 )  # if greater, fallback to max
                 .filter_by(user_id=user_id)
-                .order_by(cls.expiry.desc())
+                .order_by(cls.expires_at.desc())
                 .offset(cls.max_history_sessions)
             )
             or max_outside_timestamp
@@ -156,7 +161,7 @@ class Session(Base):
         await db.session.execute(
             delete(cls).where(
                 cls.user_id == user_id,
-                cls.expiry <= outside_limit,
+                cls.expires_at <= outside_limit,
             )
         )
 
@@ -169,7 +174,7 @@ class Session(Base):
     async def find_active_mub_session(cls, user_id: int) -> Self | None:
         return await db.get_first(
             select(cls)
-            .filter(cls.disabled.is_(False), cls.expiry > datetime_utc_now())
+            .filter(cls.is_disabled.is_(False), cls.expires_at > datetime_utc_now())
             .filter_by(user_id=user_id)
-            .order_by(cls.expiry.desc())
+            .order_by(cls.expires_at.desc())
         )

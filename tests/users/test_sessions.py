@@ -11,16 +11,16 @@ from tests.common.types import Factory
 
 
 def session_checker(
-    session: Session, check_mub: bool = False, invalid: bool = False
+    session: Session, check_mub: bool = False, is_invalid: bool = False
 ) -> TypeChecker:
     return {
         "id": session.id,
-        "created": session.created,
-        "expiry": session.expiry,
-        "disabled": invalid,
-        "invalid": invalid,
+        "created_at": session.created_at,
+        "expires_at": session.expires_at,
+        "is_disabled": is_invalid,
+        "is_invalid": is_invalid,
         "token": None,
-        "mub": session.mub if check_mub else None,
+        "is_mub": session.is_mub if check_mub else None,
     }
 
 
@@ -47,7 +47,7 @@ async def test_disabling_session(
     async with active_session():
         db_session = await Session.find_first_by_id(session.id)
         assert db_session is not None
-        assert db_session.invalid
+        assert db_session.is_invalid
 
 
 @pytest.fixture()
@@ -112,7 +112,7 @@ async def test_disabling_all_other_sessions(
     )
     async with active_session():
         for db_session in await Session.find_by_user(user.id, exclude_id=session.id):
-            assert db_session.invalid
+            assert db_session.is_invalid
 
 
 @pytest.mark.anyio()

@@ -31,7 +31,7 @@ async def test_renewal_required_detection(
     active_for: int,
     expected: bool,
 ) -> None:
-    with freeze_time(session.created + timedelta(days=active_for)):
+    with freeze_time(session.created_at + timedelta(days=active_for)):
         assert session.is_renewal_required() == expected
 
 
@@ -42,16 +42,16 @@ async def test_renewal_method(
     session: Session,
     session_token: str,
 ) -> None:
-    old_expiry = session.expiry
+    old_expiry = session.expires_at
     async with active_session():
         session.renew()
     assert session.token != session_token
-    assert session.expiry > old_expiry
+    assert session.expires_at > old_expiry
 
 
 @pytest.mark.anyio()
 @pytest.mark.parametrize(
-    "cross_site",
+    "is_cross_site",
     [
         pytest.param(False, id="same_origin"),
         pytest.param(True, id="cross_site"),
@@ -61,10 +61,10 @@ async def test_automatic_renewal(
     mock_stack: MockStack,
     active_session: ActiveSession,
     user: User,
-    cross_site: bool,
+    is_cross_site: bool,
 ) -> None:
     async with active_session():
-        session = await Session.create(user_id=user.id, cross_site=cross_site)
+        session = await Session.create(user_id=user.id, is_cross_site=is_cross_site)
         session_is_renewal_required = mock_stack.enter_mock(
             Session, "is_renewal_required", return_value=True
         )
@@ -81,9 +81,9 @@ async def test_automatic_renewal(
     response_set_cookie_mock.assert_called_once_with(
         AUTH_COOKIE_NAME,
         session.token,
-        expires=session.expiry.astimezone(timezone.utc),
+        expires=session.expires_at.astimezone(timezone.utc),
         domain=settings.cookie_domain,
-        samesite="none" if cross_site else "strict",
+        samesite="none" if is_cross_site else "strict",
         httponly=True,
         secure=True,
     )

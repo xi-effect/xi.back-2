@@ -34,10 +34,12 @@ async def test_concurrent_sessions_limit(
     )
 
     session_ids = [(await session_factory()).id for _ in range(total_active)][::-1]
-    mub_session_ids = [(await session_factory(mub=True)).id for _ in range(total_mub)]
+    mub_session_ids = [
+        (await session_factory(is_mub=True)).id for _ in range(total_mub)
+    ]
 
     history_session_ids = [
-        (await session_factory(disabled=True)).id for _ in range(total_history)
+        (await session_factory(is_disabled=True)).id for _ in range(total_history)
     ]
 
     async with active_session():
@@ -49,26 +51,26 @@ async def test_concurrent_sessions_limit(
         for history_session_id in history_session_ids:
             session = await Session.find_first_by_id(history_session_id)
             assert session is not None
-            assert session.invalid
+            assert session.is_invalid
 
         for i in range(max_concurrent):
             session = await Session.find_first_by_id(session_ids[i])
             assert session is not None
-            assert not session.invalid
+            assert not session.is_invalid
 
         for i in range(max_concurrent, total_active):
             session = await Session.find_first_by_id(session_ids[i])
             assert session is not None
-            assert session.invalid
+            assert session.is_invalid
 
         for i in range(total_mub):
             session = await Session.find_first_by_id(mub_session_ids[i])
             assert session is not None
-            assert not session.invalid
+            assert not session.is_invalid
 
 
 @pytest.mark.anyio()
-@pytest.mark.parametrize("mub", [True, False])
+@pytest.mark.parametrize("is_mub", [True, False])
 @pytest.mark.parametrize(
     "method",
     [
@@ -82,7 +84,7 @@ async def test_session_history_limit(
     user: User,
     mock_stack: MockStack,
     method: Any,
-    mub: bool,
+    is_mub: bool,
 ) -> None:
     max_history = 4
     total_active = 2
@@ -93,10 +95,11 @@ async def test_session_history_limit(
     )
 
     session_ids = [
-        (await session_factory(mub=mub, disabled=True)).id for _ in range(total_history)
+        (await session_factory(is_mub=is_mub, is_disabled=True)).id
+        for _ in range(total_history)
     ][::-1]
     active_session_ids = [
-        (await session_factory(mub=mub)).id for _ in range(total_active)
+        (await session_factory(is_mub=is_mub)).id for _ in range(total_active)
     ]
 
     async with active_session():
@@ -108,7 +111,7 @@ async def test_session_history_limit(
         for active_session_id in active_session_ids:
             session = await Session.find_first_by_id(active_session_id)
             assert session is not None
-            assert not session.invalid
+            assert not session.is_invalid
 
         for i in range(allowed_history):
             session = await Session.find_first_by_id(session_ids[i])
@@ -120,15 +123,15 @@ async def test_session_history_limit(
 
 
 @pytest.mark.anyio()
-@pytest.mark.parametrize("mub", [True, False])
+@pytest.mark.parametrize("is_mub", [True, False])
 async def test_session_expiry_time_limit(
     active_session: ActiveSession,
     session_factory: Factory[Session],
     user: User,
-    mub: bool,
+    is_mub: bool,
 ) -> None:
     expired_session_id = (
-        await session_factory(mub=mub, expiry=datetime.fromtimestamp(0))
+        await session_factory(is_mub=is_mub, expires_at=datetime.fromtimestamp(0))
     ).id
 
     async with active_session():

@@ -30,7 +30,7 @@ router = APIRouterExt(tags=["reglog"])
     summary="Register a new account",
 )
 async def signup(
-    user_data: User.InputModel, cross_site: CrossSiteMode, response: Response
+    user_data: User.InputModel, is_cross_site: CrossSiteMode, response: Response
 ) -> User:
     if not await is_email_unique(user_data.email):
         raise UserEmailResponses.EMAIL_IN_USE.value
@@ -49,7 +49,7 @@ async def signup(
         },
     )
 
-    session = await Session.create(user=user, cross_site=cross_site)
+    session = await Session.create(user=user, is_cross_site=is_cross_site)
     add_session_to_response(response, session)
 
     return user
@@ -67,7 +67,7 @@ class SigninResponses(Responses):
     summary="Sign in into an existing account (creates a new session)",
 )
 async def signin(
-    user_data: User.CredentialsModel, cross_site: CrossSiteMode, response: Response
+    user_data: User.CredentialsModel, is_cross_site: CrossSiteMode, response: Response
 ) -> User:
     user = await User.find_first_by_kwargs(email=user_data.email)
     if user is None:
@@ -76,7 +76,7 @@ async def signin(
     if not user.is_password_valid(user_data.password):
         raise SigninResponses.WRONG_PASSWORD.value
 
-    session = await Session.create(user=user, cross_site=cross_site)
+    session = await Session.create(user=user, is_cross_site=is_cross_site)
     add_session_to_response(response, session)
     await Session.cleanup_by_user(user.id)
 
@@ -89,5 +89,5 @@ async def signin(
     summary="Sign out from current account (disables the current session and removes cookies)",
 )
 async def signout(session: AuthorizedSession, response: Response) -> None:
-    session.disabled = True
+    session.is_disabled = True
     remove_session_from_response(response)

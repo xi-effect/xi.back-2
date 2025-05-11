@@ -28,7 +28,7 @@ def add_mub_session_to_response(response: Response, session: Session) -> None:
     summary="Create a new admin session",
 )
 async def make_mub_session(response: Response, user: TargetUser) -> None:
-    session = await Session.create(user_id=user.id, mub=True)
+    session = await Session.create(user_id=user.id, is_mub=True)
     add_mub_session_to_response(response, session)
 
 
@@ -40,7 +40,7 @@ async def make_mub_session(response: Response, user: TargetUser) -> None:
 async def upsert_mub_session(response: Response, user: TargetUser) -> None:
     session = await Session.find_active_mub_session(user.id)
     if session is None:
-        session = await Session.create(user_id=user.id, mub=True)
+        session = await Session.create(user_id=user.id, is_mub=True)
     add_mub_session_to_response(response, session)
 
 
@@ -50,7 +50,7 @@ async def upsert_mub_session(response: Response, user: TargetUser) -> None:
     summary="List all user sessions",
 )
 async def list_all_sessions(user: TargetUser) -> Sequence[Session]:
-    return await Session.find_all_by_kwargs(Session.expiry.desc(), user_id=user.id)
+    return await Session.find_all_by_kwargs(Session.expires_at.desc(), user_id=user.id)
 
 
 class SessionResponses(Responses):
@@ -74,4 +74,4 @@ async def disable_or_delete_session(
     if delete_session:
         await session.delete()
     else:
-        session.disabled = True
+        session.is_disabled = True

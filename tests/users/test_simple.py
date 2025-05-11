@@ -101,7 +101,9 @@ async def test_optional_proxy_authorization_unauthorized(
     )
 
 
-@pytest.mark.parametrize("cross_site", [False, True], ids=["same_site", "cross_site"])
+@pytest.mark.parametrize(
+    "is_cross_site", [False, True], ids=["same_site", "cross_site"]
+)
 @pytest.mark.anyio()
 async def test_renewing_session_in_proxy_auth(
     active_session: ActiveSession,
@@ -109,11 +111,11 @@ async def test_renewing_session_in_proxy_auth(
     session: Session,
     user: User,
     proxy_auth_path: str,
-    cross_site: bool,
+    is_cross_site: bool,
 ) -> None:
     async with active_session() as db_session:
-        session.expiry = datetime_utc_now() + timedelta(hours=3)
-        session.cross_site = cross_site
+        session.expires_at = datetime_utc_now() + timedelta(hours=3)
+        session.is_cross_site = is_cross_site
         db_session.add(session)
 
     response = assert_nodata_response(
@@ -127,7 +129,7 @@ async def test_renewing_session_in_proxy_auth(
     )
 
     async with active_session():
-        session_from_cookie = await assert_session_from_cookie(response, cross_site)
+        session_from_cookie = await assert_session_from_cookie(response, is_cross_site)
         assert session_from_cookie.id == session.id
 
 

@@ -25,7 +25,7 @@ async def get_db_session(session: Session) -> Session:
 async def assert_session(token: str, invalid: bool = False) -> Session:
     session = await Session.find_first_by_kwargs(token=token)
     assert session is not None
-    assert session.invalid == invalid
+    assert session.is_invalid == invalid
     return session
 
 
@@ -37,7 +37,7 @@ def find_auth_cookie(response: Response) -> Cookie:
 
 
 async def assert_session_from_cookie(
-    response: Response, cross_site: bool = False
+    response: Response, is_cross_site: bool = False
 ) -> Session:
     cookie: Cookie = find_auth_cookie(response)
 
@@ -58,7 +58,7 @@ async def assert_session_from_cookie(
             "domain": f".{settings.cookie_domain}",
             "path": "/",
             "httponly": True,
-            "same_site": "none" if cross_site else "strict",
+            "same_site": "none" if is_cross_site else "strict",
         },
     )
     assert cookie.value is not None  # for mypy
@@ -66,7 +66,10 @@ async def assert_session_from_cookie(
 
     session = await assert_session(cookie.value)
     assert_contains(
-        {"cross_site": cross_site, "expiry": cookie.expires},
-        {"cross_site": session.cross_site, "expiry": int(session.expiry.timestamp())},
+        {"is_cross_site": is_cross_site, "expires_at": cookie.expires},
+        {
+            "is_cross_site": session.is_cross_site,
+            "expires_at": int(session.expires_at.timestamp()),
+        },
     )
     return session

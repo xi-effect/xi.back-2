@@ -17,7 +17,7 @@ from tests.users.utils import assert_session_from_cookie, get_db_session
 
 @pytest.fixture()
 async def mub_session(session_factory: Factory[Session]) -> Session:
-    return await session_factory(mub=True)
+    return await session_factory(is_mub=True)
 
 
 @pytest.mark.anyio()
@@ -43,16 +43,16 @@ async def test_making_mub_session(
         session = await assert_session_from_cookie(response)
         assert_contains(
             {
-                "mub": session.mub,
+                "is_mub": session.is_mub,
                 "user_id": session.user_id,
-                "invalid": session.invalid,
+                "is_invalid": session.is_invalid,
                 "id": session.id,
                 "token": session.token,
             },
             {
-                "mub": True,
+                "is_mub": True,
                 "user_id": user.id,
-                "invalid": False,
+                "is_invalid": False,
                 "id": int(response.headers["X-Session-ID"]),
                 "token": response.headers["X-Session-Token"],
             },
@@ -81,16 +81,16 @@ async def test_upserting_mub_session(
         session = await assert_session_from_cookie(response)
         assert_contains(
             {
-                "mub": session.mub,
+                "is_mub": session.is_mub,
                 "user_id": session.user_id,
-                "invalid": session.invalid,
+                "is_invalid": session.is_invalid,
                 "id": session.id,
                 "token": session.token,
             },
             {
-                "mub": True,
+                "is_mub": True,
                 "user_id": user.id,
-                "invalid": False,
+                "is_invalid": False,
                 "id": int(response.headers["X-Session-ID"]),
                 "token": response.headers["X-Session-Token"],
             },
@@ -123,7 +123,7 @@ async def test_upserting_expired_mub_session(
     mub_client: TestClient,
     user: User,
 ) -> None:
-    await session_factory(mub=True, expiry=datetime.fromtimestamp(0))
+    await session_factory(is_mub=True, expires_at=datetime.fromtimestamp(0))
     response = assert_nodata_response(
         mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: str},
@@ -140,16 +140,16 @@ async def test_upserting_expired_mub_session(
         session = await assert_session_from_cookie(response)
         assert_contains(
             {
-                "mub": session.mub,
+                "is_mub": session.is_mub,
                 "user_id": session.user_id,
-                "invalid": session.invalid,
+                "is_invalid": session.is_invalid,
                 "id": session.id,
                 "token": session.token,
             },
             {
-                "mub": True,
+                "is_mub": True,
                 "user_id": user.id,
-                "invalid": False,
+                "is_invalid": False,
                 "id": int(response.headers["X-Session-ID"]),
                 "token": response.headers["X-Session-Token"],
             },
@@ -163,7 +163,7 @@ async def test_upserting_disabled_mub_session(
     mub_client: TestClient,
     user: User,
 ) -> None:
-    await session_factory(mub=True, disabled=True)
+    await session_factory(is_mub=True, is_disabled=True)
     response = assert_nodata_response(
         mub_client.put(f"/mub/user-service/users/{user.id}/sessions/"),
         expected_cookies={AUTH_COOKIE_NAME: str},
@@ -180,16 +180,16 @@ async def test_upserting_disabled_mub_session(
         session = await assert_session_from_cookie(response)
         assert_contains(
             {
-                "mub": session.mub,
+                "is_mub": session.is_mub,
                 "user_id": session.user_id,
-                "invalid": session.invalid,
+                "is_invalid": session.is_invalid,
                 "id": session.id,
                 "token": session.token,
             },
             {
-                "mub": True,
+                "is_mub": True,
                 "user_id": user.id,
-                "invalid": False,
+                "is_invalid": False,
                 "id": int(response.headers["X-Session-ID"]),
                 "token": response.headers["X-Session-Token"],
             },
@@ -208,7 +208,7 @@ async def test_mub_disabling_session(
     )
 
     async with active_session():
-        assert (await get_db_session(session)).invalid
+        assert (await get_db_session(session)).is_invalid
 
 
 @pytest.mark.anyio()
@@ -330,7 +330,7 @@ async def test_disabling_session_mub_not_found(
 @pytest.fixture()
 async def mub_sessions(session_factory: Factory[Session]) -> list[Session]:
     return (
-        [(await session_factory(mub=True)) for _ in range(3)]
+        [(await session_factory(is_mub=True)) for _ in range(3)]
         + [(await session_factory()) for _ in range(3)]
     )[::-1]
 
@@ -348,7 +348,7 @@ async def test_disabling_all_other_sessions_but_mub(
     async with active_session():
         for session in mub_sessions:
             session = await get_db_session(session)
-            assert session.invalid != session.mub
+            assert session.is_invalid != session.is_mub
 
 
 @pytest.mark.anyio()

@@ -38,7 +38,7 @@ async def test_signing_up(
     # TODO: assert email sent
 
     async with active_session():
-        await assert_session_from_cookie(response, cross_site=is_cross_site)
+        await assert_session_from_cookie(response, is_cross_site=is_cross_site)
         user = await User.find_first_by_id(response.json()["id"])
         assert user is not None
         await user.delete()
@@ -92,7 +92,7 @@ async def test_signing_in(
     )
 
     async with active_session():
-        await assert_session_from_cookie(response, cross_site=is_cross_site)
+        await assert_session_from_cookie(response, is_cross_site=is_cross_site)
 
 
 @pytest.mark.anyio()
