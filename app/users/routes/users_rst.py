@@ -7,7 +7,7 @@ router = APIRouterExt(tags=["users"])
 
 @router.get(
     "/users/by-id/{user_id}/profile/",
-    response_model=User.UserProfileModel,
+    response_model=User.UserProfileSchema,
     summary="Retrieve user profile by id",
 )
 async def get_profile_by_id(user: TargetUser) -> User:
@@ -16,7 +16,7 @@ async def get_profile_by_id(user: TargetUser) -> User:
 
 @router.get(
     "/users/by-username/{username}/profile/",
-    response_model=User.UserProfileModel,
+    response_model=User.UserProfileSchema,
     responses=UserResponses.responses(),
     summary="Retrieve user profile by username",
 )

@@ -21,7 +21,7 @@ router = APIRouterExt(tags=["password reset"])
     summary="Request for a password reset",
     status_code=202,
 )
-async def request_password_reset(data: User.EmailModel) -> None:
+async def request_password_reset(data: User.EmailSchema) -> None:
     user = await User.find_first_by_kwargs(email=data.email)
     if user is None:
         raise UserResponses.USER_NOT_FOUND

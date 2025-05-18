@@ -25,12 +25,12 @@ router = APIRouterExt(tags=["reglog"])
 
 @router.post(
     "/signup/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Register a new account",
 )
 async def signup(
-    user_data: User.InputModel, is_cross_site: CrossSiteMode, response: Response
+    user_data: User.InputSchema, is_cross_site: CrossSiteMode, response: Response
 ) -> User:
     if not await is_email_unique(user_data.email):
         raise UserEmailResponses.EMAIL_IN_USE.value
@@ -62,12 +62,12 @@ class SigninResponses(Responses):
 
 @router.post(
     "/signin/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=SigninResponses.responses(),
     summary="Sign in into an existing account (creates a new session)",
 )
 async def signin(
-    user_data: User.CredentialsModel, is_cross_site: CrossSiteMode, response: Response
+    user_data: User.CredentialsSchema, is_cross_site: CrossSiteMode, response: Response
 ) -> User:
     user = await User.find_first_by_kwargs(email=user_data.email)
     if user is None:

@@ -14,11 +14,11 @@ router = APIRouterExt(tags=["users mub"])
 @router.post(
     "/users/",
     status_code=201,
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Create a new user",
 )
-async def create_user(user_data: User.InputModel) -> User:
+async def create_user(user_data: User.InputSchema) -> User:
     if not await is_email_unique(user_data.email):
         raise UserEmailResponses.EMAIL_IN_USE.value
     if not await is_username_unique(user_data.username):
@@ -28,7 +28,7 @@ async def create_user(user_data: User.InputModel) -> User:
 
 @router.get(
     "/users/{user_id}/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     summary="Retrieve any user by id",
 )
 async def retrieve_user(user: TargetUser) -> User:
@@ -37,11 +37,11 @@ async def retrieve_user(user: TargetUser) -> User:
 
 @router.patch(
     "/users/{user_id}/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Update any user's data by id",
 )
-async def update_user(user: TargetUser, user_data: User.FullPatchModel) -> User:
+async def update_user(user: TargetUser, user_data: User.FullPatchSchema) -> User:
     if not await is_email_unique(user_data.email, user.email):
         raise UserEmailResponses.EMAIL_IN_USE.value
     if not await is_username_unique(user_data.username, user.username):

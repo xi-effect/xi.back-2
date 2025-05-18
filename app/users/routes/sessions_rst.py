@@ -11,7 +11,7 @@ router = APIRouterExt(tags=["user sessions"])
 
 @router.get(
     "/sessions/current/",
-    response_model=Session.FullModel,
+    response_model=Session.FullSchema,
     summary="Retrieve current session's data",
 )
 async def get_current_session(session: AuthorizedSession) -> Session:
@@ -20,7 +20,7 @@ async def get_current_session(session: AuthorizedSession) -> Session:
 
 @router.get(
     "/sessions/",
-    response_model=list[Session.FullModel],
+    response_model=list[Session.FullSchema],
     summary="List all current user's sessions but the current one",
 )
 async def list_sessions(

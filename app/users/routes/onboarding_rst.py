@@ -10,7 +10,7 @@ from app.users.utils.authorization import AuthorizedUser
 router = APIRouterExt(tags=["onboarding"])
 
 
-class CommunityChoiceModel(BaseModel):
+class CommunityChoiceSchema(BaseModel):
     display_name: User.DisplayNameRequiredType
 
 
@@ -63,7 +63,7 @@ async def make_onboarding_transition(
 )
 async def proceed_to_community_choice(
     user: AuthorizedUser,
-    stage_data: CommunityChoiceModel,
+    stage_data: CommunityChoiceSchema,
 ) -> None:
     await make_onboarding_transition(user, OnboardingStage.COMMUNITY_CHOICE)
     user.update(**stage_data.model_dump())

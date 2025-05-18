@@ -21,7 +21,7 @@ router = APIRouterExt(tags=["current user"])
 
 @router.get(
     "/users/current/home/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     summary="Retrieve current user's profile data",
 )
 async def get_user_data(user: AuthorizedUser) -> User:
@@ -30,12 +30,12 @@ async def get_user_data(user: AuthorizedUser) -> User:
 
 @router.patch(
     "/users/current/profile/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=UsernameResponses.responses(),
     summary="Update current user's profile data",
 )
 async def patch_user_data(
-    patch_data: User.ProfilePatchModel, user: AuthorizedUser
+    patch_data: User.ProfilePatchSchema, user: AuthorizedUser
 ) -> User:
     if not await is_username_unique(patch_data.username, user.username):
         raise UsernameResponses.USERNAME_IN_USE.value
@@ -47,19 +47,19 @@ class PasswordProtectedResponses(Responses):
     WRONG_PASSWORD = (HTTP_401_UNAUTHORIZED, "Wrong password")
 
 
-class EmailChangeModel(User.PasswordModel):
+class EmailChangeSchema(User.PasswordSchema):
     new_email: Annotated[str, Field(max_length=100)]
 
 
 @router.put(
     "/users/current/email/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=Responses.chain(
         PasswordProtectedResponses, UserEmailResponses, EmailResendResponses
     ),
     summary="Update current user's email",
 )
-async def change_user_email(user: AuthorizedUser, put_data: EmailChangeModel) -> User:
+async def change_user_email(user: AuthorizedUser, put_data: EmailChangeSchema) -> User:
     if not user.is_password_valid(password=put_data.password):
         raise PasswordProtectedResponses.WRONG_PASSWORD.value
 
@@ -86,7 +86,7 @@ async def change_user_email(user: AuthorizedUser, put_data: EmailChangeModel) ->
     return user
 
 
-class PasswordChangeModel(User.PasswordModel):
+class PasswordChangeSchema(User.PasswordSchema):
     new_password: Annotated[str, Field(min_length=6, max_length=100)]
 
 
@@ -99,12 +99,12 @@ class PasswordChangeResponses(Responses):
 
 @router.put(
     "/users/current/password/",
-    response_model=User.FullModel,
+    response_model=User.FullSchema,
     responses=Responses.chain(PasswordChangeResponses, PasswordProtectedResponses),
     summary="Update current user's password",
 )
 async def change_user_password(
-    user: AuthorizedUser, session: AuthorizedSession, put_data: PasswordChangeModel
+    user: AuthorizedUser, session: AuthorizedSession, put_data: PasswordChangeSchema
 ) -> User:
     if not user.is_password_valid(password=put_data.password):
         raise PasswordProtectedResponses.WRONG_PASSWORD

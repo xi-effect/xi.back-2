@@ -46,7 +46,7 @@ async def upsert_mub_session(response: Response, user: TargetUser) -> None:
 
 @router.get(
     "/users/{user_id}/sessions/",
-    response_model=list[Session.MUBFullModel],
+    response_model=list[Session.MUBFullSchema],
     summary="List all user sessions",
 )
 async def list_all_sessions(user: TargetUser) -> Sequence[Session]:

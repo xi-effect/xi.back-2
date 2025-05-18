@@ -60,7 +60,7 @@ class Session(Base):
         Index("hash_index_session_token", token, postgresql_using="hash"),
     )
 
-    FullModel = MappedModel.create(
+    FullSchema = MappedModel.create(
         columns=[
             id,
             (created_at, AwareDatetime),
@@ -69,7 +69,7 @@ class Session(Base):
         ],
         properties=[is_invalid],
     )
-    MUBFullModel = FullModel.extend(columns=[is_mub])
+    MUBFullSchema = FullSchema.extend(columns=[is_mub])
 
     def is_renewal_required(self) -> bool:
         return self.expires_at - self.renew_period_length < datetime_utc_now()

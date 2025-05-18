@@ -72,23 +72,23 @@ class User(Base):
     DisplayNameType = DisplayNameRequiredType | None
     UsernameType = Annotated[str, Field(pattern="^[a-z0-9_.]{4,30}$")]
 
-    EmailModel = MappedModel.create(
+    EmailSchema = MappedModel.create(
         columns=[email]
     )  # TODO (email, Annotated[str, AfterValidator(email_validator)]),
-    InputModel = EmailModel.extend(
+    InputSchema = EmailSchema.extend(
         columns=[
             (username, UsernameType),
             (password, PasswordType),
         ]
     )
-    PasswordModel = MappedModel.create(columns=[password])
-    CredentialsModel = MappedModel.create(columns=[email, password])
-    UserProfileModel = MappedModel.create(columns=[id, username, display_name])
-    ProfileModel = MappedModel.create(
+    PasswordSchema = MappedModel.create(columns=[password])
+    CredentialsSchema = MappedModel.create(columns=[email, password])
+    UserProfileSchema = MappedModel.create(columns=[id, username, display_name])
+    ProfileSchema = MappedModel.create(
         columns=[(username, UsernameType), (display_name, DisplayNameType), theme]
     )
-    ProfilePatchModel = ProfileModel.as_patch()
-    FullModel = ProfileModel.extend(
+    ProfilePatchSchema = ProfileSchema.as_patch()
+    FullSchema = ProfileSchema.extend(
         columns=[
             id,
             email,
@@ -98,7 +98,7 @@ class User(Base):
             onboarding_stage,
         ]
     )
-    FullPatchModel = InputModel.extend(
+    FullPatchSchema = InputSchema.extend(
         columns=[(display_name, DisplayNameType), theme, onboarding_stage]
     ).as_patch()
 
