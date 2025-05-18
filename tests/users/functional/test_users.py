@@ -41,18 +41,6 @@ async def test_getting_profile_by_id_not_found(
 
 
 @pytest.mark.anyio()
-async def test_getting_profile_by_id_unauthorized(
-    client: TestClient,
-    other_user: User,
-) -> None:
-    assert_response(
-        client.get(f"/api/protected/user-service/users/by-id/{other_user.id}/profile/"),
-        expected_json={"detail": "Authorization is missing"},
-        expected_code=401,
-    )
-
-
-@pytest.mark.anyio()
 async def test_getting_profile_by_username(
     authorized_client: TestClient,
     other_user: User,
@@ -83,18 +71,4 @@ async def test_getting_profile_by_username_not_found(
         ),
         expected_json={"detail": "User not found"},
         expected_code=404,
-    )
-
-
-@pytest.mark.anyio()
-async def test_getting_profile_by_username_unauthorized(
-    client: TestClient,
-    other_user: User,
-) -> None:
-    assert_response(
-        client.get(
-            f"/api/protected/user-service/users/by-username/{other_user.username}/profile/"
-        ),
-        expected_json={"detail": "Authorization is missing"},
-        expected_code=401,
     )

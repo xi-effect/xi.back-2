@@ -5,9 +5,11 @@ from pydantic import Field
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT
 
 from app.common.config import email_confirmation_cryptography
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.users_dep import AuthorizedUser
+from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.authorization import AuthorizedSession, AuthorizedUser
 from app.users.utils.confirmations import EmailResendResponses
 from app.users.utils.users import (
     UserEmailResponses,
@@ -125,7 +127,7 @@ class PasswordChangeResponses(Responses):
     summary="Update current user's password",
 )
 async def change_user_password(
-    user: AuthorizedUser, session: AuthorizedSession, put_data: PasswordChangeSchema
+    user: AuthorizedUser, auth_data: AuthorizationData, put_data: PasswordChangeSchema
 ) -> User:
     if not user.is_password_valid(password=put_data.password):
         raise PasswordProtectedResponses.WRONG_PASSWORD
@@ -134,6 +136,8 @@ async def change_user_password(
         raise PasswordChangeResponses.PASSWORD_MATCHES_CURRENT
 
     user.change_password(put_data.new_password)
-    await session.disable_all_other()
+    await Session.disable_all_but_one_for_user(
+        user_id=auth_data.user_id, excluded_id=auth_data.session_id
+    )
 
     return user

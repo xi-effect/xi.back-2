@@ -12,7 +12,6 @@ from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app, tmex
 from tests import factories
-from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
     TMEXIOTestClient,
@@ -54,13 +53,9 @@ def internal_client(client: TestClient) -> TestClient:
     return TestClient(client.app, headers={"X-Api-Key": settings.api_key})
 
 
-class ProxyAuthDataFactory(BaseModelFactory[ProxyAuthData]):
-    __model__ = ProxyAuthData
-
-
 @pytest.fixture()
 def proxy_auth_data() -> ProxyAuthData:
-    return ProxyAuthDataFactory.build()
+    return factories.ProxyAuthDataFactory.build()
 
 
 @pytest.fixture()

@@ -8,7 +8,8 @@ from freezegun import freeze_time
 from app.common.config import settings
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.authorization import AUTH_COOKIE_NAME, authorize_user
+from app.users.routes.proxy_rst import authorize_user
+from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
 from tests.users.utils import get_db_session
@@ -40,12 +41,12 @@ async def test_renewal_method(
     mock_stack: MockStack,
     active_session: ActiveSession,
     session: Session,
-    session_token: str,
 ) -> None:
+    old_token = session.token
     old_expiry = session.expires_at
     async with active_session():
         session.renew()
-    assert session.token != session_token
+    assert session.token != old_token
     assert session.expires_at > old_expiry
 
 

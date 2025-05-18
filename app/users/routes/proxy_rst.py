@@ -1,23 +1,68 @@
 from contextlib import suppress
 from typing import Annotated
 
-from fastapi import Header, HTTPException
+from fastapi import Depends, Header, HTTPException
+from fastapi.security import APIKeyCookie, APIKeyHeader
 from starlette.responses import Response
+from starlette.status import HTTP_401_UNAUTHORIZED
 
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.models.sessions_db import Session
+from app.users.models.users_db import User
 from app.users.utils.authorization import (
-    AuthCookie,
-    AuthHeader,
-    authorize_session,
-    authorize_user,
+    AUTH_COOKIE_NAME,
+    AUTH_HEADER_NAME,
+    add_session_to_response,
 )
 
 router = APIRouterExt(tags=["proxy auth"])
+
+header_auth_scheme = APIKeyHeader(
+    name=AUTH_HEADER_NAME, auto_error=False, scheme_name="auth header"
+)
+AuthHeader = Annotated[str | None, Depends(header_auth_scheme)]
+
+cookie_auth_scheme = APIKeyCookie(
+    name=AUTH_COOKIE_NAME, auto_error=False, scheme_name="auth cookie"
+)
+AuthCookie = Annotated[str | None, Depends(cookie_auth_scheme)]
+
+
+class AuthorizedResponses(Responses):
+    HEADER_MISSING = (HTTP_401_UNAUTHORIZED, "Authorization is missing")
+    INVALID_SESSION = (HTTP_401_UNAUTHORIZED, "Session is invalid")
+
+
+async def authorize_session(
+    header_token: AuthHeader = None,
+    cookie_token: AuthCookie = None,
+) -> Session:
+    token = cookie_token or header_token
+    if token is None:
+        raise AuthorizedResponses.HEADER_MISSING.value
+
+    session = await Session.find_first_by_kwargs(token=token)
+    if session is None or session.is_invalid:
+        raise AuthorizedResponses.INVALID_SESSION.value
+
+    return session
+
+
+async def authorize_user(
+    session: Session,
+    response: Response,
+) -> User:
+    if session.is_renewal_required():
+        session.renew()
+        add_session_to_response(response, session)
+
+    return await session.awaitable_attrs.user  # type: ignore[no-any-return]
 
 
 @router.get(
     "/proxy/auth/",
     status_code=204,
+    responses=AuthorizedResponses.responses(),
     summary="Retrieve headers for proxy authorization, return 401 on invalid auth",
 )
 async def proxy_auth(

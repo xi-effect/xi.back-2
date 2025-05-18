@@ -1,13 +1,14 @@
 import logging
+from typing import Annotated, Final
 
-from fastapi import Response
+from fastapi import Depends, Header, Response
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from app.common.config import email_confirmation_cryptography
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.authorization import CrossSiteMode, add_session_to_response
+from app.users.utils.authorization import add_session_to_response
 from app.users.utils.users import (
     UserEmailResponses,
     UsernameResponses,
@@ -16,6 +17,18 @@ from app.users.utils.users import (
 )
 
 router = APIRouterExt(tags=["reglog"])
+
+
+TEST_HEADER_NAME: Final[str] = "X-Testing"
+
+
+def is_cross_site_mode(
+    testing: Annotated[str, Header(alias=TEST_HEADER_NAME)] = "",
+) -> bool:
+    return testing == "true"
+
+
+CrossSiteMode = Annotated[bool, Depends(is_cross_site_mode)]
 
 
 @router.post(

@@ -1,13 +1,14 @@
 import pytest
 from starlette.testclient import TestClient
 
+from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import Factory
-from tests.users.utils import assert_session, session_checker
+from tests.factories import ProxyAuthDataFactory
+from tests.users.utils import session_checker
 
 
 @pytest.mark.anyio()
@@ -25,14 +26,16 @@ async def test_getting_current_session(
 async def test_signing_out(
     authorized_client: TestClient,
     active_session: ActiveSession,
-    session_token: str,
+    user_proxy_auth_data: ProxyAuthData,
 ) -> None:
     assert_nodata_response(
         authorized_client.delete("/api/protected/user-service/sessions/current/")
     )
 
     async with active_session():
-        await assert_session(session_token, invalid=True)
+        session = await Session.find_first_by_id(user_proxy_auth_data.session_id)
+        assert session is not None
+        assert session.is_invalid
 
 
 @pytest.mark.anyio()
@@ -118,52 +121,30 @@ async def test_disabling_all_other_sessions(
 
 @pytest.mark.anyio()
 @pytest.mark.parametrize(
-    ("use_headers", "error"),
-    [
-        pytest.param(False, "Authorization is missing", id="missing_header"),
-        pytest.param(True, "Session is invalid", id="invalid_session"),
-    ],
-)
-@pytest.mark.parametrize(
     ("method", "path"),
     [
-        pytest.param(
-            "GET", "/api/protected/user-service/sessions/", id="list_sessions"
-        ),
-        pytest.param(
-            "DELETE",
-            "/api/protected/user-service/sessions/",
-            id="delete_other_sessions",
-        ),
-        pytest.param(
-            "GET",
-            "/api/protected/user-service/sessions/current/",
-            id="get_current_session",
-        ),
-        pytest.param(
-            "DELETE",
-            "/api/protected/user-service/sessions/current/",
-            id="signout",
-        ),
-        pytest.param(
-            "DELETE",
-            "/api/protected/user-service/sessions/{session_id}/",
-            id="disable_session",
-        ),
+        pytest.param("GET", "/sessions/current/", id="get-current-session"),
+        pytest.param("DELETE", "/sessions/current/", id="signout"),
     ],
 )
-async def test_sessions_unauthorized(
+async def test_requesting_session_not_found(
     client: TestClient,
-    session: Session,
-    invalid_token: str,
-    use_headers: bool,
-    error: str,
+    user_proxy_auth_data: ProxyAuthData,
+    deleted_session_id: int,
     method: str,
     path: str,
 ) -> None:
-    cookies = {AUTH_COOKIE_NAME: invalid_token} if use_headers else {}
+    broken_proxy_auth_data: ProxyAuthData = ProxyAuthDataFactory.build(
+        session_id=deleted_session_id,
+        user_id=user_proxy_auth_data.user_id,
+    )
+
     assert_response(
-        client.request(method, path.format(session_id=session.id), cookies=cookies),
+        client.request(
+            method,
+            f"/api/protected/user-service{path}",
+            headers=broken_proxy_auth_data.as_headers,
+        ),
         expected_code=401,
-        expected_json={"detail": error},
+        expected_json={"detail": "Session not found"},
     )

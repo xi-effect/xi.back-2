@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from starlette.status import HTTP_409_CONFLICT
 
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.users_dep import AuthorizedUser
 from app.users.models.users_db import OnboardingStage, User
-from app.users.utils.authorization import AuthorizedUser
 
 router = APIRouterExt(tags=["onboarding"])
 

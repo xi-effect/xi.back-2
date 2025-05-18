@@ -238,14 +238,15 @@ async def test_authorized_method_with_mub_session(
     user: User,
     mub_session: Session,
 ) -> None:
-    assert_response(
+    assert_nodata_response(
         mub_client.get(
-            "/api/protected/user-service/users/current/home/",
+            "/proxy/auth/",
             cookies={AUTH_COOKIE_NAME: mub_session.token},
         ),
-        expected_json={
-            "email": user.email,
-            "username": user.username,
+        expected_headers={
+            "X-User-ID": str(user.id),
+            "X-Username": user.username,
+            "X-Session-ID": str(mub_session.id),
         },
     )
 
@@ -254,12 +255,12 @@ async def test_authorized_method_with_mub_session(
 @pytest.mark.anyio()
 async def test_retrieving_mub_session_user_not_found(
     mub_client: TestClient,
-    deleted_user: User,
+    deleted_user_id: int,
     method: str,
 ) -> None:
     assert_response(
         mub_client.request(
-            method, f"/mub/user-service/users/{deleted_user.id}/sessions/"
+            method, f"/mub/user-service/users/{deleted_user_id}/sessions/"
         ),
         expected_json={"detail": "User not found"},
         expected_code=404,
@@ -271,12 +272,12 @@ async def test_retrieving_mub_session_user_not_found(
 async def test_mub_disabling_session_user_not_found(
     mub_client: TestClient,
     session: Session,
-    deleted_user: User,
+    deleted_user_id: int,
     delete_session: bool,
 ) -> None:
     assert_response(
         mub_client.delete(
-            f"/mub/user-service/users/{deleted_user.id}/sessions/{session.id}/",
+            f"/mub/user-service/users/{deleted_user_id}/sessions/{session.id}/",
             params={"delete_session": delete_session},
         ),
         expected_json={"detail": "User not found"},

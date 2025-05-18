@@ -5,7 +5,7 @@ from fastapi import File, UploadFile
 from filetype.types.image import Webp  # type: ignore[import-untyped]
 
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.users.utils.authorization import AuthorizedUser
+from app.users.dependencies.users_dep import AuthorizedUser
 
 router = APIRouterExt(tags=["current user avatar"])
 

@@ -2,10 +2,9 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends
-
 from app.common.config import settings
 from app.common.dependencies.api_key_dep import APIKeyProtection
+from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.users.routes import (
@@ -22,7 +21,6 @@ from app.users.routes import (
     users_mub,
     users_rst,
 )
-from app.users.utils.authorization import authorize_user
 
 outside_router = APIRouterExt(prefix="/api/public/user-service")
 outside_router.include_router(reglog_rst.router)
@@ -31,7 +29,7 @@ outside_router.include_router(email_confirmation_rst.router)
 outside_router.include_router(password_reset_rst.router)
 
 authorized_router = APIRouterExt(
-    dependencies=[Depends(authorize_user)],
+    dependencies=[ProxyAuthorized],
     prefix="/api/protected/user-service",
 )
 authorized_router.include_router(onboarding_rst.router)

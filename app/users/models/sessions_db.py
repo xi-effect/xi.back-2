@@ -102,14 +102,15 @@ class Session(Base):
             stmt = stmt.filter(cls.id != exclude_id)
         return await db.get_all(stmt)
 
-    async def disable_all_other(self) -> None:
+    @classmethod
+    async def disable_all_but_one_for_user(cls, user_id: int, excluded_id: int) -> None:
         await db.session.execute(
-            update(type(self))
+            update(cls)
             .where(
-                type(self).id != self.id,
-                type(self).is_mub.is_(False),
-                type(self).user_id == self.user_id,
-                type(self).is_disabled.is_(False),
+                cls.id != excluded_id,
+                cls.is_mub.is_(False),
+                cls.user_id == user_id,
+                cls.is_disabled.is_(False),
             )
             .values(is_disabled=True)
         )

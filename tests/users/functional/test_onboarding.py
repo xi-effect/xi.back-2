@@ -8,32 +8,6 @@ from tests.users import factories
 from tests.users.utils import get_db_user
 
 
-@pytest.mark.parametrize("method", ["PUT", "DELETE"])
-@pytest.mark.parametrize(
-    "stage",
-    [
-        OnboardingStage.CREATED,
-        OnboardingStage.COMMUNITY_CHOICE,
-        OnboardingStage.COMMUNITY_CREATE,
-        OnboardingStage.COMMUNITY_INVITE,
-        OnboardingStage.COMPLETED,
-    ],
-)
-@pytest.mark.anyio()
-async def test_onboarding_unauthorized(
-    client: TestClient,
-    method: str,
-    stage: OnboardingStage,
-) -> None:
-    assert_response(
-        client.request(
-            method, f"/api/protected/user-service/onboarding/stages/{stage.value}/"
-        ),
-        expected_json={"detail": "Authorization is missing"},
-        expected_code=401,
-    )
-
-
 @pytest.mark.anyio()
 async def test_proceeding_to_community_choice_in_onboarding(
     active_session: ActiveSession,

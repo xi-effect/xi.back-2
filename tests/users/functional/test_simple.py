@@ -4,6 +4,7 @@ from typing import Any, Literal
 import pytest
 from starlette.testclient import TestClient
 
+from app.common.config import settings
 from app.common.utils.datetime import datetime_utc_now
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
@@ -26,6 +27,30 @@ async def test_retrieving_home_data(
     )
 
 
+@pytest.fixture(params=[False, True], ids=["headers", "cookies"])
+def use_cookie_auth(request: PytestRequest[bool]) -> bool:
+    return request.param
+
+
+@pytest.fixture()
+async def authorized_proxy_client(
+    client: TestClient,
+    session: Session,
+    use_cookie_auth: bool,
+) -> TestClient:
+    if use_cookie_auth:
+        return TestClient(
+            client.app,
+            base_url=f"http://{settings.cookie_domain}",
+            cookies={AUTH_COOKIE_NAME: session.token},
+        )
+    return TestClient(
+        client.app,
+        base_url=f"http://{settings.cookie_domain}",
+        headers={AUTH_HEADER_NAME: session.token},
+    )
+
+
 @pytest.fixture(
     params=["/proxy/auth/", "/proxy/optional-auth/"],
     ids=["proxy_auth", "optional_proxy_auth"],
@@ -36,13 +61,13 @@ def proxy_auth_path(request: PytestRequest[str]) -> str:
 
 @pytest.mark.anyio()
 async def test_requesting_proxy_auth(
-    authorized_client: TestClient,
+    authorized_proxy_client: TestClient,
     session: Session,
     user: User,
     proxy_auth_path: str,
 ) -> None:
     assert_nodata_response(
-        authorized_client.get(proxy_auth_path),
+        authorized_proxy_client.get(proxy_auth_path),
         expected_headers={
             "X-User-ID": str(user.id),
             "X-Username": user.username,
@@ -53,13 +78,13 @@ async def test_requesting_proxy_auth(
 
 @pytest.mark.anyio()
 async def test_requesting_options_in_proxy_auth(
-    authorized_client: TestClient,
+    authorized_proxy_client: TestClient,
     session: Session,
     user: User,
     proxy_auth_path: str,
 ) -> None:
     assert_nodata_response(
-        authorized_client.get(
+        authorized_proxy_client.get(
             proxy_auth_path,
             headers={"X-Request-Method": "OPTIONS"},
         ),
@@ -107,7 +132,7 @@ async def test_optional_proxy_authorization_unauthorized(
 @pytest.mark.anyio()
 async def test_renewing_session_in_proxy_auth(
     active_session: ActiveSession,
-    authorized_client: TestClient,
+    authorized_proxy_client: TestClient,
     session: Session,
     user: User,
     proxy_auth_path: str,
@@ -119,7 +144,7 @@ async def test_renewing_session_in_proxy_auth(
         db_session.add(session)
 
     response = assert_nodata_response(
-        authorized_client.get(proxy_auth_path),
+        authorized_proxy_client.get(proxy_auth_path),
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-User-ID": str(user.id),
@@ -133,20 +158,10 @@ async def test_renewing_session_in_proxy_auth(
         assert session_from_cookie.id == session.id
 
 
-@pytest.fixture(
-    params=["/api/protected/user-service/users/current/home/", "/proxy/auth/"],
-    ids=["home", "proxy_auth"],
-)
-def missing_auth_path(request: PytestRequest[str]) -> str:
-    return request.param
-
-
 @pytest.mark.anyio()
-async def test_requesting_unauthorized(
-    client: TestClient, missing_auth_path: str
-) -> None:
+async def test_requesting_unauthorized(client: TestClient) -> None:
     assert_response(
-        client.get(missing_auth_path),
+        client.get("/proxy/auth/"),
         expected_code=401,
         expected_json={"detail": "Authorization is missing"},
     )
@@ -156,13 +171,12 @@ async def test_requesting_unauthorized(
 async def test_requesting_invalid_session(
     client: TestClient,
     invalid_token: str,
-    missing_auth_path: str,
     use_cookie_auth: bool,
 ) -> None:
     cookies = {AUTH_COOKIE_NAME: invalid_token} if use_cookie_auth else {}
     headers = {} if use_cookie_auth else {AUTH_HEADER_NAME: invalid_token}
     assert_response(
-        client.get(missing_auth_path, cookies=cookies, headers=headers),
+        client.get("/proxy/auth/", cookies=cookies, headers=headers),
         expected_code=401,
         expected_json={"detail": "Session is invalid"},
     )

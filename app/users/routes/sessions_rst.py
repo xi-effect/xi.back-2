@@ -3,13 +3,11 @@ from collections.abc import Sequence
 from fastapi import Response
 from starlette.status import HTTP_404_NOT_FOUND
 
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.sessions_dep import AuthorizedSession
 from app.users.models.sessions_db import Session
-from app.users.utils.authorization import (
-    AuthorizedSession,
-    AuthorizedUser,
-    remove_session_from_response,
-)
+from app.users.utils.authorization import remove_session_from_response
 
 router = APIRouterExt(tags=["user sessions"])
 
@@ -38,10 +36,10 @@ async def signout(session: AuthorizedSession, response: Response) -> None:
     response_model=list[Session.FullSchema],
     summary="List all current user's sessions but the current one",
 )
-async def list_sessions(
-    user: AuthorizedUser, session: AuthorizedSession
-) -> Sequence[Session]:
-    return await Session.find_by_user(user.id, exclude_id=session.id)
+async def list_sessions(auth_data: AuthorizationData) -> Sequence[Session]:
+    return await Session.find_by_user(
+        auth_data.user_id, exclude_id=auth_data.session_id
+    )
 
 
 @router.delete(
@@ -49,8 +47,11 @@ async def list_sessions(
     status_code=204,
     summary="Disable all current user's sessions but the current one",
 )
-async def disable_all_but_current(session: AuthorizedSession) -> None:
-    await session.disable_all_other()
+async def disable_all_but_current(auth_data: AuthorizationData) -> None:
+    await Session.disable_all_but_one_for_user(
+        user_id=auth_data.user_id,
+        excluded_id=auth_data.session_id,
+    )
 
 
 class SessionResponses(Responses):
@@ -63,10 +64,10 @@ class SessionResponses(Responses):
     status_code=204,
     summary="Disable a specific user session",
 )
-async def disable_session(session_id: int, user: AuthorizedUser) -> None:
+async def disable_session(session_id: int, auth_data: AuthorizationData) -> None:
     session = await Session.find_first_by_kwargs(
         id=session_id,
-        user_id=user.id,
+        user_id=auth_data.user_id,
         is_mub=False,
     )
     if session is None:
