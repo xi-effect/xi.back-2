@@ -43,6 +43,27 @@ async def patch_user_data(
     return user
 
 
+@router.post(
+    "/users/current/email-confirmation-requests/",
+    responses=EmailResendResponses.responses(),
+    summary="Resend email confirmation message for the current user",
+    status_code=204,
+)
+async def resend_email_confirmation(user: AuthorizedUser) -> None:
+    if not user.is_email_confirmation_resend_allowed():
+        raise EmailResendResponses.TOO_MANY_EMAILS
+    confirmation_token: str = email_confirmation_cryptography.encrypt(user.email)
+    user.set_confirmation_resend_timeout()
+    logging.info(
+        "Magical send to pochta will happen here",
+        extra={
+            "message": f"Hi {user.email}, verify email: {confirmation_token}",
+            "email": user.email,
+            "token": confirmation_token,
+        },
+    )
+
+
 class PasswordProtectedResponses(Responses):
     WRONG_PASSWORD = (HTTP_401_UNAUTHORIZED, "Wrong password")
 

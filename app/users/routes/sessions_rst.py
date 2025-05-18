@@ -1,10 +1,15 @@
 from collections.abc import Sequence
 
+from fastapi import Response
 from starlette.status import HTTP_404_NOT_FOUND
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.sessions_db import Session
-from app.users.utils.authorization import AuthorizedSession, AuthorizedUser
+from app.users.utils.authorization import (
+    AuthorizedSession,
+    AuthorizedUser,
+    remove_session_from_response,
+)
 
 router = APIRouterExt(tags=["user sessions"])
 
@@ -16,6 +21,16 @@ router = APIRouterExt(tags=["user sessions"])
 )
 async def get_current_session(session: AuthorizedSession) -> Session:
     return session
+
+
+@router.delete(
+    "/sessions/current/",
+    status_code=204,
+    summary="Sign out from current account (disables the current session and removes cookies)",
+)
+async def signout(session: AuthorizedSession, response: Response) -> None:
+    session.is_disabled = True
+    remove_session_from_response(response)
 
 
 @router.get(

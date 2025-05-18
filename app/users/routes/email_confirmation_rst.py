@@ -1,22 +1,12 @@
-import logging
-
-from starlette.status import HTTP_401_UNAUTHORIZED
-
 from app.common.config import email_confirmation_cryptography
-from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.fastapi_ext import APIRouterExt
 from app.users.models.users_db import User
-from app.users.utils.authorization import AuthorizedUser
 from app.users.utils.confirmations import (
     ConfirmationTokenData,
-    EmailResendResponses,
     TokenVerificationResponses,
 )
 
 router = APIRouterExt(tags=["email confirmation"])
-
-
-class EmailConfirmationResponses(Responses):
-    INVALID_TOKEN = (HTTP_401_UNAUTHORIZED, "Invalid token")
 
 
 @router.post(
@@ -35,24 +25,3 @@ async def confirm_email(confirmation_token: ConfirmationTokenData) -> None:
     if user is None:
         raise TokenVerificationResponses.INVALID_TOKEN
     user.email_confirmed = True
-
-
-@router.post(
-    "/email-confirmation/requests/",
-    responses=EmailResendResponses.responses(),
-    summary="Resend email confirmation message",
-    status_code=204,
-)
-async def resend_email_confirmation(user: AuthorizedUser) -> None:
-    if not user.is_email_confirmation_resend_allowed():
-        raise EmailResendResponses.TOO_MANY_EMAILS
-    confirmation_token: str = email_confirmation_cryptography.encrypt(user.email)
-    user.set_confirmation_resend_timeout()
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Hi {user.email}, verify email: {confirmation_token}",
-            "email": user.email,
-            "token": confirmation_token,
-        },
-    )

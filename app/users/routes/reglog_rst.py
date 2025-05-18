@@ -7,12 +7,7 @@ from app.common.config import email_confirmation_cryptography
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.authorization import (
-    AuthorizedSession,
-    CrossSiteMode,
-    add_session_to_response,
-    remove_session_from_response,
-)
+from app.users.utils.authorization import CrossSiteMode, add_session_to_response
 from app.users.utils.users import (
     UserEmailResponses,
     UsernameResponses,
@@ -81,13 +76,3 @@ async def signin(
     await Session.cleanup_by_user(user.id)
 
     return user
-
-
-@router.post(
-    "/signout/",
-    status_code=204,
-    summary="Sign out from current account (disables the current session and removes cookies)",
-)
-async def signout(session: AuthorizedSession, response: Response) -> None:
-    session.is_disabled = True
-    remove_session_from_response(response)

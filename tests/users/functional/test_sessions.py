@@ -7,7 +7,7 @@ from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import Factory
-from tests.users.utils import session_checker
+from tests.users.utils import assert_session, session_checker
 
 
 @pytest.mark.anyio()
@@ -19,6 +19,20 @@ async def test_getting_current_session(
         authorized_client.get("/api/protected/user-service/sessions/current/"),
         expected_json=session_checker(session),
     )
+
+
+@pytest.mark.anyio()
+async def test_signing_out(
+    authorized_client: TestClient,
+    active_session: ActiveSession,
+    session_token: str,
+) -> None:
+    assert_nodata_response(
+        authorized_client.delete("/api/protected/user-service/sessions/current/")
+    )
+
+    async with active_session():
+        await assert_session(session_token, invalid=True)
 
 
 @pytest.mark.anyio()
@@ -125,6 +139,11 @@ async def test_disabling_all_other_sessions(
             "GET",
             "/api/protected/user-service/sessions/current/",
             id="get_current_session",
+        ),
+        pytest.param(
+            "DELETE",
+            "/api/protected/user-service/sessions/current/",
+            id="signout",
         ),
         pytest.param(
             "DELETE",

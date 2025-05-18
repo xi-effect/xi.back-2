@@ -2,12 +2,12 @@ import pytest
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import User
-from app.users.utils.authorization import AUTH_COOKIE_NAME, AUTH_HEADER_NAME
+from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
-from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.assert_contains_ext import assert_response
 from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON, PytestRequest
-from tests.users.utils import assert_session, assert_session_from_cookie
+from tests.users.utils import assert_session_from_cookie
 
 
 @pytest.fixture(params=[False, True], ids=["same_site", "cross_site"])
@@ -115,39 +115,4 @@ async def test_signing_in_invalid_credentials(
         expected_code=401,
         expected_json={"detail": error},
         expected_headers={"Set-Cookie": None},
-    )
-
-
-@pytest.mark.anyio()
-async def test_signing_out(
-    authorized_client: TestClient,
-    active_session: ActiveSession,
-    session_token: str,
-) -> None:
-    assert_nodata_response(authorized_client.post("/api/public/user-service/signout"))
-
-    async with active_session():
-        await assert_session(session_token, invalid=True)
-
-
-def test_signing_out_unauthorized(client: TestClient) -> None:
-    assert_response(
-        client.post("/api/public/user-service/signout/"),
-        expected_code=401,
-        expected_json={"detail": "Authorization is missing"},
-    )
-
-
-@pytest.mark.anyio()
-async def test_signing_out_invalid_session(
-    client: TestClient, invalid_token: str, use_cookie_auth: bool
-) -> None:
-    assert_response(
-        client.post(
-            "/api/public/user-service/signout/",
-            cookies={AUTH_COOKIE_NAME: invalid_token} if use_cookie_auth else {},
-            headers={} if use_cookie_auth else {AUTH_HEADER_NAME: invalid_token},
-        ),
-        expected_code=401,
-        expected_json={"detail": "Session is invalid"},
     )
