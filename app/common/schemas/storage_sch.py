@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class StorageAccessGroupKind(StrEnum):
     BOARD_CHANNEL = "board-channel"
+    PERSONAL = "personal"
 
 
 class YDocAccessLevel(StrEnum):
