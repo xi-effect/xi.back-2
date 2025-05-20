@@ -1,3 +1,4 @@
+from typing import Self
 from uuid import UUID, uuid4
 
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -18,3 +19,14 @@ class AccessGroup(Base):
 
     InputSchema = MappedModel.create(columns=[kind, related_id])
     ResponseSchema = InputSchema.extend(columns=[id])
+
+    @classmethod
+    async def find_or_create_personal(cls, user_id: int) -> Self:
+        access_group = await cls.find_first_by_kwargs(
+            kind=StorageAccessGroupKind.PERSONAL, related_id=str(user_id)
+        )
+        if access_group is None:
+            return await cls.create(
+                kind=StorageAccessGroupKind.PERSONAL, related_id=str(user_id)
+            )
+        return access_group
