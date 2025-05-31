@@ -39,7 +39,7 @@ class User(Base):
     password: Mapped[str] = mapped_column(String(100))
     display_name: Mapped[str | None] = mapped_column(String(30))
     onboarding_stage: Mapped[OnboardingStage] = mapped_column(
-        Enum(OnboardingStage), default=OnboardingStage.CREATED
+        Enum(OnboardingStage, name="onboarding_stage"), default=OnboardingStage.CREATED
     )
     theme: Mapped[str] = mapped_column(String(10), default="system")
 
