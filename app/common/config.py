@@ -40,9 +40,7 @@ class EmailSettings(BaseModel):
 class SupbotSettings(BaseModel):
     token: str
     group_id: int
-    channel_id: int
     polling: bool = False
-    webhook_url: str = "http://localhost:5100"
 
 
 class Settings(BaseSettings):

@@ -66,24 +66,17 @@ def supbot_group_id() -> int:
     return id_provider.generate_id()
 
 
-@pytest.fixture(scope="session")
-def supbot_channel_id() -> int:
-    return id_provider.generate_id()
-
-
 @pytest.fixture(autouse=True, scope="session")
 def mocked_telegram_app(
     bot: Bot,
     base_bot_storage: MemoryStorage,
     supbot_group_id: int,
-    supbot_channel_id: int,
 ) -> TelegramApp:
     telegram_app.initialize(
         bot=bot,
         dispatcher=Dispatcher(
             storage=base_bot_storage,
             group_id=supbot_group_id,
-            channel_id=supbot_channel_id,
         ),
     )
     return telegram_app

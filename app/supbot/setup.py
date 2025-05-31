@@ -33,11 +33,10 @@ async def maybe_initialize_telegram_app(telegram_app: TelegramApp) -> None:
             bot=Bot(settings.supbot.token),
             dispatcher=Dispatcher(
                 group_id=settings.supbot.group_id,
-                channel_id=settings.supbot.channel_id,
             ),
         )
         await telegram_app.bot.set_my_commands(BOT_COMMANDS)
         if settings.supbot.polling:
-            create_task(run_telegram_polling(telegram_app, settings.supbot.webhook_url))
+            create_task(run_telegram_polling(telegram_app, settings.bridge_base_url))
     elif settings.production_mode:
         logging.warning("Configuration for supbot is missing")
