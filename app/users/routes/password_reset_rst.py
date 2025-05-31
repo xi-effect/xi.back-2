@@ -5,26 +5,26 @@ from pydantic import Field
 
 from app.common.config import password_reset_cryptography
 from app.common.fastapi_ext import APIRouterExt
+from app.users.dependencies.users_dep import TargetUserResponses
 from app.users.models.users_db import User
 from app.users.utils.confirmations import (
     ConfirmationTokenData,
     TokenVerificationResponses,
 )
-from app.users.utils.users import UserResponses
 
 router = APIRouterExt(tags=["password reset"])
 
 
 @router.post(
     "/password-reset/requests/",
-    responses=UserResponses.responses(),
+    responses=TargetUserResponses.responses(),
     summary="Request for a password reset",
     status_code=202,
 )
 async def request_password_reset(data: User.EmailSchema) -> None:
     user = await User.find_first_by_kwargs(email=data.email)
     if user is None:
-        raise UserResponses.USER_NOT_FOUND
+        raise TargetUserResponses.USER_NOT_FOUND
     reset_token = password_reset_cryptography.encrypt(user.generated_reset_token)
     logging.info(
         "Magical send to pochta will happen here",

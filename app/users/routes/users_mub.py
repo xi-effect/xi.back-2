@@ -1,7 +1,7 @@
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.users_dep import UserByID
 from app.users.models.users_db import User
 from app.users.utils.users import (
-    TargetUser,
     UserEmailResponses,
     UsernameResponses,
     is_email_unique,
@@ -31,7 +31,7 @@ async def create_user(user_data: User.InputSchema) -> User:
     response_model=User.FullSchema,
     summary="Retrieve any user by id",
 )
-async def retrieve_user(user: TargetUser) -> User:
+async def retrieve_user(user: UserByID) -> User:
     return user
 
 
@@ -41,7 +41,7 @@ async def retrieve_user(user: TargetUser) -> User:
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Update any user's data by id",
 )
-async def update_user(user: TargetUser, user_data: User.FullPatchSchema) -> User:
+async def update_user(user: UserByID, user_data: User.FullPatchSchema) -> User:
     if not await is_email_unique(user_data.email, user.email):
         raise UserEmailResponses.EMAIL_IN_USE.value
     if not await is_username_unique(user_data.username, user.username):
@@ -51,6 +51,6 @@ async def update_user(user: TargetUser, user_data: User.FullPatchSchema) -> User
 
 
 @router.delete("/users/{user_id}/", status_code=204, summary="Delete any user by id")
-async def delete_user(user: TargetUser) -> None:
+async def delete_user(user: UserByID) -> None:
     await user.delete()
     user.avatar_path.unlink(missing_ok=True)

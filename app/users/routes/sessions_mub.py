@@ -4,9 +4,9 @@ from fastapi import Response
 from starlette.status import HTTP_404_NOT_FOUND
 
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.users_dep import UserByID
 from app.users.models.sessions_db import Session
 from app.users.utils.authorization import AUTH_COOKIE_NAME, add_session_to_response
-from app.users.utils.users import TargetUser
 
 router = APIRouterExt(tags=["sessions mub"])
 
@@ -27,7 +27,7 @@ def add_mub_session_to_response(response: Response, session: Session) -> None:
     status_code=201,
     summary="Create a new admin session",
 )
-async def make_mub_session(response: Response, user: TargetUser) -> None:
+async def make_mub_session(response: Response, user: UserByID) -> None:
     session = await Session.create(user_id=user.id, is_mub=True)
     add_mub_session_to_response(response, session)
 
@@ -37,7 +37,7 @@ async def make_mub_session(response: Response, user: TargetUser) -> None:
     status_code=204,
     summary="Retrieve or create an admin session",
 )
-async def upsert_mub_session(response: Response, user: TargetUser) -> None:
+async def upsert_mub_session(response: Response, user: UserByID) -> None:
     session = await Session.find_active_mub_session(user.id)
     if session is None:
         session = await Session.create(user_id=user.id, is_mub=True)
@@ -49,7 +49,7 @@ async def upsert_mub_session(response: Response, user: TargetUser) -> None:
     response_model=list[Session.MUBFullSchema],
     summary="List all user sessions",
 )
-async def list_all_sessions(user: TargetUser) -> Sequence[Session]:
+async def list_all_sessions(user: UserByID) -> Sequence[Session]:
     return await Session.find_all_by_kwargs(Session.expires_at.desc(), user_id=user.id)
 
 
@@ -65,7 +65,7 @@ class SessionResponses(Responses):
 )
 async def disable_or_delete_session(
     session_id: int,
-    user: TargetUser,
+    user: UserByID,
     delete_session: bool = False,
 ) -> None:
     session = await Session.find_first_by_kwargs(id=session_id, user_id=user.id)
