@@ -3,6 +3,7 @@
 
 venv/
 env/
+.env
 
 .coverage
 .mypy_cache/
