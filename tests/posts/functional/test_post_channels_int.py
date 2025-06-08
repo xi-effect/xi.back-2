@@ -21,7 +21,7 @@ async def test_post_channel_creation(
             f"/internal/post-service/post-channels/{deleted_post_channel_id}/",
             json=post_channel_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
     )
 
     async with active_session():

@@ -71,7 +71,7 @@ async def test_participant_creation(
             params={"user_id": participant_user_id},
             json=participant_patch_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **participant_patch_data,
             "user_id": participant_user_id,

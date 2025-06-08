@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import Request
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.supbot.routers import (
@@ -33,7 +34,11 @@ async def lifespan(_: Any) -> AsyncIterator[None]:
 api_router = APIRouterExt(prefix="/api/telegram", lifespan=lifespan)
 
 
-@api_router.post("/updates/", status_code=204, summary="Execute telegram webhook")
+@api_router.post(
+    "/updates/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Execute telegram webhook",
+)
 async def feed_update_from_telegram(request: Request) -> None:
     await telegram_app.dispatcher.feed_webhook_update(
         telegram_app.bot, await request.json()

@@ -21,7 +21,7 @@ async def test_community_creation(
 ) -> None:
     community_id: int = assert_response(
         mub_client.post("/mub/community-service/communities/", json=community_data),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**community_data, "id": int},
     ).json()["id"]
 

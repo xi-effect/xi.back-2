@@ -1,5 +1,6 @@
 from typing import Annotated
 
+from starlette import status
 from tmexio import Emitter, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -25,7 +26,9 @@ async def send_message(
     chat: ChatById,
     data: Message.InputSchema,
     duplex_emitter: Annotated[Emitter[Message], Message.ServerEventSchema],
-) -> Annotated[Message, PydanticPackager(Message.ResponseSchema, code=201)]:
+) -> Annotated[
+    Message, PydanticPackager(Message.ResponseSchema, code=status.HTTP_201_CREATED)
+]:
     message = await Message.create(
         chat_id=chat.id,
         sender_user_id=user.user_id,

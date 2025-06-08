@@ -1,10 +1,10 @@
-import enum
 from datetime import datetime, timedelta
+from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, ClassVar
 
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
-from pydantic import AfterValidator, AwareDatetime, Field, StringConstraints
+from pydantic import AfterValidator, AwareDatetime, StringConstraints
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import CHAR, DateTime, Enum, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -16,7 +16,7 @@ from app.common.utils.datetime import datetime_utc_now
 password_reset_token_generator = TokenGenerator(randomness=40, length=50)
 
 
-class OnboardingStage(str, enum.Enum):
+class OnboardingStage(StrEnum):
     CREATED = "created"
     COMMUNITY_CHOICE = "community-choice"
     COMMUNITY_CREATE = "community-create"
@@ -62,15 +62,16 @@ class User(Base):
     )
 
     PasswordType = Annotated[
-        str, Field(min_length=6, max_length=100), AfterValidator(generate_hash)
+        str,
+        StringConstraints(min_length=6, max_length=100),
+        AfterValidator(generate_hash),
     ]
     DisplayNameRequiredType = Annotated[
         str,
-        StringConstraints(strip_whitespace=True),
-        Field(min_length=2, max_length=30),
+        StringConstraints(strip_whitespace=True, min_length=2, max_length=30),
     ]
     DisplayNameType = DisplayNameRequiredType | None
-    UsernameType = Annotated[str, Field(pattern="^[a-z0-9_.]{4,30}$")]
+    UsernameType = Annotated[str, StringConstraints(pattern="^[a-z0-9_.]{4,30}$")]
 
     EmailSchema = MappedModel.create(
         columns=[email]

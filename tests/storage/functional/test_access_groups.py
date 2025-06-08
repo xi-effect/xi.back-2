@@ -22,7 +22,7 @@ async def test_access_group_creation(
             "/internal/storage-service/access-groups/",
             json=access_group_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**access_group_data, "id": UUID},
     ).json()["id"]
 

@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Path
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.messenger.dependencies.chats_dep import ChatById
@@ -12,7 +13,7 @@ router = APIRouterExt(tags=["message drafts mub"])
 
 @router.post(
     path="/chats/{chat_id}/users/{user_id}/draft/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=MessageDraft.ResponseSchema,
     summary="Create message draft for any user in any chat",
 )
@@ -49,7 +50,7 @@ async def get_message_draft(message_draft: MessageDraftByIds) -> MessageDraft:
 
 @router.delete(
     path="/chats/{chat_id}/users/{user_id}/draft/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete message draft for any user in any chat",
 )
 async def delete_message_draft(message_draft: MessageDraftByIds) -> None:

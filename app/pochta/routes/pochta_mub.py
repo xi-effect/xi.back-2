@@ -2,6 +2,7 @@ from email.message import EmailMessage
 from typing import Annotated
 
 from fastapi import File, Form, HTTPException, UploadFile
+from starlette import status
 
 from app.common.config import settings, smtp_client
 from app.common.fastapi_ext import APIRouterExt
@@ -11,7 +12,7 @@ router = APIRouterExt(tags=["pochta mub"])
 
 @router.post(
     "/emails-from-file/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Send email from uploaded file",
 )
 async def send_email_from_file(
@@ -20,7 +21,9 @@ async def send_email_from_file(
     file: Annotated[UploadFile, File(description="text/html")],
 ) -> None:
     if smtp_client is None or settings.email is None:
-        raise HTTPException(500, "Email config is not set")
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "Email config is not set"
+        )
 
     message = EmailMessage()
     message["To"] = receiver

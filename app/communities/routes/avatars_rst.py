@@ -18,7 +18,7 @@ class AvatarResponses(Responses):
 # TODO authorize a user in the community
 @router.put(
     "/communities/{community_id}/avatar/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=AvatarResponses.responses(),
     summary="Update or create a community avatar by id",
 )
@@ -35,7 +35,7 @@ async def update_or_create_avatar(
 
 @router.delete(
     "/communities/{community_id}/avatar/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a community avatar by id",
 )
 async def delete_avatar(community: CommunityById) -> None:

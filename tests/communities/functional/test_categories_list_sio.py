@@ -55,7 +55,7 @@ async def test_category_moving(
             after_id=None if after is None else category_ids[after],
             before_id=None if before is None else category_ids[before],
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 

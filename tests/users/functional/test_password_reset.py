@@ -30,7 +30,7 @@ async def test_requesting_password_reset(
             "/api/public/user-service/password-reset/requests/",
             json={"email": user.email},
         ),
-        expected_code=202,
+        expected_code=status.HTTP_202_ACCEPTED,
     )
 
     # TODO: assert email sent

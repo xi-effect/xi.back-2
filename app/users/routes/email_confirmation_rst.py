@@ -1,3 +1,5 @@
+from starlette import status
+
 from app.common.config import email_confirmation_cryptography
 from app.common.fastapi_ext import APIRouterExt
 from app.users.models.users_db import User
@@ -11,9 +13,9 @@ router = APIRouterExt(tags=["email confirmation"])
 
 @router.post(
     "/email-confirmation/confirmations/",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=TokenVerificationResponses.responses(),
     summary="Confirm user's email",
-    status_code=204,
 )
 async def confirm_email(confirmation_token: ConfirmationTokenData) -> None:
     email: str | None = email_confirmation_cryptography.decrypt(

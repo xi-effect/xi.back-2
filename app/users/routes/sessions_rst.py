@@ -23,7 +23,7 @@ async def get_current_session(session: AuthorizedSession) -> Session:
 
 @router.delete(
     "/sessions/current/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Sign out from current account (disables the current session and removes cookies)",
 )
 async def signout(session: AuthorizedSession, response: Response) -> None:
@@ -44,7 +44,7 @@ async def list_sessions(auth_data: AuthorizationData) -> Sequence[Session]:
 
 @router.delete(
     "/sessions/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Disable all current user's sessions but the current one",
 )
 async def disable_all_but_current(auth_data: AuthorizationData) -> None:
@@ -61,7 +61,7 @@ class SessionResponses(Responses):
 @router.delete(
     "/sessions/{session_id}/",
     responses=SessionResponses.responses(),
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Disable a specific user session",
 )
 async def disable_session(session_id: int, auth_data: AuthorizationData) -> None:

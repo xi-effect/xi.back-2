@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 from respx import MockRouter
+from starlette import status
 
 from app.common.config import settings
 from app.communities.models.board_channels_db import BoardChannel
@@ -36,7 +37,7 @@ async def test_post_channel_deletion(
 
     posts_bridge_mock = posts_respx_mock.delete(
         path=f"/post-channels/{channel.id}/",
-    ).respond(status_code=204)
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     async with active_session() as session:
         session.add(channel)
@@ -77,7 +78,7 @@ async def test_board_channel_deletion(
 
     delete_access_group_mock = storage_respx_mock.delete(
         path=f"/access-groups/{board_channel.access_group_id}/"
-    ).respond(status_code=204)
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     async with active_session() as session:
         session.add(channel)
@@ -118,7 +119,7 @@ async def test_chat_channel_deletion(
 
     delete_chat_mock = messenger_respx_mock.delete(
         path=f"/chats/{chat_channel.chat_id}/",
-    ).respond(status_code=204)
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     async with active_session() as session:
         session.add(channel)

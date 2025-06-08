@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import Query
 from pydantic import AwareDatetime
+from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
@@ -34,7 +35,7 @@ async def list_materials(
 
 @router.post(
     path="/materials/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Material.ResponseSchema,
     summary="Create a new tutor material for the current user",
 )
@@ -71,7 +72,7 @@ async def patch_material(
 
 @router.delete(
     path="/materials/{material_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete tutor material by id",
 )
 async def delete_material(material: MaterialByID) -> None:

@@ -28,7 +28,7 @@ async def test_material_creation(
             "/api/protected/tutor-service/materials/",
             json=material_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **material_input_data,
             "id": int,

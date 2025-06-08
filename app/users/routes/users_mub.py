@@ -1,3 +1,5 @@
+from starlette import status
+
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.dependencies.users_dep import UserByID
 from app.users.models.users_db import User
@@ -13,7 +15,7 @@ router = APIRouterExt(tags=["users mub"])
 
 @router.post(
     "/users/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Create a new user",
@@ -50,7 +52,11 @@ async def update_user(user: UserByID, user_data: User.FullPatchSchema) -> User:
     return user
 
 
-@router.delete("/users/{user_id}/", status_code=204, summary="Delete any user by id")
+@router.delete(
+    "/users/{user_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete any user by id",
+)
 async def delete_user(user: UserByID) -> None:
     await user.delete()
     user.avatar_path.unlink(missing_ok=True)

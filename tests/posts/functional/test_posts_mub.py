@@ -26,7 +26,7 @@ async def test_post_creation(
             f"/mub/post-service/post-channels/{post_channel.id}/posts/",
             json=post_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **post_input_data,
             "id": int,

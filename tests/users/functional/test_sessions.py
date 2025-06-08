@@ -116,18 +116,17 @@ async def test_disabling_all_other_sessions(
 
 
 @pytest.mark.parametrize(
-    ("method", "path"),
+    "method",
     [
-        pytest.param("GET", "/sessions/current/", id="get-current-session"),
-        pytest.param("DELETE", "/sessions/current/", id="signout"),
+        pytest.param("GET", id="get-current-session"),
+        pytest.param("DELETE", id="signout"),
     ],
 )
-async def test_requesting_session_not_found(
+async def test_requesting_current_session_not_found(
     client: TestClient,
     user_proxy_auth_data: ProxyAuthData,
     deleted_session_id: int,
     method: str,
-    path: str,
 ) -> None:
     broken_proxy_auth_data: ProxyAuthData = ProxyAuthDataFactory.build(
         session_id=deleted_session_id,
@@ -137,7 +136,7 @@ async def test_requesting_session_not_found(
     assert_response(
         client.request(
             method,
-            f"/api/protected/user-service{path}",
+            "/api/protected/user-service/sessions/current/",
             headers=broken_proxy_auth_data.as_headers,
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,

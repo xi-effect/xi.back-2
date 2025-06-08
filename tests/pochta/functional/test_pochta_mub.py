@@ -4,6 +4,7 @@ from unittest.mock import ANY
 import pytest
 from faker import Faker
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import EmailSettings
@@ -85,6 +86,6 @@ async def test_sending_email_from_file_config_not_set(
             data=EmailFormDataFactory.build_json(),
             files={"file": html_filename_and_content},
         ),
-        expected_code=500,
+        expected_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         expected_json={"detail": "Email config is not set"},
     )

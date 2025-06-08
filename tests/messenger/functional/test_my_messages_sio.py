@@ -33,7 +33,7 @@ async def test_message_sending(
             chat_id=chat.id,
             data=message_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_data={
             **message_input_data,
             "id": UUID,
@@ -113,7 +113,7 @@ async def test_my_message_deleting(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_sender_client.assert_no_more_events()
 

@@ -47,7 +47,9 @@ async def create_category(
     community: CommunityById,
     data: Category.InputSchema,
     duplex_emitter: Annotated[Emitter[Category], Category.ServerEventSchema],
-) -> Annotated[Category, PydanticPackager(Category.ResponseSchema, code=201)]:
+) -> Annotated[
+    Category, PydanticPackager(Category.ResponseSchema, code=status.HTTP_201_CREATED)
+]:
     if await Category.is_limit_per_community_reached(community_id=community.id):
         raise quantity_limit_exceeded
 

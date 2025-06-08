@@ -1,6 +1,7 @@
 from typing import assert_never
 
 from fastapi import Response
+from starlette import status
 
 from app.common.config_bdg import communities_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -16,7 +17,7 @@ router = APIRouterExt(tags=["ydocs internal"])
 
 @router.post(
     "/access-groups/{access_group_id}/ydocs/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=YDoc.ResponseSchema,
     summary="Create a new ydoc",
 )
@@ -54,7 +55,7 @@ async def retrieve_ydoc_content(ydoc: YDocById) -> Response:
 
 @router.put(
     "/ydocs/{ydoc_id}/content/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Update ydoc's content",
 )
 async def update_ydoc_content(ydoc: YDocById, content: YDocContent) -> None:
@@ -63,7 +64,7 @@ async def update_ydoc_content(ydoc: YDocById, content: YDocContent) -> None:
 
 @router.delete(
     "/ydocs/{ydoc_id}/content/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Clear ydoc's content",
 )
 async def clear_ydoc_content(ydoc: YDocById) -> None:

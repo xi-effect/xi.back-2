@@ -28,7 +28,7 @@ async def test_category_creation(
             community_id=community.id,
             data=category_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_data={**category_data, "id": int},
     )[1]["id"]
     tmexio_owner_client.assert_no_more_events()
@@ -106,7 +106,7 @@ async def test_category_deleting(
             community_id=community.id,
             category_id=category.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 

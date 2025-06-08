@@ -37,7 +37,7 @@ async def list_channels_and_categories(
 
 @router.post(
     "/communities/{community_id}/channels/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Channel.ResponseSchema,
     responses=LimitedListResponses.responses(),
     summary="Create a new channel in the community (append to the end of the list)",
@@ -63,7 +63,7 @@ async def create_channel(
 
 @router.put(
     "/communities/{community_id}/channels/positions/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Reindex channels in a community",
 )
 async def reindex_channels(
@@ -94,7 +94,7 @@ async def patch_channel(channel: ChannelById, data: Channel.PatchSchema) -> Chan
 
 @router.put(
     "/channels/{channel_id}/position/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=CategoriesResponses.responses(
         LimitedListResponses.responses(MoveResponses.responses())
     ),
@@ -129,7 +129,7 @@ async def move_channel(
 
 @router.delete(
     "/channels/{channel_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any channel by id",
 )
 async def delete_channel(channel: ChannelById) -> None:

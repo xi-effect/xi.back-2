@@ -44,7 +44,7 @@ async def test_demo_form_submitting_missing_webhook_url(client: TestClient) -> N
             "/api/public/user-service/demo-applications/",
             json=factories.DemoFormFactory.build_json(),
         ),
-        expected_code=500,
+        expected_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         expected_json={"detail": "Webhook url is not set"},
     )
 
@@ -104,6 +104,6 @@ async def test_vacancy_form_submitting_missing_webhook_url(
             data=vacancy_form_data,
             files={"resume": pdf_data},
         ),
-        expected_code=500,
+        expected_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         expected_json={"detail": "Webhook url is not set"},
     )

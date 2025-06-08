@@ -21,7 +21,7 @@ async def test_user_creation(
 ) -> None:
     user_id: int = assert_response(
         mub_client.post("/mub/user-service/users/", json=user_data),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**user_data, "id": int, "password": None},
     ).json()["id"]
 

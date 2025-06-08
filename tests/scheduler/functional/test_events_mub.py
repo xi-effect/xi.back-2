@@ -25,7 +25,7 @@ async def test_event_creation(
 
     event_id = assert_response(
         mub_client.post("/mub/scheduler-service/events/", json=event_input_data),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **event_input_data,
             "id": int,

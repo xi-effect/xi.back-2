@@ -42,7 +42,7 @@ async def list_events(
 
 @router.post(
     path="/events/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Event.ResponseSchema,
     summary="Create a new event",
 )
@@ -73,7 +73,9 @@ async def put_event(
 
 
 @router.delete(
-    path="/events/{event_id}/", status_code=204, summary="Delete any event by id"
+    path="/events/{event_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete any event by id",
 )
 async def delete_event(event: EventById) -> None:
     await event.delete()

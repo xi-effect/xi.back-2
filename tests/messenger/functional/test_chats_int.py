@@ -17,7 +17,7 @@ async def test_chat_channel_creation(
 ) -> None:
     chat_id: int = assert_response(
         internal_client.post("/internal/messenger-service/chats/", json=chat_data),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**chat_data, "id": int},
     ).json()["id"]
 

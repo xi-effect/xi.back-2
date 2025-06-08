@@ -2,12 +2,13 @@ from json import JSONDecodeError
 
 from httpx import Response
 from pydantic_marshals.contains import TypeChecker, assert_contains
+from starlette import status
 
 
 def assert_nodata_response(
     response: Response,
     *,
-    expected_code: int = 204,
+    expected_code: int = status.HTTP_204_NO_CONTENT,
     expected_headers: dict[str, TypeChecker] | None = None,
     expected_cookies: dict[str, TypeChecker] | None = None,
 ) -> Response:
@@ -36,7 +37,7 @@ def assert_nodata_response(
 def assert_response(
     response: Response,
     *,
-    expected_code: int = 200,
+    expected_code: int = status.HTTP_200_OK,
     expected_json: TypeChecker,
     expected_headers: dict[str, TypeChecker] | None = None,
     expected_cookies: dict[str, TypeChecker] | None = None,

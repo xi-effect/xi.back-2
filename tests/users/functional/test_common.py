@@ -8,7 +8,7 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 def test_redirecting_on_tailing_stash(client: TestClient) -> None:
     assert_nodata_response(
         client.get("/api/public/user-service/signup", follow_redirects=False),
-        expected_code=307,
+        expected_code=status.HTTP_307_TEMPORARY_REDIRECT,
     )
 
 
@@ -19,7 +19,7 @@ def test_setting_cors_headers_options(faker: Faker, client: TestClient) -> None:
             "/api/public/user-service/signup/",
             headers={"Origin": hostname, "Access-Control-Request-Method": "POST"},
         ),
-        expected_code=200,
+        expected_code=status.HTTP_200_OK,
         expected_headers={
             "access-control-allow-origin": hostname,
             "access-control-allow-credentials": "true",

@@ -129,7 +129,7 @@ async def test_marking_message_as_read(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():
@@ -163,7 +163,7 @@ async def test_marking_message_as_read_already_read(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():
@@ -228,7 +228,7 @@ async def check_chat_closed(tmexio_client: TMEXIOTestClient, chat_id: int) -> No
 
     assert_ack(
         await tmexio_client.emit("close-chat", chat_id=chat_id),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_client.assert_no_more_events()
 

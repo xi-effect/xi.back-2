@@ -7,6 +7,7 @@ from unittest.mock import patch
 from engineio import async_socket, packet as eio_packet  # type: ignore[import-untyped]
 from pydantic_marshals.contains import TypeChecker, assert_contains
 from socketio import packet as sio_packet  # type: ignore[import-untyped]
+from starlette import status
 from tmexio import TMEXIO
 from tmexio.types import DataType
 
@@ -219,7 +220,7 @@ class TMEXIOListenerFactory(Protocol):
 
 def assert_ack(
     real_ack: tuple[int, Any],
-    expected_code: int = 200,
+    expected_code: int = status.HTTP_200_OK,
     expected_data: TypeChecker = None,
 ) -> tuple[int, Any]:
     assert_contains(

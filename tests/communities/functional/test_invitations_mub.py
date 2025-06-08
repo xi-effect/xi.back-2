@@ -67,7 +67,7 @@ async def test_invitation_creation(  # TODO community_not_finding
             f"/mub/community-service/communities/{community.id}/invitations/",
             json=invitation_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **invitation_input_data,
             "id": int,

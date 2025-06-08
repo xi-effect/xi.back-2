@@ -7,6 +7,7 @@ import pytest
 from httpx import Request, Response
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
+from starlette import status
 
 from app.common.config import Base, settings
 from app.common.schemas.messenger_sch import ChatAccessKind
@@ -37,7 +38,7 @@ async def test_post_channel_creation(
 
     posts_bridge_mock = posts_respx_mock.post(
         path__regex=r"/post-channels/(?P<channel_id>\d+)/",
-    ).respond(status_code=204)
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     async with active_session():
         channel = await channels_svc.create_channel(
@@ -76,7 +77,7 @@ def create_access_group_mock_side_effect_factory(
 
         assert_contains(json_data, {"kind": StorageAccessGroupKind, "related_id": str})
         return Response(
-            status_code=201,
+            status_code=status.HTTP_201_CREATED,
             json={
                 "id": access_group_id,
                 "kind": json_data["kind"],
@@ -105,7 +106,7 @@ async def test_board_channel_creation(
     )
     create_ydoc_mock = storage_respx_mock.post(
         path=f"/access-groups/{access_group_id}/ydocs/"
-    ).respond(status_code=201, json={"id": ydoc_id})
+    ).respond(status_code=status.HTTP_201_CREATED, json={"id": ydoc_id})
 
     async with active_session():
         channel = await channels_svc.create_channel(
@@ -155,7 +156,7 @@ def create_chat_mock_side_effect_factory(chat_id: int) -> Callable[[Request], Re
 
         assert_contains(json_data, {"access_kind": ChatAccessKind, "related_id": str})
         return Response(
-            status_code=201,
+            status_code=status.HTTP_201_CREATED,
             json={
                 "id": chat_id,
                 "access_kind": json_data["access_kind"],

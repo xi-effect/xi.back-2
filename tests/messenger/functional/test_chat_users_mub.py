@@ -27,7 +27,7 @@ async def test_chat_user_creation(
             f"/mub/messenger-service/chats/{chat.id}/users/{sender_user_id}/",
             json=chat_user_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **chat_user_input_data,
             "chat_id": chat.id,

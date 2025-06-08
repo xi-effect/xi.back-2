@@ -68,7 +68,7 @@ async def check_participants_list_closed(
             "close-participants",
             community_id=community_id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_client.assert_no_more_events()
 
@@ -123,7 +123,7 @@ async def test_participant_kicking(
             community_id=community.id,
             target_user_id=participant.user_id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 

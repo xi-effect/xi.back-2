@@ -3,6 +3,7 @@ from typing import Annotated, BinaryIO
 
 from discord_webhook import AsyncDiscordWebhook  # type: ignore[import-untyped]
 from fastapi import Form, HTTPException
+from starlette import status
 
 from app.common.config import settings
 from app.common.fastapi_ext import APIRouterExt
@@ -18,7 +19,9 @@ async def execute_discord_webhook(
     attachment: tuple[str | None, BinaryIO] | None = None,
 ) -> None:
     if url is None:
-        raise HTTPException(500, "Webhook url is not set")
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "Webhook url is not set"
+        )
 
     webhook = AsyncDiscordWebhook(url=url, content=content)
     if attachment is not None:
@@ -27,7 +30,9 @@ async def execute_discord_webhook(
 
 
 @router.post(
-    "/demo-applications/", status_code=204, summary="Apply for a demonstration"
+    "/demo-applications/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Apply for a demonstration",
 )
 async def apply_for_demonstration(demo_form: DemoFormSchema) -> None:
     await execute_discord_webhook(
@@ -50,7 +55,9 @@ def iter_vacancy_message_lines(
 
 
 @router.post(
-    "/v2/vacancy-applications/", status_code=204, summary="Apply for a vacancy"
+    "/v2/vacancy-applications/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Apply for a vacancy",
 )
 async def apply_for_vacancy(
     position: Annotated[str, Form()],

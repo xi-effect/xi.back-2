@@ -47,9 +47,9 @@ async def patch_user_data(
 
 @router.post(
     "/users/current/email-confirmation-requests/",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=EmailResendResponses.responses(),
     summary="Resend email confirmation message for the current user",
-    status_code=204,
 )
 async def resend_email_confirmation(user: AuthorizedUser) -> None:
     if not user.is_email_confirmation_resend_allowed():

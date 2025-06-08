@@ -61,7 +61,7 @@ async def authorize_user(
 
 @router.get(
     "/proxy/auth/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=AuthorizedResponses.responses(),
     summary="Retrieve headers for proxy authorization, return 401 on invalid auth",
 )
@@ -86,7 +86,7 @@ async def proxy_auth(
 
 @router.get(
     "/proxy/optional-auth/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Retrieve headers for proxy authorization, do nothing on invalid auth",
 )
 async def optional_proxy_auth(

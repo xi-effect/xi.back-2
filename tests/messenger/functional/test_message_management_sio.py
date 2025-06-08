@@ -22,7 +22,7 @@ async def test_message_pinning(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_sender_client.assert_no_more_events()
 
@@ -67,7 +67,7 @@ async def test_message_unpinning(
             chat_id=chat.id,
             message_id=pinned_message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_sender_client.assert_no_more_events()
 

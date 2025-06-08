@@ -2,6 +2,7 @@ import logging
 from typing import Annotated
 
 from pydantic import Field
+from starlette import status
 
 from app.common.config import password_reset_cryptography
 from app.common.fastapi_ext import APIRouterExt
@@ -19,7 +20,7 @@ router = APIRouterExt(tags=["password reset"])
     "/password-reset/requests/",
     responses=TargetUserResponses.responses(),
     summary="Request for a password reset",
-    status_code=202,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 async def request_password_reset(data: User.EmailSchema) -> None:
     user = await User.find_first_by_kwargs(email=data.email)
@@ -42,9 +43,9 @@ class ResetCredentials(ConfirmationTokenData):
 
 @router.post(
     "/password-reset/confirmations/",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=TokenVerificationResponses.responses(),
     summary="Confirm password reset and set a new password",
-    status_code=204,
 )
 async def confirm_password_reset(reset_data: ResetCredentials) -> None:
     token = password_reset_cryptography.decrypt(reset_data.token)

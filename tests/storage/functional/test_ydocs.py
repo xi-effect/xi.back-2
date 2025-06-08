@@ -28,7 +28,7 @@ async def test_ydoc_creating(
         internal_client.post(
             f"/internal/storage-service/access-groups/{access_group.id}/ydocs/",
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={"id": UUID},
     ).json()["id"]
 

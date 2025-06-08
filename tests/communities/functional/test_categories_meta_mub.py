@@ -27,7 +27,7 @@ async def test_category_creation(
             f"/mub/community-service/communities/{community.id}/categories/",
             json=category_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**category_data, "id": int},
     ).json()["id"]
 

@@ -111,7 +111,7 @@ async def test_invitation_deleting(
             community_id=community.id,
             invitation_id=invitation.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():

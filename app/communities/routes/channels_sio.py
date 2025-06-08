@@ -65,7 +65,9 @@ async def create_channel(
     category_id: int | None,
     data: Channel.InputSchema,
     duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
-) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema, code=201)]:
+) -> Annotated[
+    Channel, PydanticPackager(Channel.ResponseSchema, code=status.HTTP_201_CREATED)
+]:
     if category_id is not None:
         category = await Category.find_first_by_kwargs(
             id=category_id, community_id=community.id

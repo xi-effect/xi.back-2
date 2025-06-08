@@ -44,7 +44,7 @@ async def test_uncategorized_file_uploading(
                 "upload": (filename, uncategorized_file, "application/octet-stream")
             },
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             "id": UUID,
             "name": filename,
@@ -78,7 +78,7 @@ async def test_image_file_uploading(
             f"/api/protected/storage-service/access-groups/{access_group_id_or_public}/file-kinds/image/files/",
             files={"upload": (filename, image_file, "image/webp")},
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             "id": UUID,
             "name": filename,
@@ -185,7 +185,7 @@ async def test_file_reading_not_modified_by_etag(
             f"/api/protected/storage-service/files/{file.id}/",
             headers={"If-None-Match": file_etag},
         ),
-        expected_code=304,
+        expected_code=status.HTTP_304_NOT_MODIFIED,
         expected_headers={"ETag": file_etag},
     )
 
@@ -201,7 +201,7 @@ async def test_file_reading_not_modified_by_datetime(
             f"/api/protected/storage-service/files/{file.id}/",
             headers={"If-Modified-Since": file_last_modified},
         ),
-        expected_code=304,
+        expected_code=status.HTTP_304_NOT_MODIFIED,
         expected_headers={"ETag": file_etag},
     )
 

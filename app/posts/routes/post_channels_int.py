@@ -16,7 +16,7 @@ class PostChannelExistenceResponses(Responses):
 
 @router.post(
     "/post-channels/{channel_id}/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     responses=PostChannelExistenceResponses.responses(),
     summary="Create a new post-channel",
 )
@@ -28,7 +28,7 @@ async def create_post_channel(channel_id: int, data: PostChannel.InputSchema) ->
 
 @router.delete(
     "/post-channels/{channel_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any post-channel by id",
 )
 async def delete_post_channel(post_channel: PostChannelById) -> None:

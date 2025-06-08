@@ -7,6 +7,7 @@ from aiogram.types import Chat, InputMediaDocument, InputMediaPhoto, InputMediaV
 from faker import Faker
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
+from starlette import status
 
 from app.supbot import texts
 from app.supbot.routers.vacancy_tgm import VacancyStates
@@ -513,7 +514,7 @@ async def test_sending_comment(
         path="/v2/vacancy-applications/",
         data=vacancy_form_data,
         files={"resume": pdf_data},
-    ).respond(status_code=204)
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     vacancy_form_data["resume"] = pdf_data
     await bot_storage.update_data(bot_storage_key, vacancy_form_data)

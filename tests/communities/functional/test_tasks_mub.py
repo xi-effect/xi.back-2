@@ -26,7 +26,7 @@ async def test_task_creation(
             f"/mub/community-service/task-channels/{task_channel.id}/tasks/",
             json=task_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **task_input_data,
             "id": int,

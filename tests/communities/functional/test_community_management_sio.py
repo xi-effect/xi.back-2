@@ -45,7 +45,7 @@ async def test_community_deleting(
 ) -> None:
     assert_ack(
         await tmexio_owner_client.emit("delete-community", community_id=community.id),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 

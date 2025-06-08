@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Path
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.messenger.dependencies.chat_users_dep import ChatUserByIds
@@ -12,7 +13,7 @@ router = APIRouterExt(tags=["chat-users mub"])
 
 @router.post(
     "/chats/{chat_id}/users/{user_id}/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=ChatUser.ResponseSchema,
     summary="Create chat-user for any user in any chat",
 )
@@ -48,7 +49,7 @@ async def patch_chat_user(
 
 @router.delete(
     "/chats/{chat_id}/users/{user_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete chat-user data for any user in any chat",
 )
 async def delete_chat_user(chat_user: ChatUserByIds) -> None:

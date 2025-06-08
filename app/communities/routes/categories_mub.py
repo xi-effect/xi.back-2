@@ -25,7 +25,7 @@ async def list_categories(community: CommunityById) -> Sequence[Category]:
 
 @router.put(
     "/communities/{community_id}/categories/positions/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Reindex categories in a community",
 )
 async def reindex_categories(community: CommunityById) -> None:
@@ -34,7 +34,7 @@ async def reindex_categories(community: CommunityById) -> None:
 
 @router.post(
     "/communities/{community_id}/categories/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Category.ResponseSchema,
     responses=LimitedListResponses.responses(),
     summary="Create a new category in the community (append to the end of the list)",
@@ -70,7 +70,7 @@ async def patch_category(
 
 @router.put(
     "/categories/{category_id}/position/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=MoveResponses.responses(),
     summary="Move category to a new position",
 )
@@ -91,7 +91,7 @@ async def move_category(
 
 @router.delete(
     "/categories/{category_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any category by id",
 )
 async def delete_category(category: CategoryById) -> None:

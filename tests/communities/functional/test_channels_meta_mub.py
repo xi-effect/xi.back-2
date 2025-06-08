@@ -37,7 +37,7 @@ async def test_channel_creation(
             params=remove_none_values({"category_id": channel_parent_category_id}),
             json=channel_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**channel_data, "id": channel.id},
     )
 

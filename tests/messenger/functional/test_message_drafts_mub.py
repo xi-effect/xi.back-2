@@ -30,7 +30,7 @@ async def test_message_draft_creating(
             f"/mub/messenger-service/chats/{chat.id}/users/{sender_user_id}/draft/",
             json=input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **input_data,
             "chat_id": chat.id,

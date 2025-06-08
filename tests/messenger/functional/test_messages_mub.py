@@ -127,7 +127,7 @@ async def test_message_creation(
             f"/mub/messenger-service/chats/{chat.id}/messages/",
             json=message_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **message_input_data,
             "id": UUID,

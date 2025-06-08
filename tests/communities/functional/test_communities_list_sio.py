@@ -197,7 +197,7 @@ async def check_community_closed(
 
     assert_ack(
         await tmexio_client.emit("close-community", community_id=community_id),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_client.assert_no_more_events()
 
@@ -262,7 +262,7 @@ async def test_community_leaving(
         await tmexio_participant_client.emit(
             "leave-community", community_id=community.id
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_participant_client.assert_no_more_events()
 

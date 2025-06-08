@@ -37,7 +37,7 @@ async def test_channel_creation(
             category_id=channel_parent_category_id,
             data=channel_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_data={**channel_data, "id": channel.id},
     )
 
@@ -157,7 +157,7 @@ async def test_channel_deleting(
             community_id=community.id,
             channel_id=channel.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 

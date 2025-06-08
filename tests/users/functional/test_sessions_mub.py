@@ -33,7 +33,7 @@ async def test_making_mub_session(
 ) -> None:
     response = assert_nodata_response(
         mub_client.post(f"/mub/user-service/users/{user.id}/sessions/"),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-Session-ID": int,
@@ -314,7 +314,7 @@ async def test_disabling_session_mub_not_found(
 ) -> None:
     assert_response(
         authorized_client.delete(
-            f"/api/protected/user-service/sessions/{mub_session.id}"
+            f"/api/protected/user-service/sessions/{mub_session.id}/"
         ),
         expected_json={"detail": "Session not found"},
         expected_code=status.HTTP_404_NOT_FOUND,
@@ -383,7 +383,7 @@ async def test_mub_disabling_session_invalid_mub_key(
 ) -> None:
     assert_response(
         client.delete(
-            f"/mub/user-service/users/{user.id}/sessions/{session.id}",
+            f"/mub/user-service/users/{user.id}/sessions/{session.id}/",
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
