@@ -1,4 +1,5 @@
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -33,7 +34,7 @@ def test_setting_cors_headers(faker: Faker, client: TestClient) -> None:
             "/api/public/user-service/signup/",
             headers={"Origin": hostname},
         ),
-        expected_code=422,
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_headers={
             "access-control-allow-origin": hostname,
             "access-control-allow-credentials": "true",

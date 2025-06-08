@@ -1,11 +1,14 @@
 from typing import Annotated
 
+from starlette import status
 from tmexio import EventException, register_dependency
 
 from app.communities.dependencies.communities_sio_dep import CommunityById
 from app.communities.models.chat_channels_db import ChatChannel
 
-chat_channel_not_found = EventException(404, "Chat-channel not found")
+chat_channel_not_found = EventException(
+    status.HTTP_404_NOT_FOUND, "Chat-channel not found"
+)
 
 
 @register_dependency(exceptions=[chat_channel_not_found])

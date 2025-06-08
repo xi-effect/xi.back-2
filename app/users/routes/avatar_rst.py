@@ -3,6 +3,7 @@ from typing import Annotated
 import filetype  # type: ignore[import-untyped]
 from fastapi import File, UploadFile
 from filetype.types.image import Webp  # type: ignore[import-untyped]
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.dependencies.users_dep import AuthorizedUser
@@ -11,7 +12,7 @@ router = APIRouterExt(tags=["current user avatar"])
 
 
 class AvatarResponses(Responses):
-    WRONG_FORMAT = (415, "Invalid image format")
+    WRONG_FORMAT = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Invalid image format"
 
 
 @router.put(
@@ -25,7 +26,7 @@ async def update_or_create_avatar(
     avatar: Annotated[UploadFile, File(description="image/webp")],
 ) -> None:
     if not filetype.match(avatar.file, [Webp()]):
-        raise AvatarResponses.WRONG_FORMAT.value
+        raise AvatarResponses.WRONG_FORMAT
 
     with user.avatar_path.open("wb") as file:
         file.write(await avatar.read())

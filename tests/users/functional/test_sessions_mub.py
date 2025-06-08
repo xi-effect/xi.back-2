@@ -3,6 +3,7 @@ from typing import Any
 
 import pytest
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.sessions_db import Session
@@ -263,7 +264,7 @@ async def test_retrieving_mub_session_user_not_found(
             method, f"/mub/user-service/users/{deleted_user_id}/sessions/"
         ),
         expected_json={"detail": "User not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -281,7 +282,7 @@ async def test_mub_disabling_session_user_not_found(
             params={"delete_session": delete_session},
         ),
         expected_json={"detail": "User not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -303,7 +304,7 @@ async def test_disabled_session_not_found(
             params={"delete_session": delete_session},
         ),
         expected_json={"detail": "Session not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -327,7 +328,7 @@ async def test_disabling_session_mub_not_found(
             f"/api/protected/user-service/sessions/{mub_session.id}"
         ),
         expected_json={"detail": "Session not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -384,7 +385,7 @@ async def test_retrieving_mub_session_invalid_mub_key(
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
     )
 
 
@@ -401,5 +402,5 @@ async def test_mub_disabling_session_invalid_mub_key(
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
     )

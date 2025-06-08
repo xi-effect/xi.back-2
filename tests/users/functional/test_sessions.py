@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -72,7 +73,7 @@ async def test_disabling_session_non_found(
         authorized_client.delete(
             f"/api/protected/user-service/sessions/{deleted_session_id}/"
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Session not found"},
     )
 
@@ -83,7 +84,7 @@ async def test_disabling_session_foreign_user(
 ) -> None:
     assert_response(
         other_client.delete(f"/api/protected/user-service/sessions/{session.id}/"),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Session not found"},
     )
 
@@ -145,6 +146,6 @@ async def test_requesting_session_not_found(
             f"/api/protected/user-service{path}",
             headers=broken_proxy_auth_data.as_headers,
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Session not found"},
     )

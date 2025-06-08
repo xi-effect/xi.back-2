@@ -4,6 +4,7 @@ import pytest
 import rstr
 from faker import Faker
 from freezegun import freeze_time
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
@@ -58,7 +59,7 @@ async def test_profile_updating_conflict(
             "/api/protected/user-service/users/current/profile/",
             json={"username": other_user.username},
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Username already in use"},
     )
 
@@ -74,7 +75,7 @@ async def test_profile_updating_invalid_username(
             "/api/protected/user-service/users/current/profile/",
             json={"username": invalid_username},
         ),
-        expected_code=422,
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
             "detail": [
                 {
@@ -130,7 +131,7 @@ async def test_profile_updating_invalid_display_name(
             "/api/protected/user-service/users/current/profile/",
             json={"display_name": invalid_display_name},
         ),
-        expected_code=422,
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
             "detail": [
                 {
@@ -175,7 +176,7 @@ async def test_resending_confirmation_timeout_not_passed(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-confirmation-requests/",
         ),
-        expected_code=429,
+        expected_code=status.HTTP_429_TOO_MANY_REQUESTS,
         expected_json={"detail": "Too many emails"},
     )
 
@@ -228,7 +229,7 @@ async def test_changing_user_email_too_many_emails(
             "/api/protected/user-service/users/current/email/",
             json={"password": user_data["password"], "new_email": new_email},
         ),
-        expected_code=429,
+        expected_code=status.HTTP_429_TOO_MANY_REQUESTS,
         expected_json={"detail": "Too many emails"},
     )
 
@@ -244,7 +245,7 @@ async def test_changing_user_email_conflict(
             "/api/protected/user-service/users/current/email/",
             json={"password": user_data["password"], "new_email": other_user.email},
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Email already in use"},
     )
 
@@ -259,7 +260,7 @@ async def test_changing_user_email_wrong_password(
             "/api/protected/user-service/users/current/email/",
             json={"password": faker.password(), "new_email": faker.email()},
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Wrong password"},
     )
 
@@ -305,7 +306,7 @@ async def test_changing_user_password_wrong_password(
             "/api/protected/user-service/users/current/password/",
             json={"new_password": faker.password(), "password": faker.password()},
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Wrong password"},
     )
 
@@ -323,6 +324,6 @@ async def test_changing_user_password_old_password(
                 "password": user_data["password"],
             },
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "New password matches the current one"},
     )

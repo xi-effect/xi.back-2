@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 
 import pytest
+from starlette import status
 
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
@@ -106,7 +107,7 @@ async def test_any_community_retrieving_and_opening_no_communities(
 
     assert_ack(
         await tmexio_outsider_client.emit("retrieve-any-community"),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -146,7 +147,7 @@ async def test_community_retrieving_and_opening_community_not_found(
         await tmexio_outsider_client.emit(
             "retrieve-community", community_id=deleted_community_id
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -170,7 +171,7 @@ async def test_community_retrieving_and_opening_no_access_to_community(
         await tmexio_outsider_client.emit(
             "retrieve-community", community_id=community.id
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -302,7 +303,7 @@ async def test_community_leaving_owner_can_not_leave(
 ) -> None:
     assert_ack(
         await tmexio_owner_client.emit("leave-community", community_id=community.id),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Owner can not leave",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -314,7 +315,7 @@ async def test_community_leaving_no_access_to_community(
 ) -> None:
     assert_ack(
         await tmexio_outsider_client.emit("leave-community", community_id=community.id),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -328,7 +329,7 @@ async def test_community_leaving_community_not_found(
         await tmexio_outsider_client.emit(
             "leave-community", community_id=deleted_community_id
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()

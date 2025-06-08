@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from fastapi import Response
-from starlette.status import HTTP_404_NOT_FOUND
+from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -55,7 +55,7 @@ async def disable_all_but_current(auth_data: AuthorizationData) -> None:
 
 
 class SessionResponses(Responses):
-    SESSION_NOT_FOUND = (HTTP_404_NOT_FOUND, Session.not_found_text)
+    SESSION_NOT_FOUND = status.HTTP_404_NOT_FOUND, Session.not_found_text
 
 
 @router.delete(
@@ -71,5 +71,5 @@ async def disable_session(session_id: int, auth_data: AuthorizationData) -> None
         is_mub=False,
     )
     if session is None:
-        raise SessionResponses.SESSION_NOT_FOUND.value
+        raise SessionResponses.SESSION_NOT_FOUND
     session.is_disabled = True

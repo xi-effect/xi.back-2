@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.communities_db import Community
@@ -91,6 +92,6 @@ async def test_community_not_finding(
             f"/mub/community-service/communities/{deleted_community_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Community not found"},
     )

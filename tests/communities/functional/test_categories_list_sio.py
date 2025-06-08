@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel
@@ -100,7 +101,7 @@ async def test_category_moving_category_not_found(
             after_id=None,
             before_id=None,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Category not found",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -121,7 +122,7 @@ async def test_category_moving_not_sufficient_permissions(
             after_id=None,
             before_id=None,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="Not sufficient permissions",
     )
     tmexio_participant_client.assert_no_more_events()
@@ -148,7 +149,7 @@ async def test_categories_requesting_community_not_finding(
             after_id=None,
             before_id=None,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -177,7 +178,7 @@ async def test_categories_requesting_no_access_to_community(
             after_id=None,
             before_id=None,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()

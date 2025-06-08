@@ -3,8 +3,8 @@ from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException
 from fastapi.security import APIKeyCookie, APIKeyHeader
+from starlette import status
 from starlette.responses import Response
-from starlette.status import HTTP_401_UNAUTHORIZED
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.models.sessions_db import Session
@@ -29,8 +29,8 @@ AuthCookie = Annotated[str | None, Depends(cookie_auth_scheme)]
 
 
 class AuthorizedResponses(Responses):
-    HEADER_MISSING = (HTTP_401_UNAUTHORIZED, "Authorization is missing")
-    INVALID_SESSION = (HTTP_401_UNAUTHORIZED, "Session is invalid")
+    HEADER_MISSING = status.HTTP_401_UNAUTHORIZED, "Authorization is missing"
+    INVALID_SESSION = status.HTTP_401_UNAUTHORIZED, "Session is invalid"
 
 
 async def authorize_session(
@@ -39,11 +39,11 @@ async def authorize_session(
 ) -> Session:
     token = cookie_token or header_token
     if token is None:
-        raise AuthorizedResponses.HEADER_MISSING.value
+        raise AuthorizedResponses.HEADER_MISSING
 
     session = await Session.find_first_by_kwargs(token=token)
     if session is None or session.is_invalid:
-        raise AuthorizedResponses.INVALID_SESSION.value
+        raise AuthorizedResponses.INVALID_SESSION
 
     return session
 

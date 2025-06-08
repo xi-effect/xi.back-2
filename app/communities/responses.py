@@ -1,9 +1,11 @@
+from starlette import status
+
 from app.common.fastapi_ext import Responses
 
 
 class MoveResponses(Responses):
-    INVALID_MOVE = 409, "Invalid move"
+    INVALID_MOVE = status.HTTP_409_CONFLICT, "Invalid move"
 
 
 class LimitedListResponses(Responses):
-    QUANTITY_EXCEEDED = 409, "Quantity exceeded"
+    QUANTITY_EXCEEDED = status.HTTP_409_CONFLICT, "Quantity exceeded"

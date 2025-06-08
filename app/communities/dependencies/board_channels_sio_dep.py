@@ -1,11 +1,14 @@
 from typing import Annotated
 
+from starlette import status
 from tmexio import EventException, register_dependency
 
 from app.communities.dependencies.communities_sio_dep import CommunityById
 from app.communities.models.board_channels_db import BoardChannel
 
-board_channel_not_found = EventException(404, "Board-channel not found")
+board_channel_not_found = EventException(
+    status.HTTP_404_NOT_FOUND, "Board-channel not found"
+)
 
 
 @register_dependency(exceptions=[board_channel_not_found])

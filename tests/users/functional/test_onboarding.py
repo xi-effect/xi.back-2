@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import OnboardingStage, User
@@ -89,7 +90,7 @@ async def test_proceeding_in_onboarding_invalid_transition(
             f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
         ),
         expected_json={"detail": "Invalid transition"},
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
     )
 
     async with active_session():
@@ -158,7 +159,7 @@ async def test_returning_in_onboarding_invalid_transition(
             f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
         ),
         expected_json={"detail": "Invalid transition"},
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
     )
 
     async with active_session():

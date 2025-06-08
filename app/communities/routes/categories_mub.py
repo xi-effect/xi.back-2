@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Body, HTTPException
+from starlette import status
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
@@ -85,7 +86,7 @@ async def move_category(
             before_id=before_id,
         )
     except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
-        raise HTTPException(409, e.message)
+        raise HTTPException(status.HTTP_409_CONFLICT, e.message)
 
 
 @router.delete(

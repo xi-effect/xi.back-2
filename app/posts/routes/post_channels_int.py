@@ -1,3 +1,5 @@
+from starlette import status
+
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.posts.dependencies.post_channels_dep import PostChannelById
 from app.posts.models.post_channels_db import PostChannel
@@ -6,7 +8,10 @@ router = APIRouterExt(tags=["post-channels internal"])
 
 
 class PostChannelExistenceResponses(Responses):
-    POST_CHANNEL_ALREADY_EXISTS = 409, "Post-channel already exists"
+    POST_CHANNEL_ALREADY_EXISTS = (
+        status.HTTP_409_CONFLICT,
+        "Post-channel already exists",
+    )
 
 
 @router.post(

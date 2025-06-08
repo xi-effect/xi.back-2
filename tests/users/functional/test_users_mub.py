@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import User
@@ -56,7 +57,7 @@ async def test_user_creation_conflict(
         mub_client.post(
             "/mub/user-service/users/", json={**user_data, **data_modification}
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": error},
     )
 
@@ -126,7 +127,7 @@ async def test_user_updating_conflict(
 
     assert_response(
         mub_client.patch(f"/mub/user-service/users/{user.id}/", json=data_modification),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": error},
     )
 
@@ -149,7 +150,7 @@ async def test_user_not_found(
             f"/mub/user-service/users/{deleted_user_id}/",
             json={} if method == "PATCH" else None,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
     )
 
@@ -165,7 +166,7 @@ async def test_user_updating_username_in_use(
             f"/mub/user-service/users/{user.id}/",
             json={"username": other_user.username},
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Username already in use"},
     )
 
@@ -183,7 +184,7 @@ async def test_user_creation_invalid_mub_key(
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
     )
 
 
@@ -203,5 +204,5 @@ async def test_user_operations_invalid_mub_key(
             headers=invalid_mub_key_headers,
         ),
         expected_json={"detail": "Invalid key"},
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
     )

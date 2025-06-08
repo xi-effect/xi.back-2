@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import password_reset_cryptography
@@ -46,7 +47,7 @@ async def test_requesting_password_reset_user_not_found(
             "/api/public/user-service/password-reset/requests/",
             json={"email": faker.email()},
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
     )
 
@@ -89,7 +90,7 @@ async def test_confirming_password_reset_invalid_token(
             "/api/public/user-service/password-reset/confirmations/",
             json=factories.ResetCredentialsFactory.build_json(),
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )
 
@@ -114,7 +115,7 @@ async def test_confirming_password_reset_expired_token(
                 token=expired_reset_token
             ),
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )
 
@@ -131,7 +132,7 @@ async def test_confirming_password_reset_no_started_reset(
                 token=password_reset_cryptography.encrypt(faker.text()),
             ),
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )
 

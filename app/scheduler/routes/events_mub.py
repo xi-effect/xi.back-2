@@ -3,6 +3,7 @@ from typing import Self
 
 from fastapi import HTTPException
 from pydantic import AwareDatetime, model_validator
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.scheduler.dependencies.events_dep import EventById
@@ -31,7 +32,7 @@ async def list_events(
 ) -> Sequence[Event]:
     if happens_after >= happens_before:
         raise HTTPException(
-            status_code=422,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Parameter happens_before must be later in time than happens_after",
         )
     return await Event.find_all_events_in_time_frame(

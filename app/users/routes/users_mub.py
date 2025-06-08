@@ -20,9 +20,9 @@ router = APIRouterExt(tags=["users mub"])
 )
 async def create_user(user_data: User.InputSchema) -> User:
     if not await is_email_unique(user_data.email):
-        raise UserEmailResponses.EMAIL_IN_USE.value
+        raise UserEmailResponses.EMAIL_IN_USE
     if not await is_username_unique(user_data.username):
-        raise UsernameResponses.USERNAME_IN_USE.value
+        raise UsernameResponses.USERNAME_IN_USE
     return await User.create(**user_data.model_dump())
 
 
@@ -43,9 +43,9 @@ async def retrieve_user(user: UserByID) -> User:
 )
 async def update_user(user: UserByID, user_data: User.FullPatchSchema) -> User:
     if not await is_email_unique(user_data.email, user.email):
-        raise UserEmailResponses.EMAIL_IN_USE.value
+        raise UserEmailResponses.EMAIL_IN_USE
     if not await is_username_unique(user_data.username, user.username):
-        raise UsernameResponses.USERNAME_IN_USE.value
+        raise UsernameResponses.USERNAME_IN_USE
     user.update(**user_data.model_dump(exclude_defaults=True))
     return user
 

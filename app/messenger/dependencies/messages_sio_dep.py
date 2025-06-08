@@ -1,13 +1,16 @@
 from typing import Annotated
 from uuid import UUID
 
+from starlette import status
 from tmexio import EventException, register_dependency
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
 from app.messenger.dependencies.chats_sio_dep import ChatById
 from app.messenger.models.messages_db import Message
 
-message_not_found_exception = EventException(404, "Message not found")
+message_not_found_exception = EventException(
+    status.HTTP_404_NOT_FOUND, "Message not found"
+)
 
 
 @register_dependency(exceptions=[message_not_found_exception])
@@ -21,7 +24,9 @@ async def message_by_ids_dependency(message_id: UUID, chat: ChatById) -> Message
 MessageByIds = Annotated[Message, message_by_ids_dependency]
 
 
-not_your_message_exception = EventException(403, "Message is not yours")
+not_your_message_exception = EventException(
+    status.HTTP_403_FORBIDDEN, "Message is not yours"
+)
 
 
 @register_dependency(exceptions=[not_your_message_exception])

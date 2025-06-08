@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.scheduler.models.events_db import Event
@@ -120,7 +121,7 @@ async def test_events_listing_happens_after_ge_happens_before(
                 "happens_before": happens_before.isoformat(),
             },
         ),
-        expected_code=422,
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
             "detail": "Parameter happens_before must be later in time than happens_after"
         },

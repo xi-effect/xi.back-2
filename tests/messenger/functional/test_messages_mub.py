@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
@@ -161,7 +162,7 @@ async def test_chat_not_finding_for_mub_messages(
             params={"offset": 0, "limit": MESSAGE_LIST_SIZE},
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Chat not found"},
     )
 
@@ -240,6 +241,6 @@ async def test_message_not_finding(
             f"/mub/messenger-service/messages/{deleted_message_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Message not found"},
     )

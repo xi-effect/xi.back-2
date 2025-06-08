@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from starlette import status
 
 from app.messenger.models.chats_db import Chat
 from app.messenger.models.messages_db import Message
@@ -47,7 +48,7 @@ async def test_message_pinning_already_pinned(
             chat_id=chat.id,
             message_id=pinned_message.id,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Message is already pinned",
     )
     tmexio_sender_client.assert_no_more_events()
@@ -92,7 +93,7 @@ async def test_message_unpinning_not_pinned(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Message is not pinned",
     )
     tmexio_sender_client.assert_no_more_events()
@@ -118,7 +119,7 @@ async def test_chat_not_finding_for_my_messages(
             chat_id=deleted_chat_id,
             message_id=uuid4(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Chat not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -142,7 +143,7 @@ async def test_message_not_finding_for_message_management(
             chat_id=chat.id,
             message_id=deleted_message_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Message not found",
     )
     tmexio_sender_client.assert_no_more_events()

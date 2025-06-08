@@ -2,6 +2,7 @@ import time
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import email_confirmation_cryptography
@@ -38,7 +39,7 @@ async def test_confirming_email_user_not_found(
             "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": email_confirmation_cryptography.encrypt(faker.email())},
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )
 
@@ -53,7 +54,7 @@ async def test_confirming_email_invalid_token(
             "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": faker.text()},
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )
 
@@ -77,6 +78,6 @@ async def test_confirming_email_expired_token(
             "/api/public/user-service/email-confirmation/confirmations/",
             json={"token": expired_confirmation_token.decode()},
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid token"},
     )

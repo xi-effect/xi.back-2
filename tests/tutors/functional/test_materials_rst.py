@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from freezegun import freeze_time
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
@@ -110,7 +111,7 @@ async def test_material_not_finding(
             url=f"/api/protected/tutor-service/materials/{deleted_material_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Material not found"},
     )
 
@@ -128,6 +129,6 @@ async def test_material_access_denied(
             url=f"/api/protected/tutor-service/materials/{material.id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_json={"detail": "Material access denied"},
     )

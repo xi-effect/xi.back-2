@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import User
@@ -48,7 +49,7 @@ async def test_avatar_uploading_wrong_format(
             "/api/protected/user-service/users/current/avatar/",
             files={"avatar": ("avatar", faker.random.randbytes(100), "image/webp")},
         ),
-        expected_code=415,
+        expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         expected_json={"detail": "Invalid image format"},
     )
 

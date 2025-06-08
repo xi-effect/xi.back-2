@@ -1,7 +1,7 @@
 from typing import Literal
 
 from pydantic import BaseModel
-from starlette.status import HTTP_409_CONFLICT
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.dependencies.users_dep import AuthorizedUser
@@ -15,7 +15,7 @@ class CommunityChoiceSchema(BaseModel):
 
 
 class OnboardingResponses(Responses):
-    INVALID_TRANSITION = (HTTP_409_CONFLICT, "Invalid transition")
+    INVALID_TRANSITION = status.HTTP_409_CONFLICT, "Invalid transition"
 
 
 ValidForwardStages = Literal[
@@ -51,7 +51,7 @@ async def make_onboarding_transition(
     stage: OnboardingStage,
 ) -> None:
     if (user.onboarding_stage, stage) not in forward_valid_transitions:
-        raise OnboardingResponses.INVALID_TRANSITION.value
+        raise OnboardingResponses.INVALID_TRANSITION
     user.onboarding_stage = stage
 
 
@@ -93,5 +93,5 @@ async def return_to_previous_onboarding_stage(
     stage: ValidReturnStages,
 ) -> None:
     if stage is not user.onboarding_stage:
-        raise OnboardingResponses.INVALID_TRANSITION.value
+        raise OnboardingResponses.INVALID_TRANSITION
     user.onboarding_stage = return_transitions[stage]

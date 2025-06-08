@@ -2,7 +2,7 @@ import logging
 from typing import Annotated, Final
 
 from fastapi import Depends, Header, Response
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette import status
 
 from app.common.config import email_confirmation_cryptography
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -41,9 +41,9 @@ async def signup(
     user_data: User.InputSchema, is_cross_site: CrossSiteMode, response: Response
 ) -> User:
     if not await is_email_unique(user_data.email):
-        raise UserEmailResponses.EMAIL_IN_USE.value
+        raise UserEmailResponses.EMAIL_IN_USE
     if not await is_username_unique(user_data.username):
-        raise UsernameResponses.USERNAME_IN_USE.value
+        raise UsernameResponses.USERNAME_IN_USE
 
     user = await User.create(**user_data.model_dump())
 
@@ -64,8 +64,8 @@ async def signup(
 
 
 class SigninResponses(Responses):
-    USER_NOT_FOUND = (HTTP_401_UNAUTHORIZED, User.not_found_text)
-    WRONG_PASSWORD = (HTTP_401_UNAUTHORIZED, "Wrong password")
+    USER_NOT_FOUND = status.HTTP_401_UNAUTHORIZED, User.not_found_text
+    WRONG_PASSWORD = status.HTTP_401_UNAUTHORIZED, "Wrong password"
 
 
 @router.post(
@@ -79,10 +79,10 @@ async def signin(
 ) -> User:
     user = await User.find_first_by_kwargs(email=user_data.email)
     if user is None:
-        raise SigninResponses.USER_NOT_FOUND.value
+        raise SigninResponses.USER_NOT_FOUND
 
     if not user.is_password_valid(user_data.password):
-        raise SigninResponses.WRONG_PASSWORD.value
+        raise SigninResponses.WRONG_PASSWORD
 
     session = await Session.create(user=user, is_cross_site=is_cross_site)
     add_session_to_response(response, session)

@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 
 from app.communities.models.chat_channels_db import ChatChannel
 from app.communities.models.communities_db import Community
@@ -34,7 +35,7 @@ async def test_chat_channel_retrieving_chat_channel_not_found(
             community_id=community.id,
             channel_id=deleted_chat_channel_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Chat-channel not found",
     )
     tmexio_actor_client.assert_no_more_events()
@@ -50,7 +51,7 @@ async def test_chat_channel_retrieving_community_not_found(
             community_id=deleted_community_id,
             channel_id=1,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -66,7 +67,7 @@ async def test_chat_channel_retrieving_no_access_to_community(
             community_id=community.id,
             channel_id=1,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()

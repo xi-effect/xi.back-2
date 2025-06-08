@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.categories_db import Category
@@ -48,7 +49,7 @@ async def test_category_creation_quantity_exceeded(
             f"/mub/community-service/communities/{community.id}/categories/",
             json=category_data,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Quantity exceeded"},
     )
 
@@ -63,7 +64,7 @@ async def test_category_creation_community_not_found(
             f"/mub/community-service/communities/{deleted_community_id}/categories/",
             json=category_data,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Community not found"},
     )
 
@@ -129,6 +130,6 @@ async def test_category_not_finding(
             f"/mub/community-service/categories/{deleted_category_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Category not found"},
     )

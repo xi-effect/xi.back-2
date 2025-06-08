@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import User
@@ -36,7 +37,7 @@ async def test_getting_profile_by_id_not_found(
             f"/api/protected/user-service/users/by-id/{other_user.id}/profile/"
         ),
         expected_json={"detail": "User not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
 
 
@@ -70,5 +71,5 @@ async def test_getting_profile_by_username_not_found(
             f"/api/protected/user-service/users/by-username/{other_user.username}/profile/"
         ),
         expected_json={"detail": "User not found"},
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )

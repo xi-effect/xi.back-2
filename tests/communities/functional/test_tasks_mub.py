@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.task_channels_db import TaskChannel
@@ -49,7 +50,7 @@ async def test_task_creation_task_channel_not_found(
             f"/mub/community-service/task-channels/{deleted_task_channel_id}/tasks/",
             json=task_input_data,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Task-channel not found"},
     )
 
@@ -114,6 +115,6 @@ async def test_task_not_finding(
             f"/mub/community-service/tasks/{deleted_task_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Task not found"},
     )

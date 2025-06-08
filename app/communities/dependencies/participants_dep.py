@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.communities.models.participants_db import Participant
 
 
 class ParticipantResponses(Responses):
-    PARTICIPANT_NOT_FOUND = 404, "Participant not found"
+    PARTICIPANT_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Participant not found"
 
 
 @with_responses(ParticipantResponses)

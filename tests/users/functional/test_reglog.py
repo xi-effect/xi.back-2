@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import User
@@ -65,7 +66,7 @@ async def test_signing_up_conflict(
             json={**user_data, **data_mod},
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": error},
         expected_headers={"Set-Cookie": None},
     )
@@ -112,7 +113,7 @@ async def test_signing_in_invalid_credentials(
         client.post(
             "/api/public/user-service/signin/", json={**user_data, altered_key: "alter"}
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": error},
         expected_headers={"Set-Cookie": None},
     )

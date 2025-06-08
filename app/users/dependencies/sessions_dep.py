@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
@@ -9,7 +9,7 @@ from app.users.models.sessions_db import Session
 
 
 class CurrentSessionResponses(Responses):
-    SESSION_NOT_FOUND = HTTP_401_UNAUTHORIZED, "Session not found"
+    SESSION_NOT_FOUND = status.HTTP_401_UNAUTHORIZED, "Session not found"
 
 
 @with_responses(CurrentSessionResponses)

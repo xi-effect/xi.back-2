@@ -2,7 +2,7 @@ from typing import Annotated, Final
 
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
-from starlette.status import HTTP_401_UNAUTHORIZED
+from starlette import status
 
 from app.common.config import settings
 from app.common.fastapi_ext import Responses, with_responses
@@ -16,13 +16,13 @@ MUBKeyHeader = Annotated[str | None, Depends(header_mub_scheme)]
 
 
 class MUBResponses(Responses):
-    INVALID_MUB_KEY = (HTTP_401_UNAUTHORIZED, "Invalid key")
+    INVALID_MUB_KEY = status.HTTP_401_UNAUTHORIZED, "Invalid key"
 
 
 @with_responses(MUBResponses)
 def mub_key_verification(mub_key: MUBKeyHeader = None) -> None:
     if mub_key != settings.mub_key:
-        raise MUBResponses.INVALID_MUB_KEY.value
+        raise MUBResponses.INVALID_MUB_KEY
 
 
 MUBProtection = Depends(mub_key_verification)

@@ -2,13 +2,14 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.storage.models.access_groups_db import AccessGroup
 
 
 class AccessGroupResponses(Responses):
-    ACCESS_GROUP_NOT_FOUND = 404, "Access group not found"
+    ACCESS_GROUP_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Access group not found"
 
 
 @with_responses(AccessGroupResponses)

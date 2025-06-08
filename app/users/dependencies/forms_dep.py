@@ -3,12 +3,13 @@ from typing import Annotated
 from fastapi import Depends, UploadFile
 from filetype import filetype  # type: ignore[import-untyped]
 from filetype.types.archive import Pdf  # type: ignore[import-untyped]
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 
 
 class ResumeFileResponses(Responses):
-    WRONG_FORMAT = 415, "Invalid file format"
+    WRONG_FORMAT = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Invalid file format"
 
 
 @with_responses(ResumeFileResponses)

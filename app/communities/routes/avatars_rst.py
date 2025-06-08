@@ -3,6 +3,7 @@ from typing import Annotated
 import filetype  # type: ignore[import-untyped]
 from fastapi import File, UploadFile
 from filetype.types.image import Webp  # type: ignore[import-untyped]
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.communities.dependencies.communities_dep import CommunityById
@@ -11,7 +12,7 @@ router = APIRouterExt(tags=["community avatars"])
 
 
 class AvatarResponses(Responses):
-    WRONG_FORMAT = (415, "Invalid image format")
+    WRONG_FORMAT = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Invalid image format"
 
 
 # TODO authorize a user in the community

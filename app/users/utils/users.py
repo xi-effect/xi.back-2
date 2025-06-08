@@ -1,12 +1,12 @@
 from pydantic_marshals.base import PatchDefault, PatchDefaultType
-from starlette.status import HTTP_409_CONFLICT
+from starlette import status
 
 from app.common.fastapi_ext import Responses
 from app.users.models.users_db import User
 
 
 class UsernameResponses(Responses):
-    USERNAME_IN_USE = (HTTP_409_CONFLICT, "Username already in use")
+    USERNAME_IN_USE = status.HTTP_409_CONFLICT, "Username already in use"
 
 
 async def is_username_unique(
@@ -18,7 +18,7 @@ async def is_username_unique(
 
 
 class UserEmailResponses(Responses):
-    EMAIL_IN_USE = (HTTP_409_CONFLICT, "Email already in use")
+    EMAIL_IN_USE = status.HTTP_409_CONFLICT, "Email already in use"
 
 
 async def is_email_unique(

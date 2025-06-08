@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.scheduler.models.events_db import Event
 
 
 class EventResponses(Responses):
-    EVENT_NOT_FOUND = 404, "Event not found"
+    EVENT_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Event not found"
 
 
 @with_responses(EventResponses)

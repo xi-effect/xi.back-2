@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import ValidationError
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
@@ -55,7 +56,7 @@ async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
     except ValidationError:  # TODO (38980978) pragma: no cover
-        raise EventException(407, "bad")
+        raise EventException(status.HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
     await socket.enter_room(user_room(auth_data.user_id))
@@ -70,7 +71,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 @tmex.on_other(summary="[special] Handler for non-existent events")
 async def handle_other_events(  # TODO (38980978) pragma: no cover
     event_name: EventName,
-) -> Annotated[str, PydanticPackager(str, 404)]:
+) -> Annotated[str, PydanticPackager(str, status.HTTP_404_NOT_FOUND)]:
     return f"Unknown event: '{event_name}'"
 
 

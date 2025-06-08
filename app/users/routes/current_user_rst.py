@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 
 from pydantic import Field
-from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_409_CONFLICT
+from starlette import status
 
 from app.common.config import email_confirmation_cryptography
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -40,7 +40,7 @@ async def patch_user_data(
     patch_data: User.ProfilePatchSchema, user: AuthorizedUser
 ) -> User:
     if not await is_username_unique(patch_data.username, user.username):
-        raise UsernameResponses.USERNAME_IN_USE.value
+        raise UsernameResponses.USERNAME_IN_USE
     user.update(**patch_data.model_dump(exclude_defaults=True))
     return user
 
@@ -67,7 +67,7 @@ async def resend_email_confirmation(user: AuthorizedUser) -> None:
 
 
 class PasswordProtectedResponses(Responses):
-    WRONG_PASSWORD = (HTTP_401_UNAUTHORIZED, "Wrong password")
+    WRONG_PASSWORD = status.HTTP_401_UNAUTHORIZED, "Wrong password"
 
 
 class EmailChangeSchema(User.PasswordSchema):
@@ -84,10 +84,10 @@ class EmailChangeSchema(User.PasswordSchema):
 )
 async def change_user_email(user: AuthorizedUser, put_data: EmailChangeSchema) -> User:
     if not user.is_password_valid(password=put_data.password):
-        raise PasswordProtectedResponses.WRONG_PASSWORD.value
+        raise PasswordProtectedResponses.WRONG_PASSWORD
 
     if not await is_email_unique(put_data.new_email, user.username):
-        raise UserEmailResponses.EMAIL_IN_USE.value
+        raise UserEmailResponses.EMAIL_IN_USE
 
     if not user.is_email_confirmation_resend_allowed():
         raise EmailResendResponses.TOO_MANY_EMAILS
@@ -115,7 +115,7 @@ class PasswordChangeSchema(User.PasswordSchema):
 
 class PasswordChangeResponses(Responses):
     PASSWORD_MATCHES_CURRENT = (
-        HTTP_409_CONFLICT,
+        status.HTTP_409_CONFLICT,
         "New password matches the current one",
     )
 

@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from freezegun import freeze_time
+from starlette import status
 
 from app.common.utils.datetime import datetime_utc_now
 from app.messenger.models.chats_db import Chat
@@ -150,7 +151,7 @@ async def test_chat_not_finding_for_my_messages(
             message_id=uuid4(),
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Chat not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -179,7 +180,7 @@ async def test_managing_my_messages_not_your_message(
             message_id=message.id,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="Message is not yours",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -205,7 +206,7 @@ async def test_message_not_finding_for_my_messages(
             message_id=deleted_message_id,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Message not found",
     )
     tmexio_sender_client.assert_no_more_events()

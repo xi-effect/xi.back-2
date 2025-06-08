@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 
 from fastapi import Response
-from starlette.status import HTTP_404_NOT_FOUND
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.users.dependencies.users_dep import UserByID
@@ -54,7 +54,7 @@ async def list_all_sessions(user: UserByID) -> Sequence[Session]:
 
 
 class SessionResponses(Responses):
-    SESSION_NOT_FOUND = (HTTP_404_NOT_FOUND, Session.not_found_text)
+    SESSION_NOT_FOUND = status.HTTP_404_NOT_FOUND, Session.not_found_text
 
 
 @router.delete(
@@ -70,7 +70,7 @@ async def disable_or_delete_session(
 ) -> None:
     session = await Session.find_first_by_kwargs(id=session_id, user_id=user.id)
     if session is None:
-        raise SessionResponses.SESSION_NOT_FOUND.value
+        raise SessionResponses.SESSION_NOT_FOUND
     if delete_session:
         await session.delete()
     else:

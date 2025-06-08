@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.communities_db import Community
@@ -91,7 +92,7 @@ async def test_invitation_creation_quantity_exceed(
             f"/mub/community-service/communities/{community.id}/invitations/",
             json=InvitationMUBInputFactory.build_json(),
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Quantity exceeded"},
     )
 
@@ -109,7 +110,7 @@ async def test_invitations_requesting_community_not_found(
             method,
             f"/mub/community-service/communities/{deleted_community_id}/invitations/",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Community not found"},
     )
 
@@ -156,6 +157,6 @@ async def test_invitation_not_finding(
             method,
             f"/mub/community-service/invitations/{deleted_invitation_id}/",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Invitation not found"},
     )

@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -92,7 +93,7 @@ async def test_requesting_unauthorized(
 ) -> None:
     assert_response(
         client.request(method, f"/api/protected/user-service{path}"),
-        expected_code=407,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Proxy auth required"},
     )
 
@@ -174,6 +175,6 @@ async def test_requesting_user_not_found(
             f"/api/protected/user-service{path}",
             headers=broken_proxy_auth_data.as_headers,
         ),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "User not found"},
     )

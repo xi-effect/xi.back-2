@@ -1,5 +1,6 @@
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from tests.common.assert_contains_ext import assert_response
@@ -31,7 +32,7 @@ async def test_requesting_internal_invalid_key(
     headers = {"X-Api-Key": faker.pystr()} if pass_token else None
     assert_response(
         client.request(method, f"/internal/post-service{path}", headers=headers),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid key"},
     )
 
@@ -63,6 +64,6 @@ async def test_requesting_mub_invalid_key(
     headers = {"X-MUB-Secret": faker.pystr()} if pass_token else None
     assert_response(
         client.request(method, f"/mub/post-service{path}", headers=headers),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Invalid key"},
     )

@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.posts.models.post_channels_db import PostChannel
@@ -39,7 +40,7 @@ async def test_post_channel_creation_post_channel_already_exists(
             f"/internal/post-service/post-channels/{post_channel.id}/",
             json=post_channel_data,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Post-channel already exists"},
     )
 
@@ -66,6 +67,6 @@ async def test_post_channel_deleting_post_channel_not_found(
         internal_client.delete(
             f"/internal/post-service/post-channels/{deleted_post_channel_id}/",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Post-channel not found"},
     )

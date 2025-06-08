@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any, Literal
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
@@ -162,7 +163,7 @@ async def test_renewing_session_in_proxy_auth(
 async def test_requesting_unauthorized(client: TestClient) -> None:
     assert_response(
         client.get("/proxy/auth/"),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Authorization is missing"},
     )
 
@@ -177,6 +178,6 @@ async def test_requesting_invalid_session(
     headers = {} if use_cookie_auth else {AUTH_HEADER_NAME: invalid_token}
     assert_response(
         client.get("/proxy/auth/", cookies=cookies, headers=headers),
-        expected_code=401,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Session is invalid"},
     )
