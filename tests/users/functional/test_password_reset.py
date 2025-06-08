@@ -16,8 +16,9 @@ from tests.common.types import AnyJSON
 from tests.users import factories
 from tests.users.utils import get_db_user
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_requesting_password_reset(
     active_session: ActiveSession,
     mock_stack: MockStack,
@@ -37,7 +38,6 @@ async def test_requesting_password_reset(
         assert (await get_db_user(user)).reset_token is not None
 
 
-@pytest.mark.anyio()
 async def test_requesting_password_reset_user_not_found(
     faker: Faker,
     client: TestClient,
@@ -52,7 +52,6 @@ async def test_requesting_password_reset_user_not_found(
     )
 
 
-@pytest.mark.anyio()
 async def test_confirming_password_reset(
     active_session: ActiveSession,
     client: TestClient,
@@ -81,7 +80,6 @@ async def test_confirming_password_reset(
         assert user_after_reset.reset_token is None
 
 
-@pytest.mark.anyio()
 async def test_confirming_password_reset_invalid_token(
     client: TestClient,
 ) -> None:
@@ -95,7 +93,6 @@ async def test_confirming_password_reset_invalid_token(
     )
 
 
-@pytest.mark.anyio()
 async def test_confirming_password_reset_expired_token(
     active_session: ActiveSession,
     client: TestClient,
@@ -120,7 +117,6 @@ async def test_confirming_password_reset_expired_token(
     )
 
 
-@pytest.mark.anyio()
 async def test_confirming_password_reset_no_started_reset(
     faker: Faker,
     client: TestClient,
@@ -137,7 +133,6 @@ async def test_confirming_password_reset_no_started_reset(
     )
 
 
-@pytest.mark.anyio()
 async def test_confirming_password_reset_with_old_password(
     active_session: ActiveSession,
     client: TestClient,

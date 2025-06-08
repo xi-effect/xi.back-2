@@ -11,8 +11,9 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.common.types import AnyJSON
 from tests.users import factories
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_user_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
@@ -30,7 +31,6 @@ async def test_user_creation(
         await user.delete()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("pass_unique_email", "pass_unique_password", "error"),
     [
@@ -62,7 +62,6 @@ async def test_user_creation_conflict(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_getting(
     mub_client: TestClient, user: User, user_data: AnyJSON
 ) -> None:
@@ -72,7 +71,6 @@ async def test_user_getting(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_updating(
     faker: Faker,
     mub_client: TestClient,
@@ -87,7 +85,6 @@ async def test_user_updating(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_updating_same_data(
     mub_client: TestClient,
     user_data: AnyJSON,
@@ -102,7 +99,6 @@ async def test_user_updating_same_data(
     )
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("pass_used_email", "pass_used_username", "error"),
     [
@@ -132,12 +128,10 @@ async def test_user_updating_conflict(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_deleting(mub_client: TestClient, user: User) -> None:
     assert_nodata_response(mub_client.delete(f"/mub/user-service/users/{user.id}/"))
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize("method", ["GET", "PATCH", "DELETE"])
 async def test_user_not_found(
     mub_client: TestClient,
@@ -155,7 +149,6 @@ async def test_user_not_found(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_updating_username_in_use(
     mub_client: TestClient,
     user: User,
@@ -171,7 +164,6 @@ async def test_user_updating_username_in_use(
     )
 
 
-@pytest.mark.anyio()
 async def test_user_creation_invalid_mub_key(
     client: TestClient,
     user_data: AnyJSON,
@@ -189,7 +181,6 @@ async def test_user_creation_invalid_mub_key(
 
 
 @pytest.mark.parametrize("method", ["GET", "PATCH", "DELETE"])
-@pytest.mark.anyio()
 async def test_user_operations_invalid_mub_key(
     client: TestClient,
     user: User,

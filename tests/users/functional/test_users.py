@@ -6,8 +6,9 @@ from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_getting_profile_by_id(
     authorized_client: TestClient,
     other_user: User,
@@ -24,7 +25,6 @@ async def test_getting_profile_by_id(
     )
 
 
-@pytest.mark.anyio()
 async def test_getting_profile_by_id_not_found(
     authorized_client: TestClient,
     other_user: User,
@@ -41,7 +41,6 @@ async def test_getting_profile_by_id_not_found(
     )
 
 
-@pytest.mark.anyio()
 async def test_getting_profile_by_username(
     authorized_client: TestClient,
     other_user: User,
@@ -58,7 +57,6 @@ async def test_getting_profile_by_username(
     )
 
 
-@pytest.mark.anyio()
 async def test_getting_profile_by_username_not_found(
     authorized_client: TestClient,
     other_user: User,

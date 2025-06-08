@@ -18,13 +18,14 @@ from tests.users.utils import (
     session_checker,
 )
 
+pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture()
 async def mub_session(session_factory: Factory[Session]) -> Session:
     return await session_factory(is_mub=True)
 
 
-@pytest.mark.anyio()
 async def test_making_mub_session(
     active_session: ActiveSession,
     mub_client: TestClient,
@@ -63,7 +64,6 @@ async def test_making_mub_session(
         )
 
 
-@pytest.mark.anyio()
 async def test_upserting_mub_session(
     active_session: ActiveSession,
     mub_client: TestClient,
@@ -101,7 +101,6 @@ async def test_upserting_mub_session(
         )
 
 
-@pytest.mark.anyio()
 async def test_upserting_existing_mub_session(
     mub_client: TestClient,
     user: User,
@@ -120,7 +119,6 @@ async def test_upserting_existing_mub_session(
     )
 
 
-@pytest.mark.anyio()
 async def test_upserting_expired_mub_session(
     active_session: ActiveSession,
     session_factory: Factory[Session],
@@ -160,7 +158,6 @@ async def test_upserting_expired_mub_session(
         )
 
 
-@pytest.mark.anyio()
 async def test_upserting_disabled_mub_session(
     active_session: ActiveSession,
     session_factory: Factory[Session],
@@ -200,7 +197,6 @@ async def test_upserting_disabled_mub_session(
         )
 
 
-@pytest.mark.anyio()
 async def test_mub_disabling_session(
     active_session: ActiveSession,
     mub_client: TestClient,
@@ -215,7 +211,6 @@ async def test_mub_disabling_session(
         assert (await get_db_session(session)).is_invalid
 
 
-@pytest.mark.anyio()
 async def test_mub_deleting_session(
     active_session: ActiveSession,
     mub_client: TestClient,
@@ -233,7 +228,6 @@ async def test_mub_deleting_session(
         assert (await Session.find_first_by_id(session.id)) is None
 
 
-@pytest.mark.anyio()
 async def test_authorized_method_with_mub_session(
     mub_client: TestClient,
     user: User,
@@ -253,7 +247,6 @@ async def test_authorized_method_with_mub_session(
 
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "GET"])
-@pytest.mark.anyio()
 async def test_retrieving_mub_session_user_not_found(
     mub_client: TestClient,
     deleted_user_id: int,
@@ -269,7 +262,6 @@ async def test_retrieving_mub_session_user_not_found(
 
 
 @pytest.mark.parametrize("delete_session", [True, False])
-@pytest.mark.anyio()
 async def test_mub_disabling_session_user_not_found(
     mub_client: TestClient,
     session: Session,
@@ -287,7 +279,6 @@ async def test_mub_disabling_session_user_not_found(
 
 
 @pytest.mark.parametrize("delete_session", [True, False])
-@pytest.mark.anyio()
 async def test_disabled_session_not_found(
     active_session: ActiveSession,
     mub_client: TestClient,
@@ -308,7 +299,6 @@ async def test_disabled_session_not_found(
     )
 
 
-@pytest.mark.anyio()
 async def test_listing_sessions_but_mub(
     authorized_client: TestClient,
     mub_session: Session,
@@ -318,7 +308,6 @@ async def test_listing_sessions_but_mub(
     )
 
 
-@pytest.mark.anyio()
 async def test_disabling_session_mub_not_found(
     authorized_client: TestClient,
     mub_session: Session,
@@ -340,7 +329,6 @@ async def mub_sessions(session_factory: Factory[Session]) -> list[Session]:
     )[::-1]
 
 
-@pytest.mark.anyio()
 async def test_disabling_all_other_sessions_but_mub(
     authorized_client: TestClient,
     active_session: ActiveSession,
@@ -356,7 +344,6 @@ async def test_disabling_all_other_sessions_but_mub(
             assert session.is_invalid != session.is_mub
 
 
-@pytest.mark.anyio()
 async def test_mub_getting_all_sessions(
     mub_client: TestClient,
     user: User,
@@ -371,7 +358,6 @@ async def test_mub_getting_all_sessions(
 
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "GET"])
-@pytest.mark.anyio()
 async def test_retrieving_mub_session_invalid_mub_key(
     client: TestClient,
     user: User,
@@ -389,7 +375,6 @@ async def test_retrieving_mub_session_invalid_mub_key(
     )
 
 
-@pytest.mark.anyio()
 async def test_mub_disabling_session_invalid_mub_key(
     client: TestClient,
     session: Session,

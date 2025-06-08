@@ -9,8 +9,9 @@ from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
 from tests.common.types import Factory
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 @pytest.mark.parametrize(
     "method",
     [
@@ -69,7 +70,6 @@ async def test_concurrent_sessions_limit(
             assert not session.is_invalid
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize("is_mub", [True, False])
 @pytest.mark.parametrize(
     "method",
@@ -122,7 +122,6 @@ async def test_session_history_limit(
             assert session is None
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize("is_mub", [True, False])
 async def test_session_expiry_time_limit(
     active_session: ActiveSession,

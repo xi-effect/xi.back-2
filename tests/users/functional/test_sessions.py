@@ -11,8 +11,9 @@ from tests.common.types import Factory
 from tests.factories import ProxyAuthDataFactory
 from tests.users.utils import session_checker
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_getting_current_session(
     authorized_client: TestClient,
     session: Session,
@@ -23,7 +24,6 @@ async def test_getting_current_session(
     )
 
 
-@pytest.mark.anyio()
 async def test_signing_out(
     authorized_client: TestClient,
     active_session: ActiveSession,
@@ -39,7 +39,6 @@ async def test_signing_out(
         assert session.is_invalid
 
 
-@pytest.mark.anyio()
 async def test_disabling_session(
     active_session: ActiveSession,
     authorized_client: TestClient,
@@ -65,7 +64,6 @@ async def deleted_session_id(
     return session.id
 
 
-@pytest.mark.anyio()
 async def test_disabling_session_non_found(
     authorized_client: TestClient, deleted_session_id: int
 ) -> None:
@@ -78,7 +76,6 @@ async def test_disabling_session_non_found(
     )
 
 
-@pytest.mark.anyio()
 async def test_disabling_session_foreign_user(
     other_client: TestClient, session: Session
 ) -> None:
@@ -94,7 +91,6 @@ async def sessions(session_factory: Factory[Session]) -> list[Session]:
     return [await session_factory() for _ in range(2)][::-1]
 
 
-@pytest.mark.anyio()
 async def test_listing_sessions(
     authorized_client: TestClient,
     sessions: list[Session],
@@ -105,7 +101,6 @@ async def test_listing_sessions(
     )
 
 
-@pytest.mark.anyio()
 async def test_disabling_all_other_sessions(
     active_session: ActiveSession,
     authorized_client: TestClient,
@@ -120,7 +115,6 @@ async def test_disabling_all_other_sessions(
             assert db_session.is_invalid
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("method", "path"),
     [

@@ -15,8 +15,9 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session_from_cookie
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_retrieving_home_data(
     authorized_client: TestClient,
     user_data: AnyJSON,
@@ -60,7 +61,6 @@ def proxy_auth_path(request: PytestRequest[str]) -> str:
     return request.param
 
 
-@pytest.mark.anyio()
 async def test_requesting_proxy_auth(
     authorized_proxy_client: TestClient,
     session: Session,
@@ -77,7 +77,6 @@ async def test_requesting_proxy_auth(
     )
 
 
-@pytest.mark.anyio()
 async def test_requesting_options_in_proxy_auth(
     authorized_proxy_client: TestClient,
     session: Session,
@@ -97,7 +96,6 @@ async def test_requesting_options_in_proxy_auth(
     )
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "invalid_token_in",
     [
@@ -130,7 +128,6 @@ async def test_optional_proxy_authorization_unauthorized(
 @pytest.mark.parametrize(
     "is_cross_site", [False, True], ids=["same_site", "cross_site"]
 )
-@pytest.mark.anyio()
 async def test_renewing_session_in_proxy_auth(
     active_session: ActiveSession,
     authorized_proxy_client: TestClient,
@@ -159,7 +156,6 @@ async def test_renewing_session_in_proxy_auth(
         assert session_from_cookie.id == session.id
 
 
-@pytest.mark.anyio()
 async def test_requesting_unauthorized(client: TestClient) -> None:
     assert_response(
         client.get("/proxy/auth/"),
@@ -168,7 +164,6 @@ async def test_requesting_unauthorized(client: TestClient) -> None:
     )
 
 
-@pytest.mark.anyio()
 async def test_requesting_invalid_session(
     client: TestClient,
     invalid_token: str,

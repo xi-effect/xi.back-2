@@ -8,8 +8,9 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.users import factories
 from tests.users.utils import get_db_user
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_proceeding_to_community_choice_in_onboarding(
     active_session: ActiveSession,
     authorized_client: TestClient,
@@ -28,7 +29,6 @@ async def test_proceeding_to_community_choice_in_onboarding(
         ).onboarding_stage is OnboardingStage.COMMUNITY_CHOICE
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("current_stage", "target_stage"),
     [
@@ -58,7 +58,6 @@ async def test_proceeding_in_onboarding(
         assert (await get_db_user(user)).onboarding_stage is target_stage
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("current_stage", "target_stage"),
     [
@@ -97,7 +96,6 @@ async def test_proceeding_in_onboarding_invalid_transition(
         assert (await get_db_user(user)).onboarding_stage is current_stage
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("current_stage", "target_stage"),
     [
@@ -126,7 +124,6 @@ async def test_returning_in_onboarding(
         assert (await get_db_user(user)).onboarding_stage is target_stage
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("current_stage", "target_stage"),
     [

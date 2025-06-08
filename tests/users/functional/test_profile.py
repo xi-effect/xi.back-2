@@ -15,8 +15,9 @@ from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 from tests.users.utils import generate_username, get_db_user
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 @pytest.mark.parametrize(
     "pass_username", [False, True], ids=["no_username", "with_username"]
 )
@@ -49,7 +50,6 @@ async def test_profile_updating(
     )
 
 
-@pytest.mark.anyio()
 async def test_profile_updating_conflict(
     authorized_client: TestClient,
     other_user: User,
@@ -64,7 +64,6 @@ async def test_profile_updating_conflict(
     )
 
 
-@pytest.mark.anyio()
 async def test_profile_updating_invalid_username(
     authorized_client: TestClient,
 ) -> None:
@@ -87,7 +86,6 @@ async def test_profile_updating_invalid_username(
     )
 
 
-@pytest.mark.anyio()
 async def test_profile_updating_display_name_with_whitespaces(
     faker: Faker,
     authorized_client: TestClient,
@@ -110,7 +108,6 @@ async def test_profile_updating_display_name_with_whitespaces(
     )
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("display_name_length", "error_type"),
     [
@@ -143,7 +140,6 @@ async def test_profile_updating_invalid_display_name(
     )
 
 
-@pytest.mark.anyio()
 async def test_resending_confirmation(
     active_session: ActiveSession,
     user: User,
@@ -163,7 +159,6 @@ async def test_resending_confirmation(
             ).allowed_confirmation_resend == datetime_utc_now() + timedelta(minutes=10)
 
 
-@pytest.mark.anyio()
 async def test_resending_confirmation_timeout_not_passed(
     active_session: ActiveSession,
     user: User,
@@ -181,7 +176,6 @@ async def test_resending_confirmation_timeout_not_passed(
     )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_email(
     faker: Faker,
     active_session: ActiveSession,
@@ -211,7 +205,6 @@ async def test_changing_user_email(
             assert not updated_user.email_confirmed
 
 
-@pytest.mark.anyio()
 async def test_changing_user_email_too_many_emails(
     faker: Faker,
     active_session: ActiveSession,
@@ -234,7 +227,6 @@ async def test_changing_user_email_too_many_emails(
     )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_email_conflict(
     authorized_client: TestClient,
     user_data: AnyJSON,
@@ -250,7 +242,6 @@ async def test_changing_user_email_conflict(
     )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_email_wrong_password(
     faker: Faker,
     authorized_client: TestClient,
@@ -265,7 +256,6 @@ async def test_changing_user_email_wrong_password(
     )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_password(
     faker: Faker,
     active_session: ActiveSession,
@@ -296,7 +286,6 @@ async def test_changing_user_password(
         )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_password_wrong_password(
     faker: Faker,
     authorized_client: TestClient,
@@ -311,7 +300,6 @@ async def test_changing_user_password_wrong_password(
     )
 
 
-@pytest.mark.anyio()
 async def test_changing_user_password_old_password(
     authorized_client: TestClient,
     user_data: AnyJSON,

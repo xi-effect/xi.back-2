@@ -10,13 +10,14 @@ from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session_from_cookie
 
+pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture(params=[False, True], ids=["same_site", "cross_site"])
 def is_cross_site(request: PytestRequest[bool]) -> bool:
     return request.param
 
 
-@pytest.mark.anyio()
 async def test_signing_up(
     mock_stack: MockStack,
     client: TestClient,
@@ -43,7 +44,6 @@ async def test_signing_up(
         await user.delete()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("data_mod", "error"),
     [
@@ -72,7 +72,6 @@ async def test_signing_up_conflict(
     )
 
 
-@pytest.mark.anyio()
 async def test_signing_in(
     client: TestClient,
     active_session: ActiveSession,
@@ -94,7 +93,6 @@ async def test_signing_in(
         await assert_session_from_cookie(response, is_cross_site=is_cross_site)
 
 
-@pytest.mark.anyio()
 @pytest.mark.usefixtures("user")
 @pytest.mark.parametrize(
     ("altered_key", "error"),

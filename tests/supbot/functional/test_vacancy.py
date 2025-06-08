@@ -26,6 +26,8 @@ from tests.supbot.factories import (
     UserFactory,
 )
 
+pytestmark = pytest.mark.anyio
+
 NAVIGATION_KEYBOARD_MARKUP = {
     "keyboard": [
         [{"text": texts.BACK_BUTTON_TEXT}, {"text": texts.MAIN_MENU_BUTTON_TEXT}]
@@ -62,7 +64,6 @@ SENDING_INFO_KEYBOARD_MARKUP = {
 }
 
 
-@pytest.mark.anyio()
 async def test_starting_vacancy_form(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -94,7 +95,6 @@ async def test_starting_vacancy_form(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "current_state",
     [
@@ -142,7 +142,6 @@ async def test_exiting_vacancy_form(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_continue_in_bot(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -179,7 +178,6 @@ async def test_sending_continue_in_bot(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_specialization(
     faker: Faker,
     webhook_updater: WebhookUpdater,
@@ -215,7 +213,6 @@ async def test_sending_specialization(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_name(
     faker: Faker,
     webhook_updater: WebhookUpdater,
@@ -253,7 +250,6 @@ async def test_sending_name(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "is_account_provided",
     [
@@ -312,7 +308,6 @@ async def test_sending_telegram(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_resume(
     faker: Faker,
     mock_stack: MockStack,
@@ -357,7 +352,6 @@ async def test_sending_resume(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_resume_unsupported_message(
     faker: Faker,
     webhook_updater: WebhookUpdater,
@@ -391,7 +385,6 @@ async def test_sending_resume_unsupported_message(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_resume_invalid_file_format(
     faker: Faker,
     mock_stack: MockStack,
@@ -436,7 +429,6 @@ async def test_sending_resume_invalid_file_format(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("document_error", "expected_message"),
     [
@@ -494,7 +486,6 @@ async def test_sending_resume_unsupported_document(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "is_comment_provided",
     [
@@ -557,7 +548,6 @@ async def test_sending_comment(
     assert_last_httpx_request(public_users_bridge_mock)
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("current_state", "expected_message", "expected_keyboard"),
     [
@@ -627,7 +617,6 @@ async def test_going_back(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "current_state",
     [

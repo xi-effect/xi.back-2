@@ -11,6 +11,8 @@ from tests.common.assert_contains_ext import assert_nodata_response, assert_resp
 from tests.common.mock_stack import MockStack
 from tests.pochta.factories import EmailFormDataFactory, EmailFormDataSchema
 
+pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture()
 def html_filename_and_content(faker: Faker) -> tuple[str, bytes]:
@@ -20,7 +22,6 @@ def html_filename_and_content(faker: Faker) -> tuple[str, bytes]:
     )
 
 
-@pytest.mark.anyio()
 async def test_sending_email_from_file(
     faker: Faker,
     mock_stack: MockStack,
@@ -71,7 +72,6 @@ async def test_sending_email_from_file(
     )
 
 
-@pytest.mark.anyio()
 async def test_sending_email_from_file_config_not_set(
     mock_stack: MockStack,
     mub_client: TestClient,

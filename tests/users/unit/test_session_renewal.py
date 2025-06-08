@@ -14,10 +14,11 @@ from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
 from tests.users.utils import get_db_session
 
+pytestmark = pytest.mark.anyio
+
 days_to_renew: Final[int] = (Session.expiry_timeout - Session.renew_period_length).days
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     ("active_for", "expected"),
     [
@@ -36,7 +37,6 @@ async def test_renewal_required_detection(
         assert session.is_renewal_required() == expected
 
 
-@pytest.mark.anyio()
 async def test_renewal_method(
     mock_stack: MockStack,
     active_session: ActiveSession,
@@ -50,7 +50,6 @@ async def test_renewal_method(
     assert session.expires_at > old_expiry
 
 
-@pytest.mark.anyio()
 @pytest.mark.parametrize(
     "is_cross_site",
     [

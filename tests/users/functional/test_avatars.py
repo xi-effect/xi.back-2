@@ -8,6 +8,8 @@ from starlette.testclient import TestClient
 from app.users.models.users_db import User
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 
+pytestmark = pytest.mark.anyio
+
 
 @pytest.fixture()
 async def image(faker: Faker) -> bytes:
@@ -22,7 +24,6 @@ async def _create_avatar(user: User, image: bytes) -> AsyncIterator[None]:
     user.avatar_path.unlink(missing_ok=True)
 
 
-@pytest.mark.anyio()
 async def test_avatar_uploading(
     authorized_client: TestClient, user: User, image: bytes
 ) -> None:
@@ -40,7 +41,6 @@ async def test_avatar_uploading(
     user.avatar_path.unlink()
 
 
-@pytest.mark.anyio()
 async def test_avatar_uploading_wrong_format(
     authorized_client: TestClient, faker: Faker
 ) -> None:
@@ -54,7 +54,6 @@ async def test_avatar_uploading_wrong_format(
     )
 
 
-@pytest.mark.anyio()
 @pytest.mark.usefixtures("_create_avatar")
 async def test_avatar_replacing(
     authorized_client: TestClient, user: User, faker: Faker
@@ -72,7 +71,6 @@ async def test_avatar_replacing(
         assert f.read() == image_2
 
 
-@pytest.mark.anyio()
 @pytest.mark.usefixtures("_create_avatar")
 async def test_avatar_deletion(authorized_client: TestClient, user: User) -> None:
     assert_nodata_response(
@@ -82,7 +80,6 @@ async def test_avatar_deletion(authorized_client: TestClient, user: User) -> Non
     assert not user.avatar_path.is_file()
 
 
-@pytest.mark.anyio()
 @pytest.mark.usefixtures("_create_avatar")
 async def test_mub_user_deletion_with_avatar(
     mub_client: TestClient, user: User

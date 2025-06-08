@@ -12,8 +12,9 @@ from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 from tests.users import factories
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_demo_form_submitting(
     mock_stack: MockStack,
     client: TestClient,
@@ -37,7 +38,6 @@ async def test_demo_form_submitting(
     response_mock.raise_for_status.assert_called_once()
 
 
-@pytest.mark.anyio()
 async def test_demo_form_submitting_missing_webhook_url(client: TestClient) -> None:
     assert_response(
         client.post(
@@ -49,7 +49,6 @@ async def test_demo_form_submitting_missing_webhook_url(client: TestClient) -> N
     )
 
 
-@pytest.mark.anyio()
 async def test_vacancy_form_submitting(
     mock_stack: MockStack,
     client: TestClient,
@@ -76,7 +75,6 @@ async def test_vacancy_form_submitting(
     response_mock.raise_for_status.assert_called_once()
 
 
-@pytest.mark.anyio()
 async def test_vacancy_form_submitting_invalid_file_format(
     faker: Faker,
     client: TestClient,
@@ -95,7 +93,6 @@ async def test_vacancy_form_submitting_invalid_file_format(
     )
 
 
-@pytest.mark.anyio()
 async def test_vacancy_form_submitting_missing_webhook_url(
     client: TestClient,
     pdf_data: tuple[str, BinaryIO, str],

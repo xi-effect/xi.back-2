@@ -14,8 +14,9 @@ from tests.supbot.conftest import (
 )
 from tests.supbot.factories import MessageFactory, UpdateFactory, UserFactory
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_sending_message_to_user(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -60,7 +61,6 @@ async def test_sending_message_to_user(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_closing_ticket_by_support(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,

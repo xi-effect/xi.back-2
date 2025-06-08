@@ -24,8 +24,9 @@ from tests.supbot.factories import (
     UserFactory,
 )
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_starting_support(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -59,7 +60,6 @@ async def test_starting_support(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_exiting_support(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -93,7 +93,6 @@ async def test_exiting_support(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_creating_support_ticket(
     faker: Faker,
     mock_stack: MockStack,
@@ -158,7 +157,6 @@ async def test_creating_support_ticket(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_sending_message_to_support(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -194,7 +192,6 @@ async def test_sending_message_to_support(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_closing_support_ticket_by_user(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
@@ -256,7 +253,6 @@ async def test_closing_support_ticket_by_user(
     mocked_bot.assert_no_more_api_calls()
 
 
-@pytest.mark.anyio()
 async def test_closing_ticket_after_user_banned_bot(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,

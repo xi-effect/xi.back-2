@@ -10,8 +10,9 @@ from tests.supbot.conftest import (
 )
 from tests.supbot.factories import MessageFactory, UpdateFactory, UserFactory
 
+pytestmark = pytest.mark.anyio
 
-@pytest.mark.anyio()
+
 async def test_starting(
     webhook_updater: WebhookUpdater,
     mocked_bot: MockedBot,
