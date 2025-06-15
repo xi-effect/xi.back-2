@@ -1,6 +1,6 @@
 from collections.abc import AsyncIterator
 from os import stat
-from typing import cast
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -17,8 +17,13 @@ from tests.storage import factories
 
 
 @pytest.fixture()
-async def access_group_data() -> AnyJSON:
-    return factories.AccessGroupInputFactory.build_json()
+async def access_group_data(request: PytestRequest[dict[str, Any]]) -> AnyJSON:
+    params = getattr(request, "param", {})
+    if params.get("kind") == "personal":
+        proxy_auth_data = request.getfixturevalue("proxy_auth_data")  # type: ignore[attr-defined]
+        params["related_id"] = str(proxy_auth_data.user_id)
+
+    return factories.AccessGroupInputFactory.build_json(**params)
 
 
 @pytest.fixture()
