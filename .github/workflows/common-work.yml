@@ -59,21 +59,21 @@ jobs:
 
       - name: Load Cached Venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.0
         with:
           path: .venv
           key: ${{ env.repository_cache_name }}-venv-${{ hashFiles('**/poetry.lock') }}
           restore-keys: ${{ env.repository_cache_name }}-venv-
 
       - name: Load Cached Pre-commit
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.0
         with:
           path: ~/.cache/pre-commit
           key: ${{ env.repository_cache_name }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: ${{ env.repository_cache_name }}-pre-commit-
 
       - name: Load Mypy Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4.2.0
         with:
           path: .mypy_cache
           key: ${{ env.repository_cache_name }}-mypy
