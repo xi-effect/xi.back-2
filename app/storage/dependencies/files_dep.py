@@ -2,13 +2,14 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.storage.models.files_db import File
 
 
 class FileResponses(Responses):
-    FILE_NOT_FOUND = 404, "File not found"
+    FILE_NOT_FOUND = status.HTTP_404_NOT_FOUND, "File not found"
 
 
 @with_responses(FileResponses)

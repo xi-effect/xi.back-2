@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
@@ -126,7 +127,7 @@ async def test_community_joining_invalid_invitation(
         await tmexio_outsider_client.emit(
             "join-community", code=invalid_invitation.token
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Invitation not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -140,7 +141,7 @@ async def test_community_joining_invitation_not_found(
         await tmexio_outsider_client.emit(
             "join-community", code=deleted_invitation_code
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Invitation not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -152,7 +153,7 @@ async def test_community_joining_already_joined(
 ) -> None:
     assert_ack(
         await tmexio_actor_client.emit("join-community", code=invitation.token),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Already joined",
     )
     tmexio_actor_client.assert_no_more_events()

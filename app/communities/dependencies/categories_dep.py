@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.communities.dependencies.communities_dep import CommunityById
@@ -8,7 +9,7 @@ from app.communities.models.categories_db import Category
 
 
 class CategoriesResponses(Responses):
-    CATEGORY_NOT_FOUND = 404, "Category not found"
+    CATEGORY_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Category not found"
 
 
 @with_responses(CategoriesResponses)

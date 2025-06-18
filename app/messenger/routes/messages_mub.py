@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Annotated
 
 from pydantic import Field
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.datetime import datetime_utc_now
@@ -34,7 +35,7 @@ async def list_messages(
 
 @router.post(
     "/chats/{chat_id}/messages/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Message.ResponseSchema,
     summary="Create a new message in a chat",
 )
@@ -69,7 +70,7 @@ async def patch_message(
 
 @router.delete(
     "/messages/{message_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any message by id",
 )
 async def delete_message(message: MessageById) -> None:

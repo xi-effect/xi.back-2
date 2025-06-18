@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.posts.models.post_channels_db import PostChannel
 
 
 class PostChannelResponses(Responses):
-    POST_CHANNEL_NOT_FOUND = 404, "Post-channel not found"
+    POST_CHANNEL_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Post-channel not found"
 
 
 @with_responses(PostChannelResponses)

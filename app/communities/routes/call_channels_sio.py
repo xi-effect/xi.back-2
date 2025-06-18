@@ -1,4 +1,4 @@
-from livekit.api import AccessToken, VideoGrants  # type: ignore[attr-defined]
+from livekit.api import AccessToken, VideoGrants
 
 from app.common.config import settings
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser

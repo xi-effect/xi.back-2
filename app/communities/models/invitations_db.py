@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, ClassVar, Self
 
-from pydantic import FutureDatetime, PositiveInt
+from pydantic import AwareDatetime, FutureDatetime, PositiveInt
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import CHAR, DateTime, ForeignKey, Index, Row, or_, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -30,7 +30,9 @@ class Invitation(Base):
     # TODO naming for timestamps should be consistent with Participants
     usage_count: Mapped[int] = mapped_column(default=0)
     usage_limit: Mapped[int | None] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
 
     # creator data
     creator_id: Mapped[int] = mapped_column()
@@ -53,9 +55,19 @@ class Invitation(Base):
     InputSchema = MappedModel.create(
         columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None)],
     )
-    MUBInputSchema = InputSchema.extend(columns=[created_at, creator_id])
+    MUBInputSchema = InputSchema.extend(
+        columns=[(created_at, AwareDatetime), creator_id]
+    )
     ResponseSchema = MappedModel.create(
-        columns=[id, token, expiry, usage_count, usage_limit, created_at, creator_id]
+        columns=[
+            id,
+            token,
+            expiry,
+            usage_count,
+            usage_limit,
+            (created_at, AwareDatetime),
+            creator_id,
+        ]
     )
 
     @classmethod

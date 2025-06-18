@@ -3,6 +3,7 @@ from jwt import decode
 from jwt.exceptions import PyJWTError
 from pydantic import HttpUrl
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 from starlette.datastructures import URL, QueryParams
 from starlette.testclient import TestClient
 
@@ -84,6 +85,6 @@ async def test_call_channel_livekit_token_generating_call_channel_not_found(
         mub_client.post(
             f"/mub/community-service/channels/{deleted_call_channel_id}/call/tokens/"
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Call-channel not found"},
     )

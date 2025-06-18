@@ -38,7 +38,7 @@ async def materials(
                         before_now=False,
                         after_now=True,
                         tzinfo=timezone.utc,
-                    )
+                    ),
                 )
             )
 

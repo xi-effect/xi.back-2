@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from pydantic_marshals.base import CompositeMarshalModel
+from starlette import status
 from tmexio import AsyncServer, AsyncSocket, Emitter, EventException, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -119,7 +120,7 @@ async def list_communities(
     return await Participant.find_all_communities_by_user_id(user_id=user.user_id)
 
 
-already_joined = EventException(409, "Already joined")
+already_joined = EventException(status.HTTP_409_CONFLICT, "Already joined")
 
 
 @router.on(
@@ -174,7 +175,7 @@ async def join_community(
     return ParticipationSchema(community=community, participant=participant)
 
 
-owner_can_not_leave = EventException(409, "Owner can not leave")
+owner_can_not_leave = EventException(status.HTTP_409_CONFLICT, "Owner can not leave")
 
 
 @router.on(

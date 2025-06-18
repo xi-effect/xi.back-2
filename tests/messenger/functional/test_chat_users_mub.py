@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.messenger.models.chat_users_db import ChatUser
@@ -26,7 +27,7 @@ async def test_chat_user_creation(
             f"/mub/messenger-service/chats/{chat.id}/users/{sender_user_id}/",
             json=chat_user_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **chat_user_input_data,
             "chat_id": chat.id,
@@ -53,7 +54,7 @@ async def test_chat_user_creation_chat_not_found(
             f"/mub/messenger-service/chats/{deleted_chat_id}/users/{sender_user_id}/",
             json=chat_user_input_data,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Chat not found"},
     )
 
@@ -126,6 +127,6 @@ async def test_chat_user_not_finding(
             f"/mub/messenger-service/chats/{deleted_chat_user.chat_id}/users/{deleted_chat_user.user_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Chat-user not found"},
     )

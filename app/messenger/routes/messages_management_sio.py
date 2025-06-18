@@ -1,3 +1,4 @@
+from starlette import status
 from tmexio import Emitter, EventException
 
 from app.common.sqlalchemy_ext import db
@@ -8,7 +9,9 @@ from app.messenger.rooms import chat_room
 
 router = EventRouterExt(tags=["managing-messages"])
 
-message_already_pinned = EventException(409, "Message is already pinned")
+message_already_pinned = EventException(
+    status.HTTP_409_CONFLICT, "Message is already pinned"
+)
 
 
 @router.on(
@@ -35,7 +38,7 @@ async def pin_message(
     )
 
 
-message_not_pinned = EventException(409, "Message is not pinned")
+message_not_pinned = EventException(status.HTTP_409_CONFLICT, "Message is not pinned")
 
 
 @router.on(

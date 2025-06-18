@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 from faker import Faker
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.scheduler.models.events_db import Event
@@ -24,7 +25,7 @@ async def test_event_creation(
 
     event_id = assert_response(
         mub_client.post("/mub/scheduler-service/events/", json=event_input_data),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **event_input_data,
             "id": int,
@@ -123,6 +124,6 @@ async def test_event_not_finding(
             url=f"/mub/scheduler-service/events/{deleted_event_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Event not found"},
     )

@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from pydantic import BaseModel
+from starlette import status
 from tmexio import Emitter, EventException, PydanticPackager
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
@@ -30,7 +31,9 @@ async def list_categories(
     return await Category.find_all_by_community_id(community_id=community.id)
 
 
-quantity_limit_exceeded = EventException(409, "Quantity limit exceeded")
+quantity_limit_exceeded = EventException(
+    status.HTTP_409_CONFLICT, "Quantity limit exceeded"
+)
 
 
 @router.on(
@@ -44,7 +47,9 @@ async def create_category(
     community: CommunityById,
     data: Category.InputSchema,
     duplex_emitter: Annotated[Emitter[Category], Category.ServerEventSchema],
-) -> Annotated[Category, PydanticPackager(Category.ResponseSchema, code=201)]:
+) -> Annotated[
+    Category, PydanticPackager(Category.ResponseSchema, code=status.HTTP_201_CREATED)
+]:
     if await Category.is_limit_per_community_reached(community_id=community.id):
         raise quantity_limit_exceeded
 
@@ -91,7 +96,7 @@ class MoveCategoryServerSchema(CategoryIdsSchema):
     before_id: int | None
 
 
-invalid_move = EventException(409, "Invalid move")
+invalid_move = EventException(status.HTTP_409_CONFLICT, "Invalid move")
 
 
 @router.on(
@@ -115,7 +120,7 @@ async def move_category(
         )
     except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
         # TODO warns as if the exception is not documented
-        raise EventException(409, e.message)
+        raise EventException(status.HTTP_409_CONFLICT, e.message)
 
     await db.session.commit()
 

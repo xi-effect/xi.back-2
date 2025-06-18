@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from starlette import status
+
 from app.common.fastapi_ext import APIRouterExt
 from app.posts.dependencies.post_channels_dep import PostChannelById
 from app.posts.dependencies.posts_dep import PostById
@@ -23,7 +25,7 @@ async def list_posts(
 
 @router.post(
     "/post-channels/{channel_id}/posts/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Post.ResponseSchema,
     summary="Create a new post in a channel",
 )
@@ -52,7 +54,7 @@ async def patch_post(post: PostById, data: Post.PatchSchema) -> Post:
 
 @router.delete(
     "/posts/{post_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any post by id",
 )
 async def delete_post(post: PostById) -> None:

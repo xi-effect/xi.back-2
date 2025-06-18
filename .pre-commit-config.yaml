@@ -24,12 +24,12 @@ repos:
       - id: autoflake
 
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
 
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 25.1.0
     hooks:
       - id: black
 
@@ -39,23 +39,23 @@ repos:
         name: flake8
         language: system
         entry: flake8
+        files: ^(app|tests)/
         types_or: [python, pyi]
-        exclude: ^alembic/
 
   - repo: local
     hooks:
       - id: mypy
-        name: mypy (full)
+        name: mypy
         language: system
-        entry: mypy
+        entry: mypy app tests
+        pass_filenames: false
         require_serial: true
+        files: ^(app|tests)/
         types_or: [python, pyi]
-        exclude: ^alembic/
 
   - repo: https://github.com/python-poetry/poetry
-    rev: 1.8.2
+    rev: 2.1.3
     hooks:
       - id: poetry-lock
-        args: ["--no-update"]
       - id: poetry-check
       - id: poetry-install

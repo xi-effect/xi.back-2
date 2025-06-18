@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.channels_db import Channel
@@ -36,7 +37,7 @@ async def test_channel_creation(
             params=remove_none_values({"category_id": channel_parent_category_id}),
             json=channel_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**channel_data, "id": channel.id},
     )
 
@@ -69,7 +70,7 @@ async def test_channel_creation_quantity_exceeded(
             params=remove_none_values({"category_id": channel_parent_category_id}),
             json=channel_data,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Quantity exceeded"},
     )
 
@@ -143,6 +144,6 @@ async def test_channel_not_finding(
             f"/mub/community-service/channels/{deleted_channel_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Channel not found"},
     )

@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from starlette import status
+
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.dependencies.invitations_dep import InvitationById
@@ -23,7 +25,7 @@ async def list_invitations(community: CommunityById) -> Sequence[Invitation]:
 
 @router.post(
     "/communities/{community_id}/invitations/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Invitation.ResponseSchema,
     responses=LimitedListResponses.responses(),
     summary="Create a new invitation for the community",
@@ -50,7 +52,7 @@ async def retrieve_invitation(invitation: InvitationById) -> Invitation:
 
 @router.delete(
     "/invitations/{invitation_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any invitation by id",
 )
 async def delete_invitation(invitation: InvitationById) -> None:

@@ -1,6 +1,7 @@
 import pytest
 from jwt import decode
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 
 from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -48,7 +49,7 @@ async def test_call_channel_livekit_token_generating_call_channel_not_found(
             community_id=community.id,
             channel_id=deleted_call_channel_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Call-channel not found",
     )
     tmexio_participant_client.assert_no_more_events()
@@ -63,7 +64,7 @@ async def test_call_channel_livekit_token_generating_community_not_found(
             community_id=deleted_community_id,
             channel_id=1,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -78,7 +79,7 @@ async def test_call_channel_livekit_token_generating_no_access_to_community(
             community_id=community.id,
             channel_id=1,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()

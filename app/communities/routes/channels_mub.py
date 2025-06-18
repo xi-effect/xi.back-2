@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import Body, HTTPException
+from starlette import status
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
@@ -36,7 +37,7 @@ async def list_channels_and_categories(
 
 @router.post(
     "/communities/{community_id}/channels/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Channel.ResponseSchema,
     responses=LimitedListResponses.responses(),
     summary="Create a new channel in the community (append to the end of the list)",
@@ -62,7 +63,7 @@ async def create_channel(
 
 @router.put(
     "/communities/{community_id}/channels/positions/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Reindex channels in a community",
 )
 async def reindex_channels(
@@ -93,7 +94,7 @@ async def patch_channel(channel: ChannelById, data: Channel.PatchSchema) -> Chan
 
 @router.put(
     "/channels/{channel_id}/position/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     responses=CategoriesResponses.responses(
         LimitedListResponses.responses(MoveResponses.responses())
     ),
@@ -123,12 +124,12 @@ async def move_channel(
             before_id=before_id,
         )
     except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
-        raise HTTPException(409, e.message)
+        raise HTTPException(status.HTTP_409_CONFLICT, e.message)
 
 
 @router.delete(
     "/channels/{channel_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any channel by id",
 )
 async def delete_channel(channel: ChannelById) -> None:

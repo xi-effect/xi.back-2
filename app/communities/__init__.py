@@ -1,3 +1,3 @@
-from app.communities.main import api_router, event_router, lifespan
+from app.communities.main import api_router, event_router
 
-__all__ = ["lifespan", "api_router", "event_router"]
+__all__ = ["api_router", "event_router"]

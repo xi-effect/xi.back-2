@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -63,7 +64,7 @@ async def test_board_channel_access_level_retrieving_proxy_auth_required(
         internal_client.get(
             f"/internal/community-service/channels/{board_channel.id}/board/access-level/",
         ),
-        expected_code=407,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Proxy auth required"},
     )
 
@@ -76,6 +77,6 @@ async def test_board_channel_access_level_retrieving_board_channel_not_found(
         authorized_internal_client.get(
             f"/internal/community-service/channels/{deleted_board_channel_id}/board/access-level/",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Board-channel not found"},
     )

@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.storage.models.access_groups_db import AccessGroup
@@ -21,7 +22,7 @@ async def test_access_group_creation(
             "/internal/storage-service/access-groups/",
             json=access_group_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={**access_group_data, "id": UUID},
     ).json()["id"]
 
@@ -53,6 +54,6 @@ async def test_access_group_deleting_access_group_not_found(
         internal_client.delete(
             f"/internal/storage-service/access-groups/{missing_access_group_id}",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Access group not found"},
     )

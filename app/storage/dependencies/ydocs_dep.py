@@ -2,13 +2,14 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import Body, Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.storage.models.ydocs_db import YDoc
 
 
 class YDocResponses(Responses):
-    YDOC_NOT_FOUND = 404, "YDoc not found"
+    YDOC_NOT_FOUND = status.HTTP_404_NOT_FOUND, "YDoc not found"
 
 
 @with_responses(YDocResponses)

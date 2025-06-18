@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 
 from app.communities.models.communities_db import Community
 from app.communities.rooms import community_room, participants_list_room
@@ -44,7 +45,7 @@ async def test_community_deleting(
 ) -> None:
     assert_ack(
         await tmexio_owner_client.emit("delete-community", community_id=community.id),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 
@@ -83,7 +84,7 @@ async def test_community_management_community_not_found(
             data=data_factory and data_factory.build_json(),
         ),
         expected_data="Community not found",
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
     )
     tmexio_outsider_client.assert_no_more_events()
     community_room_listener.assert_no_more_events()
@@ -104,7 +105,7 @@ async def test_community_management_no_access_to_community(
             data=data_factory and data_factory.build_json(),
         ),
         expected_data="No access to community",
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
     )
     tmexio_outsider_client.assert_no_more_events()
     community_room_listener.assert_no_more_events()
@@ -125,7 +126,7 @@ async def test_community_management_insufficient_permissions(
             data=data_factory and data_factory.build_json(),
         ),
         expected_data="Not sufficient permissions",
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
     )
     tmexio_participant_client.assert_no_more_events()
     community_room_listener.assert_no_more_events()

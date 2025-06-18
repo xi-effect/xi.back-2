@@ -3,7 +3,7 @@ from typing import Annotated, Final
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ValidationError
-from starlette.status import HTTP_407_PROXY_AUTHENTICATION_REQUIRED
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 
@@ -72,7 +72,7 @@ def construct_proxy_auth_data(
 
 
 class AuthorizedResponses(Responses):
-    PROXY_AUTH_MISSING = HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "Proxy auth required"
+    PROXY_AUTH_MISSING = status.HTTP_401_UNAUTHORIZED, "Proxy auth required"
 
 
 @with_responses(AuthorizedResponses)

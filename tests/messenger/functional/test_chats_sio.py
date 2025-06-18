@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 import pytest
 from faker import Faker
 from pydantic_marshals.contains import assert_contains
+from starlette import status
 
 from app.common.utils.datetime import datetime_utc_now
 from app.messenger.models.chat_users_db import ChatUser
@@ -128,7 +129,7 @@ async def test_marking_message_as_read(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():
@@ -162,7 +163,7 @@ async def test_marking_message_as_read_already_read(
             chat_id=chat.id,
             message_id=message.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():
@@ -185,7 +186,7 @@ async def test_marking_message_as_read_message_not_found(
             chat_id=chat.id,
             message_id=deleted_message_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Message not found",
     )
 
@@ -213,7 +214,7 @@ async def test_chat_not_finding_for_chats(
             created_before=datetime_utc_now(),
             limit=100,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Chat not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -227,7 +228,7 @@ async def check_chat_closed(tmexio_client: TMEXIOTestClient, chat_id: int) -> No
 
     assert_ack(
         await tmexio_client.emit("close-chat", chat_id=chat_id),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_client.assert_no_more_events()
 

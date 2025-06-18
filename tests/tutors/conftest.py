@@ -7,7 +7,7 @@ from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON
-from tests.conftest import ProxyAuthDataFactory
+from tests.factories import ProxyAuthDataFactory
 from tests.tutors import factories
 
 

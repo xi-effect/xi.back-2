@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Query
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.task_channels_dep import TaskChannelById
@@ -31,7 +32,7 @@ async def list_tasks(
 
 @router.post(
     "/task-channels/{channel_id}/tasks/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Task.ResponseSchema,
     summary="Create a new task in a channel",
 )
@@ -60,7 +61,7 @@ async def patch_task(task: TaskById, data: Task.PatchSchema) -> Task:
 
 @router.delete(
     "/tasks/{task_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any task by id",
 )
 async def delete_task(task: TaskById) -> None:

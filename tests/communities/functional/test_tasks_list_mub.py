@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 
 import pytest
 from freezegun import freeze_time
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.communities.models.task_channels_db import TaskChannel
@@ -137,6 +138,6 @@ async def test_tasks_listing_task_channel_not_found(
             f"/mub/community-service/task-channels/{deleted_task_channel_id}/tasks/",
             params={"offset": 0, "limit": TASK_LIST_SIZE},
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Task-channel not found"},
     )

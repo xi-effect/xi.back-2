@@ -3,6 +3,7 @@ from uuid import UUID
 import pytest
 from faker import Faker
 from respx import MockRouter
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
@@ -27,7 +28,7 @@ async def test_ydoc_creating(
         internal_client.post(
             f"/internal/storage-service/access-groups/{access_group.id}/ydocs/",
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={"id": UUID},
     ).json()["id"]
 
@@ -46,7 +47,7 @@ async def test_ydoc_creating_access_group_not_found(
         internal_client.post(
             f"/internal/storage-service/access-groups/{missing_access_group_id}/ydocs/",
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Access group not found"},
     )
 
@@ -91,7 +92,7 @@ async def test_ydoc_access_level_retrieving_proxy_auth_required(
         internal_client.get(
             f"/internal/storage-service/ydocs/{ydoc.id}/access-level/",
         ),
-        expected_code=407,
+        expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Proxy auth required"},
     )
 
@@ -176,6 +177,6 @@ async def test_ydoc_not_finding(
                 {"Content-Type": "application/octet-stream"} if with_content else None
             ),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "YDoc not found"},
     )

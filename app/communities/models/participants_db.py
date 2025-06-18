@@ -2,13 +2,14 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Self
 
-from pydantic import NaiveDatetime
+from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import ForeignKey, Index, Row, select
+from sqlalchemy import DateTime, ForeignKey, Index, Row, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
+from app.common.utils.datetime import datetime_utc_now
 from app.communities.models.communities_db import Community
 
 
@@ -18,8 +19,9 @@ class Participant(Base):
     # participant data
     id: Mapped[int] = mapped_column(primary_key=True)
     is_owner: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
-    # TODO mb change to `DateTime(timezone=True)`
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
 
     # user data
     user_id: Mapped[int] = mapped_column()
@@ -39,7 +41,7 @@ class Participant(Base):
     # models
     CurrentSchema = MappedModel.create(columns=[is_owner])
     IDsSchema = MappedModel.create(columns=[community_id, user_id])
-    MUBBaseSchema = CurrentSchema.extend(columns=[(created_at, NaiveDatetime)])
+    MUBBaseSchema = CurrentSchema.extend(columns=[(created_at, AwareDatetime)])
     MUBPatchSchema = MUBBaseSchema.as_patch()
     MUBResponseSchema = MUBBaseSchema.extend(columns=[id, user_id])
     ListItemSchema = MUBBaseSchema.extend(columns=[user_id])
