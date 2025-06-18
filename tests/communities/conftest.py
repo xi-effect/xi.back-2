@@ -27,7 +27,7 @@ from tests.common.tmexio_testing import (
 )
 from tests.common.types import AnyJSON, PytestRequest
 from tests.communities import factories
-from tests.conftest import ProxyAuthDataFactory
+from tests.factories import ProxyAuthDataFactory
 
 
 @pytest.fixture()

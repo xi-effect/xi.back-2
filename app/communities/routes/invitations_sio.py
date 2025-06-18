@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Annotated
 
+from starlette import status
 from tmexio import EventException, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
@@ -28,7 +29,7 @@ async def list_invitations(
     return await Invitation.find_all_valid_by_community_id(community_id=community.id)
 
 
-quantity_exceeded = EventException(409, "Quantity exceeded")
+quantity_exceeded = EventException(status.HTTP_409_CONFLICT, "Quantity exceeded")
 
 
 @router.on(

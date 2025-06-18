@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 
 from app.communities.models.categories_db import Category
 from app.communities.models.communities_db import Community
@@ -27,7 +28,7 @@ async def test_category_creation(
             community_id=community.id,
             data=category_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_data={**category_data, "id": int},
     )[1]["id"]
     tmexio_owner_client.assert_no_more_events()
@@ -58,7 +59,7 @@ async def test_category_creation_quantity_exceeded(
             community_id=community.id,
             data=category_data,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Quantity limit exceeded",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -105,7 +106,7 @@ async def test_category_deleting(
             community_id=community.id,
             category_id=category.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 
@@ -141,7 +142,7 @@ async def test_managing_categories_community_not_found(
             category_id=1,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -163,7 +164,7 @@ async def test_managing_categories_no_access_to_community(
             category_id=1,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -189,7 +190,7 @@ async def test_managing_categories_category_not_found(
             category_id=deleted_category_id,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Category not found",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -212,7 +213,7 @@ async def test_managing_categories_insufficient_permissions(
             category_id=category.id,
             data=data_factory and data_factory.build_json(),
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="Not sufficient permissions",
     )
     tmexio_participant_client.assert_no_more_events()

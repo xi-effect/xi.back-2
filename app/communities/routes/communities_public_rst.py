@@ -18,7 +18,7 @@ from app.communities.models.participants_db import Participant
 router = APIRouterExt(tags=["community joining"])
 
 
-class CommunityPreviewModel(BaseModel):
+class CommunityPreviewSchema(BaseModel):
     community: Community.FullResponseSchema
     is_authorized: bool
     has_already_joined: bool
@@ -27,7 +27,7 @@ class CommunityPreviewModel(BaseModel):
 @router.get(
     "/invitations/by-code/{code}/community/",
     responses=InvitationResponses.responses(),
-    response_model=CommunityPreviewModel,
+    response_model=CommunityPreviewSchema,
     summary="Retrieve community preview by invitation code",
 )
 async def retrieve_community_by_invitation_code(

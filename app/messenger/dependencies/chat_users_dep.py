@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.messenger.models.chat_users_db import ChatUser
 
 
 class ChatUserResponses(Responses):
-    CHAT_USER_NOT_FOUND = 404, "Chat-user not found"
+    CHAT_USER_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Chat-user not found"
 
 
 @with_responses(ChatUserResponses)

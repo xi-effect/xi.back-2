@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 
 from app.communities.models.communities_db import Community
 from app.communities.models.participants_db import Participant
@@ -51,7 +52,7 @@ async def test_participants_listing_community_not_found(
             "list-participants",
             community_id=deleted_community_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -67,7 +68,7 @@ async def check_participants_list_closed(
             "close-participants",
             community_id=community_id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_client.assert_no_more_events()
 
@@ -122,7 +123,7 @@ async def test_participant_kicking(
             community_id=community.id,
             target_user_id=participant.user_id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
     tmexio_owner_client.assert_no_more_events()
 
@@ -168,7 +169,7 @@ async def test_participant_kicking_participant_not_found(
             community_id=community.id,
             target_user_id=deleted_participant_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Participant not found",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -185,7 +186,7 @@ async def test_participant_kicking_target_is_the_source(
             community_id=community.id,
             target_user_id=owner_proxy_auth_data.user_id,
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Target is the source",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -210,7 +211,7 @@ async def test_participants_listing_no_access_to_community(
             community_id=community.id,
             target_user_id=participant_user_id,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )
     tmexio_outsider_client.assert_no_more_events()
@@ -227,7 +228,7 @@ async def test_participant_kicking_not_sufficient_permissions(
             community_id=community.id,
             target_user_id=participant.id,
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="Not sufficient permissions",
     )
     tmexio_participant_client.assert_no_more_events()

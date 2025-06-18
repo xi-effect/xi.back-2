@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
@@ -26,13 +27,14 @@ internal_router = APIRouterExt(
 )
 internal_router.include_router(post_channels_int.router)
 
-api_router = APIRouterExt()
+
+@asynccontextmanager
+async def lifespan(_: Any) -> AsyncIterator[None]:
+    yield
+
+
+api_router = APIRouterExt(lifespan=lifespan)
 api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(mub_router)
 api_router.include_router(internal_router)
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncIterator[None]:
-    yield

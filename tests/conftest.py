@@ -2,17 +2,22 @@ from collections.abc import AsyncIterator, Iterator
 from contextlib import AsyncExitStack
 
 import pytest
+from faker import Faker
+from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ignore[import-untyped]
+    PilPdfGenerator,
+)
 from fastapi.testclient import TestClient
 
 from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app, tmex
-from tests.common.polyfactory_ext import BaseModelFactory
+from tests import factories
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
     TMEXIOTestClient,
     TMEXIOTestServer,
 )
+from tests.common.types import AnyJSON
 
 pytest_plugins = (
     "anyio",
@@ -30,27 +35,27 @@ def anyio_backend() -> str:
 
 @pytest.fixture(scope="session")
 def client() -> Iterator[TestClient]:
-    with TestClient(app) as client:
+    with TestClient(app, base_url=f"http://{settings.cookie_domain}") as client:
         yield client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def mub_client(client: TestClient) -> TestClient:
-    return TestClient(client.app, headers={"X-MUB-Secret": settings.mub_key})
+    return TestClient(
+        client.app,
+        base_url=f"http://{settings.cookie_domain}",
+        headers={"X-MUB-Secret": settings.mub_key},
+    )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def internal_client(client: TestClient) -> TestClient:
     return TestClient(client.app, headers={"X-Api-Key": settings.api_key})
 
 
-class ProxyAuthDataFactory(BaseModelFactory[ProxyAuthData]):
-    __model__ = ProxyAuthData
-
-
 @pytest.fixture()
 def proxy_auth_data() -> ProxyAuthData:
-    return ProxyAuthDataFactory.build()
+    return factories.ProxyAuthDataFactory.build()
 
 
 @pytest.fixture()
@@ -96,3 +101,17 @@ async def tmexio_listener_factory(
             )
 
         yield listener_factory
+
+
+@pytest.fixture()
+async def pdf_data(faker: Faker) -> tuple[str, bytes, str]:
+    return (
+        faker.file_name(extension="pdf"),
+        faker.pdf_file(raw=True, pdf_generator_cls=PilPdfGenerator),
+        "application/pdf",
+    )
+
+
+@pytest.fixture()
+def vacancy_form_data() -> AnyJSON:
+    return factories.VacancyFormWithMessageFactory.build_json()

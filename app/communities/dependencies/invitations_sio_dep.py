@@ -1,11 +1,12 @@
 from typing import Annotated
 
+from starlette import status
 from tmexio import EventException, register_dependency
 
 from app.communities.dependencies.communities_sio_dep import CommunityById
 from app.communities.models.invitations_db import Invitation
 
-invitation_not_found = EventException(404, "Invitation not found")
+invitation_not_found = EventException(status.HTTP_404_NOT_FOUND, "Invitation not found")
 
 
 @register_dependency(exceptions=[invitation_not_found])

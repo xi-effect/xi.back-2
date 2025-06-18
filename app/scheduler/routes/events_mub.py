@@ -3,6 +3,7 @@ from typing import Self
 
 from fastapi import HTTPException
 from pydantic import AwareDatetime, model_validator
+from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.scheduler.dependencies.events_dep import EventById
@@ -31,7 +32,7 @@ async def list_events(
 ) -> Sequence[Event]:
     if happens_after >= happens_before:
         raise HTTPException(
-            status_code=422,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Parameter happens_before must be later in time than happens_after",
         )
     return await Event.find_all_events_in_time_frame(
@@ -41,7 +42,7 @@ async def list_events(
 
 @router.post(
     path="/events/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Event.ResponseSchema,
     summary="Create a new event",
 )
@@ -72,7 +73,9 @@ async def put_event(
 
 
 @router.delete(
-    path="/events/{event_id}/", status_code=204, summary="Delete any event by id"
+    path="/events/{event_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete any event by id",
 )
 async def delete_event(event: EventById) -> None:
     await event.delete()

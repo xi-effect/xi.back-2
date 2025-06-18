@@ -1,11 +1,12 @@
 from typing import Annotated
 
+from starlette import status
 from tmexio import EventException, register_dependency
 
 from app.communities.dependencies.communities_sio_dep import CommunityById
 from app.communities.models.categories_db import Category
 
-category_not_found = EventException(404, "Category not found")
+category_not_found = EventException(status.HTTP_404_NOT_FOUND, "Category not found")
 
 
 @register_dependency(exceptions=[category_not_found])

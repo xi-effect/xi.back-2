@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from starlette import status
 
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
@@ -92,7 +93,7 @@ async def test_invitation_creation_quantity_exceed(
             community_id=community.id,
             data=InvitationInputFactory.build_json(),
         ),
-        expected_code=409,
+        expected_code=status.HTTP_409_CONFLICT,
         expected_data="Quantity exceeded",
     )
     tmexio_owner_client.assert_no_more_events()
@@ -110,7 +111,7 @@ async def test_invitation_deleting(
             community_id=community.id,
             invitation_id=invitation.id,
         ),
-        expected_code=204,
+        expected_code=status.HTTP_204_NO_CONTENT,
     )
 
     async with active_session():
@@ -129,7 +130,7 @@ async def test_invitation_deleting_invitation_not_found(
             community_id=community.id,
             invitation_id=deleted_invitation_id,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Invitation not found",
     )
 
@@ -154,7 +155,7 @@ async def test_invitations_requesting_community_not_found(
             invitation_id=0,
             data={},
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_data="Community not found",
     )
 
@@ -182,7 +183,7 @@ async def test_invitations_requesting_not_sufficient_permissions(
             invitation_id=invitation.id,
             data={},
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="Not sufficient permissions",
     )
 
@@ -210,6 +211,6 @@ async def test_invitations_requesting_no_access_to_community(
             invitation_id=invitation.id,
             data={},
         ),
-        expected_code=403,
+        expected_code=status.HTTP_403_FORBIDDEN,
         expected_data="No access to community",
     )

@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.posts.models.post_channels_db import PostChannel
@@ -25,7 +26,7 @@ async def test_post_creation(
             f"/mub/post-service/post-channels/{post_channel.id}/posts/",
             json=post_input_data,
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             **post_input_data,
             "id": int,
@@ -49,7 +50,7 @@ async def test_post_creation_post_channel_not_found(
             f"/mub/post-service/post-channels/{deleted_post_channel_id}/posts/",
             json=post_input_data,
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Post-channel not found"},
     )
 
@@ -114,6 +115,6 @@ async def test_post_not_finding(
             f"/mub/post-service/posts/{deleted_post_id}/",
             json=body_factory and body_factory.build_json(),
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Post not found"},
     )

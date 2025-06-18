@@ -2,6 +2,7 @@ from uuid import UUID
 
 import pytest
 from faker import Faker
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -43,7 +44,7 @@ async def test_uncategorized_file_uploading(
                 "upload": (filename, uncategorized_file, "application/octet-stream")
             },
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             "id": UUID,
             "name": filename,
@@ -77,7 +78,7 @@ async def test_image_file_uploading(
             f"/api/protected/storage-service/access-groups/{access_group_id_or_public}/file-kinds/image/files/",
             files={"upload": (filename, image_file, "image/webp")},
         ),
-        expected_code=201,
+        expected_code=status.HTTP_201_CREATED,
         expected_json={
             "id": UUID,
             "name": filename,
@@ -129,7 +130,7 @@ async def test_image_file_uploading_wrong_format(
                 )
             },
         ),
-        expected_code=415,
+        expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         expected_json={"detail": "Invalid file format"},
     )
 
@@ -147,7 +148,7 @@ async def test_private_file_uploading_access_group_not_found(
             f"/api/protected/storage-service/access-groups/{missing_access_group_id}/file-kinds/{file_kind}/files/",
             files={"upload": (file_name, file_content, file_content_type)},
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Access group not found"},
     )
 
@@ -184,7 +185,7 @@ async def test_file_reading_not_modified_by_etag(
             f"/api/protected/storage-service/files/{file.id}/",
             headers={"If-None-Match": file_etag},
         ),
-        expected_code=304,
+        expected_code=status.HTTP_304_NOT_MODIFIED,
         expected_headers={"ETag": file_etag},
     )
 
@@ -200,7 +201,7 @@ async def test_file_reading_not_modified_by_datetime(
             f"/api/protected/storage-service/files/{file.id}/",
             headers={"If-Modified-Since": file_last_modified},
         ),
-        expected_code=304,
+        expected_code=status.HTTP_304_NOT_MODIFIED,
         expected_headers={"ETag": file_etag},
     )
 
@@ -238,6 +239,6 @@ async def test_file_not_finding(
         authorized_client.request(
             method, f"/api/protected/storage-service/files/{missing_file_id}{postfix}"
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "File not found"},
     )

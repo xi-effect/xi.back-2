@@ -3,6 +3,7 @@ from os import stat
 from typing import Annotated
 
 from fastapi import Header, UploadFile
+from starlette import status
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
 
@@ -18,14 +19,14 @@ router = APIRouterExt(tags=["files"])
 
 @router.post(  # TODO remove in 41239612
     "/files/attachments/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Use POST /access-groups/public/file-kinds/uncategorized/files/ instead",
     deprecated=True,
 )
 @router.post(
     "/access-groups/public/file-kinds/uncategorized/files/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new public uncategorized file",
 )
@@ -43,7 +44,7 @@ async def upload_public_uncategorized_file(
 
 @router.post(
     "/access-groups/{access_group_id}/file-kinds/uncategorized/files/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new uncategorized file to an access group",
 )
@@ -64,14 +65,14 @@ async def upload_private_uncategorized_file(
 
 @router.post(  # TODO remove in 41239612
     "/files/images/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Use POST /access-groups/public/file-kinds/image/files/ instead",
     deprecated=True,
 )
 @router.post(
     "/access-groups/public/file-kinds/image/files/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new public image file",
 )
@@ -89,7 +90,7 @@ async def upload_public_image_file(
 
 @router.post(
     "/access-groups/{access_group_id}/file-kinds/image/files/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new image file to an access group",
 )
@@ -162,7 +163,7 @@ async def read_file(
 
 @router.delete(
     "/files/{file_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any file by id",
 )
 async def delete_file(file: FileById) -> None:

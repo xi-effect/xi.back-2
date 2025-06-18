@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from pydantic import BaseModel
+from starlette import status
 from tmexio import Emitter, EventException, PydanticPackager
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
@@ -41,10 +42,10 @@ async def list_channels(
 
 
 quantity_limit_per_community_exceeded = EventException(
-    409, "Quantity limit per community exceeded"
+    status.HTTP_409_CONFLICT, "Quantity limit per community exceeded"
 )
 quantity_limit_per_category_exceeded = EventException(
-    409, "Quantity limit per category exceeded"
+    status.HTTP_409_CONFLICT, "Quantity limit per category exceeded"
 )
 
 
@@ -64,7 +65,9 @@ async def create_channel(
     category_id: int | None,
     data: Channel.InputSchema,
     duplex_emitter: Annotated[Emitter[Channel], Channel.ServerEventSchema],
-) -> Annotated[Channel, PydanticPackager(Channel.ResponseSchema, code=201)]:
+) -> Annotated[
+    Channel, PydanticPackager(Channel.ResponseSchema, code=status.HTTP_201_CREATED)
+]:
     if category_id is not None:
         category = await Category.find_first_by_kwargs(
             id=category_id, community_id=community.id
@@ -127,7 +130,7 @@ class MoveChannelServerSchema(ChannelIdsSchema):
     before_id: int | None
 
 
-invalid_mode = EventException(409, "Invalid move")
+invalid_mode = EventException(status.HTTP_409_CONFLICT, "Invalid move")
 
 
 @router.on(
@@ -163,7 +166,7 @@ async def move_channel(
         )
     except InvalidMoveException as e:  # TODO (33602197) pragma: no cover
         # TODO warns as if the exception is not documented
-        raise EventException(409, e.message)
+        raise EventException(status.HTTP_409_CONFLICT, e.message)
 
     await db.session.commit()
 

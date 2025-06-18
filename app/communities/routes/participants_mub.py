@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 
+from starlette import status
+
 from app.common.fastapi_ext import APIRouterExt
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.dependencies.participants_dep import ParticipantById
@@ -20,7 +22,7 @@ async def list_participants(community: CommunityById) -> Sequence[Participant]:
 
 @router.post(
     "/communities/{community_id}/participants/",
-    status_code=201,
+    status_code=status.HTTP_201_CREATED,
     response_model=Participant.MUBResponseSchema,
     summary="Create a new participant in the community",
 )
@@ -57,7 +59,7 @@ async def patch_participant(
 
 @router.delete(
     "/participants/{participant_id}/",
-    status_code=204,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any participant by id",
 )
 async def delete_participant(participant: ParticipantById) -> None:

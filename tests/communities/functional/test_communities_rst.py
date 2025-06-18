@@ -1,4 +1,5 @@
 import pytest
+from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
@@ -75,7 +76,7 @@ async def test_retrieving_community_by_invitation_code_invitation_not_found(
         client.get(
             f"/api/public/community-service/invitations/by-code/{deleted_invitation.token}/community/"
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Invitation not found"},
     )
 
@@ -87,6 +88,6 @@ async def test_retrieving_community_by_invitation_code_invalid_invitation(
         client.get(
             f"/api/public/community-service/invitations/by-code/{invalid_invitation.token}/community/"
         ),
-        expected_code=404,
+        expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Invitation not found"},
     )

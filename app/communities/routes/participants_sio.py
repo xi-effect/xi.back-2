@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from pydantic_marshals.base import CompositeMarshalModel
+from starlette import status
 from tmexio import (
     AsyncServer,
     AsyncSocket,
@@ -106,9 +107,13 @@ async def close_participants(community_id: int, socket: AsyncSocket) -> None:
     await socket.leave_room(participants_list_room(community_id))
 
 
-target_is_the_source = EventException(409, "Target is the source")
-participant_not_found = EventException(404, "Participant not found")
-owner_can_not_be_kicked = EventException(403, "Owner can not be kicked")
+target_is_the_source = EventException(status.HTTP_409_CONFLICT, "Target is the source")
+participant_not_found = EventException(
+    status.HTTP_404_NOT_FOUND, "Participant not found"
+)
+owner_can_not_be_kicked = EventException(
+    status.HTTP_403_FORBIDDEN, "Owner can not be kicked"
+)
 
 
 @register_dependency(exceptions=[target_is_the_source, participant_not_found])

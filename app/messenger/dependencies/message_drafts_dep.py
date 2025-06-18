@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.messenger.models.message_drafts_db import MessageDraft
 
 
 class MessageDraftResponses(Responses):
-    MESSAGE_DRAFT_NOT_FOUND = 404, "Message draft not found"
+    MESSAGE_DRAFT_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Message draft not found"
 
 
 @with_responses(MessageDraftResponses)

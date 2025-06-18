@@ -5,18 +5,31 @@ from typing import Annotated, Any
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from pydantic import ValidationError
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
-from app import communities, messenger, payments, posts, scheduler, storage, tutors
+from app import (
+    communities,
+    messenger,
+    payments,
+    pochta,
+    posts,
+    scheduler,
+    storage,
+    supbot,
+    tutors,
+    users,
+)
 from app.common.config import Base, engine, sessionmaker, settings
 from app.common.config_bdg import (
     communities_bridge,
     messenger_bridge,
     posts_bridge,
+    public_users_bridge,
     storage_bridge,
 )
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
@@ -43,7 +56,7 @@ async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
     except ValidationError:  # TODO (38980978) pragma: no cover
-        raise EventException(407, "bad")
+        raise EventException(status.HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
     await socket.enter_room(user_room(auth_data.user_id))
@@ -58,7 +71,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 @tmex.on_other(summary="[special] Handler for non-existent events")
 async def handle_other_events(  # TODO (38980978) pragma: no cover
     event_name: EventName,
-) -> Annotated[str, PydanticPackager(str, 404)]:
+) -> Annotated[str, PydanticPackager(str, status.HTTP_404_NOT_FOUND)]:
     return f"Unknown event: '{event_name}'"
 
 
@@ -74,17 +87,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
-        await stack.enter_async_context(communities.lifespan())
-        await stack.enter_async_context(messenger.lifespan())
-        await stack.enter_async_context(payments.lifespan())
-        await stack.enter_async_context(posts.lifespan())
-        await stack.enter_async_context(scheduler.lifespan())
-        await stack.enter_async_context(storage.lifespan())
-        await stack.enter_async_context(tutors.lifespan())
-
         await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(messenger_bridge.client)
         await stack.enter_async_context(posts_bridge.client)
+        await stack.enter_async_context(public_users_bridge.client)
         await stack.enter_async_context(storage_bridge.client)
 
         yield
@@ -127,10 +133,13 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 app.include_router(communities.api_router)
 app.include_router(messenger.api_router)
 app.include_router(payments.api_router)
+app.include_router(pochta.api_router)
 app.include_router(posts.api_router)
 app.include_router(scheduler.api_router)
 app.include_router(storage.api_router)
+app.include_router(supbot.api_router)
 app.include_router(tutors.api_router)
+app.include_router(users.api_router)
 
 old_openapi = app.openapi
 

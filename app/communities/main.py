@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from tmexio import EventRouter
 
@@ -61,7 +62,14 @@ mub_router.include_router(chat_channels_mub.router)
 mub_router.include_router(tasks_mub.router)
 mub_router.include_router(call_channels_mub.router)
 
-api_router = APIRouterExt()
+
+@asynccontextmanager
+async def lifespan(_: Any) -> AsyncIterator[None]:
+    settings.community_avatars_path.mkdir(exist_ok=True)
+    yield
+
+
+api_router = APIRouterExt(lifespan=lifespan)
 api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(internal_router)
@@ -76,9 +84,3 @@ event_router.include_router(channels_sio.router)
 event_router.include_router(board_channels_sio.router)
 event_router.include_router(chat_channels_sio.router)
 event_router.include_router(call_channels_sio.router)
-
-
-@asynccontextmanager
-async def lifespan() -> AsyncIterator[None]:
-    settings.community_avatars_path.mkdir(exist_ok=True)
-    yield

@@ -1,13 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, Path
+from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.communities.models.board_channels_db import BoardChannel
 
 
 class BoardChannelResponses(Responses):
-    BOARD_CHANNEL_NOT_FOUND = 404, "Board-channel not found"
+    BOARD_CHANNEL_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Board-channel not found"
 
 
 @with_responses(BoardChannelResponses)

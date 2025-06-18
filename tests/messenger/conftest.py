@@ -18,7 +18,7 @@ from tests.common.tmexio_testing import (
     TMEXIOTestServer,
 )
 from tests.common.types import AnyJSON, PytestRequest
-from tests.conftest import ProxyAuthDataFactory
+from tests.factories import ProxyAuthDataFactory
 from tests.messenger import factories
 
 
