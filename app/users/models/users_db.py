@@ -41,6 +41,7 @@ class User(Base):
     onboarding_stage: Mapped[OnboardingStage] = mapped_column(
         Enum(OnboardingStage, name="onboarding_stage"), default=OnboardingStage.CREATED
     )
+    default_layout: Mapped[str | None] = mapped_column(String(10), default=None)
     theme: Mapped[str] = mapped_column(String(10), default="system")
 
     reset_token: Mapped[str | None] = mapped_column(
@@ -85,11 +86,16 @@ class User(Base):
     PasswordSchema = MappedModel.create(columns=[password])
     CredentialsSchema = MappedModel.create(columns=[email, password])
     UserProfileSchema = MappedModel.create(columns=[id, username, display_name])
-    ProfileSchema = MappedModel.create(
-        columns=[(username, UsernameType), (display_name, DisplayNameType), theme]
+    SettingsSchema = MappedModel.create(
+        columns=[
+            (username, UsernameType),
+            (display_name, DisplayNameType),
+            default_layout,
+            theme,
+        ]
     )
-    ProfilePatchSchema = ProfileSchema.as_patch()
-    FullSchema = ProfileSchema.extend(
+    SettingsPatchSchema = SettingsSchema.as_patch()
+    FullSchema = SettingsSchema.extend(
         columns=[
             id,
             email,

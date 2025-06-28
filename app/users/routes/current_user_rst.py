@@ -24,7 +24,7 @@ router = APIRouterExt(tags=["current user"])
 @router.get(
     "/users/current/home/",
     response_model=User.FullSchema,
-    summary="Retrieve current user's profile data",
+    summary="Retrieve current user's 'home' data",
 )
 async def get_user_data(user: AuthorizedUser) -> User:
     return user
@@ -32,12 +32,19 @@ async def get_user_data(user: AuthorizedUser) -> User:
 
 @router.patch(
     "/users/current/profile/",
+    deprecated=True,
     response_model=User.FullSchema,
     responses=UsernameResponses.responses(),
-    summary="Update current user's profile data",
+    summary="Use PATCH /users/current/ instead",
+)
+@router.patch(
+    "/users/current/",
+    response_model=User.FullSchema,
+    responses=UsernameResponses.responses(),
+    summary="Update current user's settings",
 )
 async def patch_user_data(
-    patch_data: User.ProfilePatchSchema, user: AuthorizedUser
+    patch_data: User.SettingsPatchSchema, user: AuthorizedUser
 ) -> User:
     if not await is_username_unique(patch_data.username, user.username):
         raise UsernameResponses.USERNAME_IN_USE
