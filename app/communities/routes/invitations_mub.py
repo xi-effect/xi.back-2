@@ -3,10 +3,10 @@ from collections.abc import Sequence
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
+from app.common.responses import LimitedListResponses
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.dependencies.invitations_dep import InvitationById
 from app.communities.models.invitations_db import Invitation
-from app.communities.responses import LimitedListResponses
 
 router = APIRouterExt(tags=["invitations mub"])
 

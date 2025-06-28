@@ -14,6 +14,7 @@ from tmexio.documentation import OpenAPIBuilder
 
 from app import (
     communities,
+    invoices,
     messenger,
     payments,
     pochta,
@@ -132,6 +133,7 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 
 include_unused_services = not settings.production_mode
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
+app.include_router(invoices.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
