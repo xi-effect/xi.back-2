@@ -25,6 +25,24 @@ def creator_client(client: TestClient, creator_auth_data: ProxyAuthData) -> Test
 
 
 @pytest.fixture()
+def recipient_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def recipient_user_id(recipient_auth_data: ProxyAuthData) -> int:
+    return recipient_auth_data.user_id
+
+
+@pytest.fixture()
+def recipient_client(
+    client: TestClient,
+    recipient_auth_data: ProxyAuthData,
+) -> TestClient:
+    return TestClient(client.app, headers=recipient_auth_data.as_headers)
+
+
+@pytest.fixture()
 def outsider_auth_data() -> ProxyAuthData:
     return ProxyAuthDataFactory.build()
 
