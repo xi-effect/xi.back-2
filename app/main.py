@@ -130,11 +130,12 @@ app.add_middleware(
 )
 app.mount("/socket.io/", tmex.build_asgi_app())
 
-app.include_router(communities.api_router)
-app.include_router(messenger.api_router)
+include_unused_services = not settings.production_mode
+app.include_router(communities.api_router, include_in_schema=include_unused_services)
+app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
-app.include_router(posts.api_router)
+app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage.api_router)
 app.include_router(supbot.api_router)
