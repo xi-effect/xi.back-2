@@ -49,8 +49,8 @@ pytestmark = pytest.mark.anyio
         ),
         pytest.param(
             "PATCH",
-            "/users/current/profile/",
-            id="update-current-user-profile",
+            "/users/current/",
+            id="update-current-user",
         ),
         pytest.param(
             "POST",
@@ -126,8 +126,8 @@ async def test_requesting_unauthorized(
         ),
         pytest.param(
             "PATCH",
-            "/users/current/profile/",
-            id="update-current-user-profile",
+            "/users/current/",
+            id="update-current-user",
         ),
         pytest.param(
             "POST",

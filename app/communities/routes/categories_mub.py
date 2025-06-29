@@ -6,10 +6,11 @@ from starlette import status
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
+from app.common.responses import LimitedListResponses
 from app.communities.dependencies.categories_dep import CategoryById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.categories_db import Category
-from app.communities.responses import LimitedListResponses, MoveResponses
+from app.communities.responses import MoveResponses
 
 router = APIRouterExt(tags=["categories mub"])
 

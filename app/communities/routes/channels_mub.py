@@ -5,6 +5,7 @@ from starlette import status
 
 from app.common.abscract_models.ordered_lists_db import InvalidMoveException
 from app.common.fastapi_ext import APIRouterExt
+from app.common.responses import LimitedListResponses
 from app.communities.dependencies.categories_dep import (
     CategoriesResponses,
     ValidatedOptionalCategoryId,
@@ -13,7 +14,7 @@ from app.communities.dependencies.channels_dep import ChannelById
 from app.communities.dependencies.communities_dep import CommunityById
 from app.communities.models.categories_db import Category
 from app.communities.models.channels_db import Channel
-from app.communities.responses import LimitedListResponses, MoveResponses
+from app.communities.responses import MoveResponses
 from app.communities.services import channels_svc
 from app.communities.utils.channel_list import (
     ChannelCategoryListItemDict,
