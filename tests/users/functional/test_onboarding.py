@@ -3,45 +3,32 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.users.models.users_db import OnboardingStage, User
+from app.users.routes.onboarding_rst import VALID_TRANSITIONS_BY_MODE, TransitionMode
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.users import factories
 from tests.users.utils import get_db_user
 
 pytestmark = pytest.mark.anyio
 
 
-async def test_proceeding_to_community_choice_in_onboarding(
-    active_session: ActiveSession,
-    authorized_client: TestClient,
-    user: User,
-) -> None:
-    assert_nodata_response(
-        authorized_client.put(
-            "/api/protected/user-service/onboarding/stages/community-choice/",
-            json=factories.CommunityChoiceFactory.build_json(),
-        )
-    )
-
-    async with active_session():
-        assert (
-            await get_db_user(user)
-        ).onboarding_stage is OnboardingStage.COMMUNITY_CHOICE
-
-
 @pytest.mark.parametrize(
-    ("current_stage", "target_stage"),
+    ("transition_mode", "current_stage", "target_stage"),
     [
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMPLETED),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMPLETED),
+        pytest.param(
+            transition_mode,
+            current_stage,
+            target_stage,
+            id=f"{transition_mode.value}-{current_stage}_{target_stage}",
+        )
+        for transition_mode in TransitionMode
+        for current_stage, target_stage in VALID_TRANSITIONS_BY_MODE[transition_mode]
     ],
 )
 async def test_proceeding_in_onboarding(
     active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
+    transition_mode: TransitionMode,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
 ) -> None:
@@ -50,7 +37,8 @@ async def test_proceeding_in_onboarding(
 
     assert_nodata_response(
         authorized_client.put(
-            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/"
+            f"/api/protected/user-service/users/current/onboarding-stages/{target_stage.value}/",
+            params={"transition_mode": transition_mode},
         )
     )
 
@@ -59,25 +47,26 @@ async def test_proceeding_in_onboarding(
 
 
 @pytest.mark.parametrize(
-    ("current_stage", "target_stage"),
+    ("transition_mode", "current_stage", "target_stage"),
     [
-        (OnboardingStage.CREATED, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.CREATED, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.CREATED, OnboardingStage.COMPLETED),
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.COMPLETED),
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMPLETED),
+        pytest.param(
+            transition_mode,
+            current_stage,
+            target_stage,
+            id=f"{transition_mode.value}-{current_stage}_{target_stage}",
+        )
+        for transition_mode in TransitionMode
+        for current_stage in OnboardingStage
+        for target_stage in OnboardingStage
+        if (current_stage, target_stage)
+        not in VALID_TRANSITIONS_BY_MODE[transition_mode]
     ],
 )
 async def test_proceeding_in_onboarding_invalid_transition(
     active_session: ActiveSession,
     authorized_client: TestClient,
     user: User,
+    transition_mode: TransitionMode,
     current_stage: OnboardingStage,
     target_stage: OnboardingStage,
 ) -> None:
@@ -86,74 +75,8 @@ async def test_proceeding_in_onboarding_invalid_transition(
 
     assert_response(
         authorized_client.put(
-            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
-        ),
-        expected_json={"detail": "Invalid transition"},
-        expected_code=status.HTTP_409_CONFLICT,
-    )
-
-    async with active_session():
-        assert (await get_db_user(user)).onboarding_stage is current_stage
-
-
-@pytest.mark.parametrize(
-    ("current_stage", "target_stage"),
-    [
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.CREATED),
-    ],
-)
-async def test_returning_in_onboarding(
-    active_session: ActiveSession,
-    authorized_client: TestClient,
-    user: User,
-    current_stage: OnboardingStage,
-    target_stage: OnboardingStage,
-) -> None:
-    async with active_session():
-        (await get_db_user(user)).onboarding_stage = current_stage
-
-    assert_nodata_response(
-        authorized_client.delete(
-            f"/api/protected/user-service/onboarding/stages/{current_stage.value}/"
-        )
-    )
-
-    async with active_session():
-        assert (await get_db_user(user)).onboarding_stage is target_stage
-
-
-@pytest.mark.parametrize(
-    ("current_stage", "target_stage"),
-    [
-        (OnboardingStage.CREATED, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.CREATED, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.CREATED, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMMUNITY_CHOICE, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMMUNITY_CREATE, OnboardingStage.COMMUNITY_INVITE),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMMUNITY_INVITE, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMMUNITY_CHOICE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMMUNITY_CREATE),
-        (OnboardingStage.COMPLETED, OnboardingStage.COMMUNITY_INVITE),
-    ],
-)
-async def test_returning_in_onboarding_invalid_transition(
-    active_session: ActiveSession,
-    authorized_client: TestClient,
-    user: User,
-    current_stage: OnboardingStage,
-    target_stage: OnboardingStage,
-) -> None:
-    async with active_session():
-        (await get_db_user(user)).onboarding_stage = current_stage
-
-    assert_response(
-        authorized_client.delete(
-            f"/api/protected/user-service/onboarding/stages/{target_stage.value}/",
+            f"/api/protected/user-service/users/current/onboarding-stages/{target_stage.value}/",
+            params={"transition_mode": transition_mode},
         ),
         expected_json={"detail": "Invalid transition"},
         expected_code=status.HTTP_409_CONFLICT,
