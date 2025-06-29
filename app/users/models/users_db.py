@@ -17,10 +17,10 @@ password_reset_token_generator = TokenGenerator(randomness=40, length=50)
 
 
 class OnboardingStage(StrEnum):
-    CREATED = "created"
-    COMMUNITY_CHOICE = "community-choice"
-    COMMUNITY_CREATE = "community-create"
-    COMMUNITY_INVITE = "community-invite"
+    USER_INFORMATION = "user-information"
+    DEFAULT_LAYOUT = "default-layout"
+    NOTIFICATIONS = "notifications"
+    TRAINING = "training"
     COMPLETED = "completed"
 
 
@@ -38,11 +38,14 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(30))
     password: Mapped[str] = mapped_column(String(100))
     display_name: Mapped[str | None] = mapped_column(String(30))
-    onboarding_stage: Mapped[OnboardingStage] = mapped_column(
-        Enum(OnboardingStage, name="onboarding_stage"), default=OnboardingStage.CREATED
-    )
+
     default_layout: Mapped[str | None] = mapped_column(String(10), default=None)
     theme: Mapped[str] = mapped_column(String(10), default="system")
+
+    onboarding_stage: Mapped[OnboardingStage] = mapped_column(
+        Enum(OnboardingStage, name="onboarding_stage_2"),
+        default=OnboardingStage.USER_INFORMATION,
+    )
 
     reset_token: Mapped[str | None] = mapped_column(
         CHAR(password_reset_token_generator.token_length)
@@ -67,11 +70,10 @@ class User(Base):
         StringConstraints(min_length=6, max_length=100),
         AfterValidator(generate_hash),
     ]
-    DisplayNameRequiredType = Annotated[
-        str,
+    DisplayNameType = Annotated[
+        str | None,
         StringConstraints(strip_whitespace=True, min_length=2, max_length=30),
     ]
-    DisplayNameType = DisplayNameRequiredType | None
     UsernameType = Annotated[str, StringConstraints(pattern="^[a-z0-9_.]{4,30}$")]
 
     EmailSchema = MappedModel.create(

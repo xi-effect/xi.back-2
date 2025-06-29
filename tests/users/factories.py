@@ -2,7 +2,6 @@ from polyfactory import Use
 
 from app.common.schemas.demo_form_sch import DemoFormSchema
 from app.users.models.users_db import User
-from app.users.routes.onboarding_rst import CommunityChoiceSchema
 from app.users.routes.password_reset_rst import ResetCredentials
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 from tests.users.utils import generate_username
@@ -26,10 +25,6 @@ class UserFullPatchFactory(BasePatchModelFactory[User.FullPatchSchema]):
 
 class DemoFormFactory(BaseModelFactory[DemoFormSchema]):
     __model__ = DemoFormSchema
-
-
-class CommunityChoiceFactory(BaseModelFactory[CommunityChoiceSchema]):
-    __model__ = CommunityChoiceSchema
 
 
 class ResetCredentialsFactory(BaseModelFactory[ResetCredentials]):
