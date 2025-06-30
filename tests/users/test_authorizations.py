@@ -17,16 +17,8 @@ pytestmark = pytest.mark.anyio
         *[
             pytest.param(
                 "PUT",
-                f"/onboarding/stages/{onboarding_stage.value}/",
-                id=f"onboarding-proceed-{onboarding_stage.value}",
-            )
-            for onboarding_stage in OnboardingStage
-        ],
-        *[
-            pytest.param(
-                "DELETE",
-                f"/onboarding/stages/{onboarding_stage.value}/",
-                id=f"onboarding-return-{onboarding_stage.value}",
+                f"/users/current/onboarding-stages/{onboarding_stage.value}/",
+                id=f"update-onboarding-stage-{onboarding_stage.value}",
             )
             for onboarding_stage in OnboardingStage
         ],
@@ -49,8 +41,8 @@ pytestmark = pytest.mark.anyio
         ),
         pytest.param(
             "PATCH",
-            "/users/current/profile/",
-            id="update-current-user-profile",
+            "/users/current/",
+            id="update-current-user",
         ),
         pytest.param(
             "POST",
@@ -105,16 +97,8 @@ async def test_requesting_unauthorized(
         *[
             pytest.param(
                 "PUT",
-                f"/onboarding/stages/{onboarding_stage.value}/",
-                id=f"onboarding-proceed-{onboarding_stage.value}",
-            )
-            for onboarding_stage in OnboardingStage
-        ],
-        *[
-            pytest.param(
-                "DELETE",
-                f"/onboarding/stages/{onboarding_stage.value}/",
-                id=f"onboarding-return-{onboarding_stage.value}",
+                f"/users/current/onboarding-stages/{onboarding_stage.value}/",
+                id=f"update-onboarding-stage-{onboarding_stage.value}",
             )
             for onboarding_stage in OnboardingStage
         ],
@@ -126,8 +110,8 @@ async def test_requesting_unauthorized(
         ),
         pytest.param(
             "PATCH",
-            "/users/current/profile/",
-            id="update-current-user-profile",
+            "/users/current/",
+            id="update-current-user",
         ),
         pytest.param(
             "POST",

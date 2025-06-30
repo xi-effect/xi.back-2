@@ -25,7 +25,12 @@ pytestmark = pytest.mark.anyio
     "pass_display_name", [False, True], ids=["no_display_name", "with_display_name"]
 )
 @pytest.mark.parametrize("pass_theme", [False, True], ids=["no_theme", "with_theme"])
-async def test_profile_updating(
+@pytest.mark.parametrize(
+    "pass_default_layout",
+    [False, True],
+    ids=["no_default_layout", "with_default_layout"],
+)
+async def test_user_settings_updating(
     faker: Faker,
     authorized_client: TestClient,
     user_data: AnyJSON,
@@ -33,6 +38,7 @@ async def test_profile_updating(
     pass_username: bool,
     pass_display_name: bool,
     pass_theme: bool,
+    pass_default_layout: bool,
 ) -> None:
     update_data: AnyJSON = {}
     if pass_username:
@@ -41,22 +47,24 @@ async def test_profile_updating(
         update_data["display_name"] = faker.name()
     if pass_theme:
         update_data["theme"] = "new_theme"
+    if pass_default_layout:
+        update_data["default_layout"] = "tutor"
 
     assert_response(
         authorized_client.patch(
-            "/api/protected/user-service/users/current/profile/", json=update_data
+            "/api/protected/user-service/users/current/", json=update_data
         ),
         expected_json={**user_data, **update_data, "id": user.id, "password": None},
     )
 
 
-async def test_profile_updating_conflict(
+async def test_user_settings_updating_conflict(
     authorized_client: TestClient,
     other_user: User,
 ) -> None:
     assert_response(
         authorized_client.patch(
-            "/api/protected/user-service/users/current/profile/",
+            "/api/protected/user-service/users/current/",
             json={"username": other_user.username},
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -64,14 +72,14 @@ async def test_profile_updating_conflict(
     )
 
 
-async def test_profile_updating_invalid_username(
+async def test_user_settings_updating_invalid_username(
     authorized_client: TestClient,
 ) -> None:
     invalid_username: str = rstr.xeger("^[^a-z0-9_.]{4,30}$")
 
     assert_response(
         authorized_client.patch(
-            "/api/protected/user-service/users/current/profile/",
+            "/api/protected/user-service/users/current/",
             json={"username": invalid_username},
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -86,7 +94,7 @@ async def test_profile_updating_invalid_username(
     )
 
 
-async def test_profile_updating_display_name_with_whitespaces(
+async def test_user_settings_updating_display_name_with_whitespaces(
     faker: Faker,
     authorized_client: TestClient,
     user_data: AnyJSON,
@@ -96,7 +104,7 @@ async def test_profile_updating_display_name_with_whitespaces(
 
     assert_response(
         authorized_client.patch(
-            "/api/protected/user-service/users/current/profile/",
+            "/api/protected/user-service/users/current/",
             json={"display_name": new_display_name},
         ),
         expected_json={
@@ -115,7 +123,7 @@ async def test_profile_updating_display_name_with_whitespaces(
         pytest.param(31, "string_too_long", id="too_long"),
     ],
 )
-async def test_profile_updating_invalid_display_name(
+async def test_user_settings_updating_invalid_display_name(
     faker: Faker,
     authorized_client: TestClient,
     display_name_length: int,
@@ -125,7 +133,7 @@ async def test_profile_updating_invalid_display_name(
 
     assert_response(
         authorized_client.patch(
-            "/api/protected/user-service/users/current/profile/",
+            "/api/protected/user-service/users/current/",
             json={"display_name": invalid_display_name},
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
