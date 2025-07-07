@@ -13,11 +13,13 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tutor_id: Mapped[int] = mapped_column()
     student_id: Mapped[int] = mapped_column()
-    payed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=None)
+    payed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
     amount: Mapped[int] = mapped_column()
 
     InputSchema = MappedModel.create(columns=[student_id, payed_at, amount])
-    PatchSchema = MappedModel.create(columns=[tutor_id, payed_at, amount])
+    PatchSchema = MappedModel.create(columns=[payed_at, amount]).as_patch()
     ResponseSchema = MappedModel.create(
         columns=[id, tutor_id, student_id, payed_at, amount]
     )

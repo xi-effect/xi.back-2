@@ -6,7 +6,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.payments.routes.payments import router
+from app.payments.routes import payments_rst
 
 outside_router = APIRouterExt(prefix="/api/payment-service")
 
@@ -14,6 +14,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/payment-service",
 )
+authorized_router.include_router(payments_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
@@ -36,4 +37,3 @@ api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(mub_router)
 api_router.include_router(internal_router)
-api_router.include_router(router)
