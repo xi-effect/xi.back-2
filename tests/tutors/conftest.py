@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from starlette.testclient import TestClient
 
@@ -86,7 +88,9 @@ async def deleted_subject_id(active_session: ActiveSession, subject: Subject) ->
 async def material(active_session: ActiveSession, tutor_user_id: int) -> Material:
     async with active_session():
         return await Material.create(
-            **factories.MaterialInputFactory.build_python(), tutor_id=tutor_user_id
+            **factories.MaterialInputFactory.build_python(),
+            tutor_id=tutor_user_id,
+            ydoc_id=str(uuid4()),
         )
 
 

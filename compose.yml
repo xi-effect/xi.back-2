@@ -79,6 +79,7 @@ services:
         target: /backend/storage
     environment:
       WATCHFILES_FORCE_POLLING: true
+      bridge_base_url: http://localhost:8000
       postgres_username: test
       postgres_password: test
       postgres_database: test
