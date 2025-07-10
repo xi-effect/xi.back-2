@@ -1,4 +1,4 @@
-"""tutor_materials_content
+"""personal_access_group
 
 Revision ID: 032
 Revises: 031
