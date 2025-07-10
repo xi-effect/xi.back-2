@@ -6,6 +6,10 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
+from app.notifications.routes import (
+    user_contacts_int,
+    user_contacts_rst,
+)
 
 outside_router = APIRouterExt(prefix="/api/public/notification-service")
 
@@ -13,6 +17,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/notification-service",
 )
+authorized_router.include_router(user_contacts_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
@@ -23,6 +28,7 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/notification-service",
 )
+internal_router.include_router(user_contacts_int.router)
 
 
 @asynccontextmanager

@@ -129,7 +129,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 engine = create_async_engine(
-    settings.postgres_dsn,
+    url=settings.postgres_dsn,
     echo=settings.postgres_echo,
     pool_recycle=settings.postgres_pool_recycle,
 )
