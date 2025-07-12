@@ -129,6 +129,7 @@ class Settings(BaseSettings):
     email: EmailSettings | None = None
 
     supbot: SupbotSettings | None = None
+    notifications_bot: TelegramBotSettings | None = None
     telegram_webhook_base_url: str | None = None
 
 
