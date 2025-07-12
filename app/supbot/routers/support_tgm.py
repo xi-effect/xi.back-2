@@ -5,9 +5,9 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.base import BaseStorage, StorageKey
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
+from app.common.aiogram_ext import ChatMemberUpdatedExt, MessageExt
 from app.supbot import texts
 from app.supbot.models.support_db import SupportTicket
-from app.supbot.utils.aiogram_ext import ChatMemberUpdatedExt, MessageExt
 from app.supbot.utils.filters import SupportTicketFilter, command_filter
 
 router = Router(name="support")
