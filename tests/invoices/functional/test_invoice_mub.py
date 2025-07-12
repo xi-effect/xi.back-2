@@ -15,18 +15,28 @@ logger = logging.getLogger(__name__)
 
 pytestmark = pytest.mark.anyio
 
-INVOICES_LIST = 5
+INVOICES_LIST_SIZE = 5
 
 
+@pytest.mark.parametrize(
+    ("offset", "limit"),
+    [
+        pytest.param(0, INVOICES_LIST_SIZE, id="start_to_end"),
+        pytest.param(INVOICES_LIST_SIZE // 2, INVOICES_LIST_SIZE, id="middle_to_end"),
+        pytest.param(0, INVOICES_LIST_SIZE // 2, id="start_to_middle"),
+    ],
+)
 async def test_invoices_listing(
     active_session: ActiveSession,
     mub_client: TestClient,
+    offset: int,
+    limit: int,
     creator_user_id: int,
     recipient_user_id: int,
 ) -> None:
     logger.info("invoivce gen")
     invoices_data: list[Invoice.InputSchema] = [
-        InvoiceInputFactory.build() for _ in range(INVOICES_LIST)
+        InvoiceInputFactory.build() for _ in range(INVOICES_LIST_SIZE)
     ]
     invoices_item_data = InvoiceItemInputFactory.build()
     total = invoices_item_data.price * invoices_item_data.quantity
@@ -52,11 +62,12 @@ async def test_invoices_listing(
     assert_response(
         mub_client.get(
             f"/mub/invoice-service/users/{creator_user_id}/invoices",
+            params={"offset": offset, "limit": limit},
         ),
         expected_code=status.HTTP_200_OK,
         expected_json=[
-            Invoice.InputSchema(**invoices[i].__dict__).model_dump(mode="json")
-            for i in range(len(invoices))
+            Invoice.ResponseSchema(**invoices[i].__dict__).model_dump(mode="json")
+            for i in range(offset, limit)
         ],
     )
 

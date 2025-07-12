@@ -7,10 +7,16 @@ router = APIRouterExt(tags=["invoice-service mub"])
 
 
 @router.get(
-    "/users/{creator_user_id}/invoices", response_model=list[Invoice.InputSchema]
+    "/users/{creator_user_id}/invoices", response_model=list[Invoice.ResponseSchema]
 )
-async def get_user_invocies(creator_user_id: int) -> Sequence[Invoice]:
-    return await Invoice.find_all_by_kwargs(creator_user_id=creator_user_id)
+async def get_user_invocies(
+    creator_user_id: int,
+    offset: int,
+    limit: int,
+) -> Sequence[Invoice]:
+    return await Invoice.find_paginated_by_kwargs(
+        creator_user_id=creator_user_id, offset=offset, limit=limit
+    )
 
 
 # @router.patch("/invoices/{id}")

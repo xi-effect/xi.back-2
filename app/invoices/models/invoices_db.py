@@ -28,4 +28,5 @@ class Invoice(Base):
 
     InputSchema = MappedModel.create(columns=[(comment, CommentType)])
     IDSchema = MappedModel.create(columns=[id])
-    MUBInputSchema = InputSchema.extend(columns=[id])
+
+    ResponseSchema = MappedModel.create(columns=[id, created_at, total, comment])
