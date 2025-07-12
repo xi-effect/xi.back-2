@@ -2,8 +2,8 @@ from aiogram import Router
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.types import ReplyKeyboardMarkup
 
+from app.common.aiogram_ext import MessageExt
 from app.supbot import texts
-from app.supbot.utils.aiogram_ext import MessageExt
 
 router = Router(name="start")
 

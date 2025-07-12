@@ -12,20 +12,17 @@ from starlette import status
 from app.supbot import texts
 from app.supbot.routers.vacancy_tgm import VacancyStates
 from app.supbot.utils.filters import DocumentErrorType, DocumentFilter
-from tests.common.mock_stack import MockStack
-from tests.common.respx_ext import assert_last_httpx_request
-from tests.common.types import AnyJSON
-from tests.supbot.conftest import (
-    EXPECTED_MAIN_MENU_KEYBOARD_MARKUP,
-    MockedBot,
-    WebhookUpdater,
-)
-from tests.supbot.factories import (
+from tests.common.aiogram_factories import (
     DocumentFactory,
     MessageFactory,
     UpdateFactory,
     UserFactory,
 )
+from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
+from tests.common.mock_stack import MockStack
+from tests.common.respx_ext import assert_last_httpx_request
+from tests.common.types import AnyJSON
+from tests.supbot.conftest import EXPECTED_MAIN_MENU_KEYBOARD_MARKUP
 
 pytestmark = pytest.mark.anyio
 
@@ -66,14 +63,14 @@ SENDING_INFO_KEYBOARD_MARKUP = {
 
 
 async def test_starting_vacancy_form(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
     tg_chat_id: int,
     tg_user_id: int,
 ) -> None:
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text="/vacancy",
@@ -111,7 +108,7 @@ async def test_starting_vacancy_form(
     ],
 )
 async def test_exiting_vacancy_form(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -121,7 +118,7 @@ async def test_exiting_vacancy_form(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, current_state)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=texts.MAIN_MENU_BUTTON_TEXT,
@@ -144,7 +141,7 @@ async def test_exiting_vacancy_form(
 
 
 async def test_sending_continue_in_bot(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -153,7 +150,7 @@ async def test_sending_continue_in_bot(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, VacancyStates.starting_form)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=texts.CONTINUE_IN_BOT_KEYBOARD_TEXT,
@@ -181,7 +178,7 @@ async def test_sending_continue_in_bot(
 
 async def test_sending_specialization(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -191,7 +188,7 @@ async def test_sending_specialization(
     await bot_storage.set_state(bot_storage_key, VacancyStates.sending_specialization)
     position: str = faker.sentence(nb_words=2)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=position,
@@ -216,7 +213,7 @@ async def test_sending_specialization(
 
 async def test_sending_name(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -226,7 +223,7 @@ async def test_sending_name(
     await bot_storage.set_state(bot_storage_key, VacancyStates.sending_name)
     name: str = faker.name()
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=name,
@@ -263,7 +260,7 @@ async def test_sending_name(
 )
 async def test_sending_telegram(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -278,7 +275,7 @@ async def test_sending_telegram(
 
     await bot_storage.set_state(bot_storage_key, VacancyStates.sending_telegram)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=text,
@@ -313,7 +310,7 @@ async def test_sending_resume(
     faker: Faker,
     mock_stack: MockStack,
     pdf_data: tuple[str, bytes, str],
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -324,7 +321,7 @@ async def test_sending_resume(
 
     mock_stack.enter_async_mock(Bot, "download", return_value=pdf_data[1])
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 document=DocumentFactory.build(
@@ -355,7 +352,7 @@ async def test_sending_resume(
 
 async def test_sending_resume_unsupported_message(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -364,7 +361,7 @@ async def test_sending_resume_unsupported_message(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, VacancyStates.sending_resume)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=faker.sentence(),
@@ -389,7 +386,7 @@ async def test_sending_resume_unsupported_message(
 async def test_sending_resume_invalid_file_format(
     faker: Faker,
     mock_stack: MockStack,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -402,7 +399,7 @@ async def test_sending_resume_invalid_file_format(
         Bot, "download", return_value=faker.random.randbytes(100)
     )
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 document=DocumentFactory.build(
@@ -447,7 +444,7 @@ async def test_sending_resume_invalid_file_format(
 )
 async def test_sending_resume_unsupported_document(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -465,7 +462,7 @@ async def test_sending_resume_unsupported_document(
         mime_type = "application/pdf"
         file_size = DocumentFilter.MAX_DOCUMENT_SIZE + faker.random_int(min=1)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 document=DocumentFactory.build(
@@ -499,7 +496,7 @@ async def test_sending_comment(
     users_respx_mock: MockRouter,
     pdf_data: tuple[str, bytes, str],
     vacancy_form_data: AnyJSON,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -520,7 +517,7 @@ async def test_sending_comment(
     await bot_storage.update_data(bot_storage_key, vacancy_form_data)
     await bot_storage.set_state(bot_storage_key, VacancyStates.sending_comment)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=(
@@ -585,7 +582,7 @@ async def test_sending_comment(
     ],
 )
 async def test_going_back(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -597,7 +594,7 @@ async def test_going_back(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, current_state)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=texts.BACK_BUTTON_TEXT,
@@ -638,7 +635,7 @@ async def test_going_back(
 )
 async def test_handling_unsupported_message(
     faker: Faker,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -649,7 +646,7 @@ async def test_handling_unsupported_message(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, current_state)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 media=input_media_cls(media=faker.url()),

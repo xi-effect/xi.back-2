@@ -102,3 +102,9 @@ class MockStack(ExitStack):
 def mock_stack() -> Iterator[MockStack]:
     with MockStack() as stack:
         yield stack
+
+
+@pytest.fixture(scope="session")
+def mock_stack_session() -> Iterator[MockStack]:
+    with MockStack() as stack:
+        yield stack

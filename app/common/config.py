@@ -37,10 +37,13 @@ class EmailSettings(BaseModel):
     use_tls: bool = True
 
 
-class SupbotSettings(BaseModel):
+class TelegramBotSettings(BaseModel):
     token: str
+    webhook_token: str | None = None
+
+
+class SupbotSettings(TelegramBotSettings):
     group_id: int
-    polling: bool = False
 
 
 class Settings(BaseSettings):
@@ -50,6 +53,7 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         env_ignore_empty=True,
         nested_model_default_partial_update=True,
+        extra="ignore",
     )
 
     production_mode: bool = False
@@ -123,13 +127,16 @@ class Settings(BaseSettings):
     livekit_demo_base_url: str = "https://meet.livekit.io/custom"
 
     email: EmailSettings | None = None
+
     supbot: SupbotSettings | None = None
+    notifications_bot: TelegramBotSettings | None = None
+    telegram_webhook_base_url: str | None = None
 
 
 settings = Settings()
 
 engine = create_async_engine(
-    settings.postgres_dsn,
+    url=settings.postgres_dsn,
     echo=settings.postgres_echo,
     pool_recycle=settings.postgres_pool_recycle,
 )
