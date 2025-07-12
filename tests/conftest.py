@@ -22,7 +22,9 @@ from tests.common.types import AnyJSON
 pytest_plugins = (
     "anyio",
     "tests.common.active_session",
+    "tests.common.aiogram_testing",
     "tests.common.faker_ext",
+    "tests.common.id_provider",
     "tests.common.mock_stack",
     "tests.common.respx_ext",
 )

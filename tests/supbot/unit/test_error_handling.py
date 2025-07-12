@@ -4,8 +4,8 @@ import pytest
 from aiogram.types import ErrorEvent
 
 from app.supbot.routers.error_handling_tgm import error_handler
+from tests.common.aiogram_factories import UpdateFactory
 from tests.common.mock_stack import MockStack
-from tests.supbot.factories import UpdateFactory
 
 pytestmark = pytest.mark.anyio
 

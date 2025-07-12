@@ -7,9 +7,9 @@ from aiogram.fsm.context import FSMContext
 from filetype import filetype  # type: ignore[import-untyped]
 from filetype.types.archive import Pdf  # type: ignore[import-untyped]
 
+from app.common.aiogram_ext import MessageExt
 from app.supbot import texts
 from app.supbot.models.support_db import SupportTicket
-from app.supbot.utils.aiogram_ext import MessageExt
 
 
 class SupportTicketFilter(Filter):
