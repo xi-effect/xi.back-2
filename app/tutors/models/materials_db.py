@@ -35,13 +35,15 @@ class Material(Base):
     tutor_id: Mapped[int] = mapped_column()
     kind: Mapped[MaterialKind] = mapped_column(Enum(MaterialKind))
 
+    ydoc_id: Mapped[str] = mapped_column()
+
     NameType = Annotated[str, Field(min_length=1, max_length=100)]
 
     BaseInputSchema = MappedModel.create(columns=[(name, NameType)])
     InputSchema = BaseInputSchema.extend([kind])
     PatchSchema = BaseInputSchema.as_patch()
     ResponseSchema = MappedModel.create(
-        columns=[id, name, created_at, updated_at, last_opened_at, kind]
+        columns=[id, name, created_at, updated_at, last_opened_at, kind, ydoc_id]
     )
 
     @classmethod
