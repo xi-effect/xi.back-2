@@ -39,6 +39,7 @@ class EmailSettings(BaseModel):
 
 class TelegramBotSettings(BaseModel):
     token: str
+    webhook_token: str | None = None
 
 
 class SupbotSettings(TelegramBotSettings):

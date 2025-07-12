@@ -13,8 +13,8 @@ from app.supbot.routers import (
     start_tgm,
     support_team_tgm,
     support_tgm,
+    telegram_webhook_rst,
     vacancy_tgm,
-    webhook_rst,
 )
 from app.supbot.texts import BOT_COMMANDS
 
@@ -25,7 +25,7 @@ telegram_app.include_router(support_tgm.router)
 telegram_app.include_router(support_team_tgm.router)
 
 outside_router = APIRouterExt(prefix="/api/public/supbot-service")
-outside_router.include_router(webhook_rst.router)
+outside_router.include_router(telegram_webhook_rst.router)
 
 authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
