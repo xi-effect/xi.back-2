@@ -9,6 +9,7 @@ from aiogram.types import BotCommand, ChatMemberUpdated, Message, User
 from httpx import AsyncClient
 
 from app.common.config import TelegramBotSettings, settings
+from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
 
 
 class TelegramApp:
@@ -49,9 +50,17 @@ class TelegramApp:
     async def feed_updates_into_webhook(
         self,
         webhook_url: str,
+        webhook_token: str | None = None,
         polling_timeout: int = 30,
     ) -> None:
-        async with AsyncClient(base_url=webhook_url) as client:
+        async with AsyncClient(
+            base_url=webhook_url,
+            headers=(
+                None
+                if webhook_token is None
+                else {TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME: webhook_token}
+            ),
+        ) as client:
             # Partially copied from a protected function:
             # https://github.com/aiogram/aiogram/blob/756cfeba0a257d80b9450adda5c6f4eda743c031/aiogram/dispatcher/dispatcher.py#L191-L247
             get_updates = GetUpdates(timeout=polling_timeout)
@@ -97,11 +106,13 @@ class TelegramApp:
             create_task(
                 self.feed_updates_into_webhook(
                     webhook_url=f"{settings.bridge_base_url}{full_webhook_path}",
+                    webhook_token=bot_settings.webhook_token,
                 )
             )
         else:
             await self.bot.set_webhook(
                 url=f"{settings.telegram_webhook_base_url}{full_webhook_path}",
+                secret_token=bot_settings.webhook_token,
                 max_connections=max_connections,
                 allowed_updates=allowed_updates,
             )
