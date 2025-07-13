@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     email_confirmation_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 60 * 24
     )
+    telegram_connection_token_keys: FernetSettings = FernetSettings(
+        encryption_ttl=60 * 5
+    )
 
     demo_webhook_url: str | None = None
     vacancy_webhook_url: str | None = None

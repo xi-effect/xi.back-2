@@ -4,6 +4,7 @@ from asyncio import create_task
 from typing import Any
 
 from aiogram import Bot, Dispatcher, Router
+from aiogram.filters import CommandObject
 from aiogram.methods import GetUpdates
 from aiogram.types import BotCommand, ChatMemberUpdated, Message, User
 from httpx import AsyncClient
@@ -129,3 +130,6 @@ with warnings.catch_warnings():
 
     class MessageFromUser(MessageExt):
         from_user: User  # marking user as required for mypy
+
+    class StartCommandWithDeepLinkObject(CommandObject):
+        args: str  # marking args (deep link) as required for mypy

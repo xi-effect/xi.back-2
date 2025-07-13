@@ -44,6 +44,8 @@ extend-ignore =
   WPS465
   # fails to same-name class and instance attributes (pydantic & sqlalchemy)
   WPS601
+  # marks random texts as "possible passwords"
+  S105
 
   # # don't block features
   # utils is a module name
