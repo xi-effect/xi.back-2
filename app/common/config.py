@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     api_key: str = "local"  # common for now, split later
     mub_key: str = "local"
 
-    bridge_base_url: str = "http://localhost:8000"
+    bridge_base_url: str = "http://localhost:5000"
 
     cookie_domain: str = "localhost"
 

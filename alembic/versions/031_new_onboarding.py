@@ -79,7 +79,7 @@ def downgrade() -> None:
             "onboarding_stage",
             old_enum,
             nullable=False,
-            server_default="USER_INFORMATION",
+            server_default="CREATED",
         ),
         schema="xi_back_2",
     )
