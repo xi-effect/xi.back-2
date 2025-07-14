@@ -1,7 +1,5 @@
 import pytest
-from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.base import StorageKey
-from aiogram.fsm.storage.memory import MemoryStorage
 from faker import Faker
 from starlette.testclient import TestClient
 
@@ -12,7 +10,11 @@ from app.supbot import texts
 from app.supbot.config import telegram_app
 from app.supbot.models.support_db import SupportTicket
 from tests.common.active_session import ActiveSession
-from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
+from tests.common.aiogram_testing import (
+    MockedBot,
+    TelegramAppInitializer,
+    TelegramBotWebhookDriver,
+)
 from tests.common.id_provider import IDProvider
 from tests.common.mock_stack import MockStack
 
@@ -63,19 +65,14 @@ def supbot_webhook_driver(
 
 
 @pytest.fixture(autouse=True, scope="session")
-def mocked_telegram_app(
-    bot: Bot,
-    base_bot_storage: MemoryStorage,
+def initialized_telegram_app(
+    initialize_telegram_app: TelegramAppInitializer,
     supbot_group_id: int,
 ) -> TelegramApp:
-    telegram_app.initialize(
-        bot=bot,
-        dispatcher=Dispatcher(
-            storage=base_bot_storage,
-            group_id=supbot_group_id,
-        ),
+    return initialize_telegram_app(
+        telegram_app=telegram_app,
+        group_id=supbot_group_id,
     )
-    return telegram_app
 
 
 @pytest.fixture()

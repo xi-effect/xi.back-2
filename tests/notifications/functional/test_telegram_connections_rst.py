@@ -16,7 +16,6 @@ from app.notifications.models.telegram_connections_db import (
 )
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
-from tests.common.aiogram_factories import UserFactory
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
 from tests.notifications.constants import TELEGRAM_CONNECTION_LINK_PATTERN
@@ -29,13 +28,9 @@ async def test_telegram_connection_link_generation(
     mock_stack: MockStack,
     proxy_auth_data: ProxyAuthData,
     authorized_client: TestClient,
+    bot_username: str,
     bot: Bot,
 ) -> None:
-    bot_username = faker.user_name()
-    bot_me_mock = mock_stack.enter_async_mock(
-        bot, "me", return_value=UserFactory.build(username=bot_username)
-    )
-
     telegram_connection_link: str = assert_response(
         authorized_client.post(
             "/api/protected/notification-service/users/current/telegram-connection-requests/"
@@ -53,8 +48,6 @@ async def test_telegram_connection_link_generation(
         )
     )
     assert actual_decoded_user_id == proxy_auth_data.user_id
-
-    bot_me_mock.assert_awaited_once_with()
 
 
 @pytest.fixture()

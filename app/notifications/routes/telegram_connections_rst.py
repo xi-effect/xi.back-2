@@ -1,4 +1,4 @@
-from aiogram.utils.deep_linking import create_start_link
+from aiogram.utils.deep_linking import create_deep_link
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -28,8 +28,9 @@ async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str
     if telegram_connection is not None:
         raise ExistingTelegramConnectionResponses.TELEGRAM_CONNECTION_ALREADY_EXISTS
 
-    return await create_start_link(
-        bot=telegram_app.bot,
+    return create_deep_link(
+        username=telegram_app.bot_username,
+        link_type="start",
         payload=telegram_deep_link_provider.create_signed_link_payload(
             user_id=auth_data.user_id
         ),

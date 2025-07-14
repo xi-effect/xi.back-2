@@ -1,15 +1,17 @@
 from collections.abc import Iterable, Sequence
-from typing import Any
+from typing import Any, Protocol
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram import Bot
+from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.methods import TelegramMethod
 from aiogram.types import Update
+from faker import Faker
 from pydantic_marshals.contains import TypeChecker, assert_contains
 from starlette.testclient import TestClient
 
+from app.common.aiogram_ext import TelegramApp
 from tests.common.assert_contains_ext import assert_nodata_response
 from tests.common.id_provider import IDProvider
 from tests.common.mock_stack import MockStack
@@ -75,6 +77,11 @@ def bot_id(id_provider: IDProvider) -> int:
 
 
 @pytest.fixture(scope="session")
+def bot_username(faker: Faker) -> str:
+    return faker.user_name()
+
+
+@pytest.fixture(scope="session")
 def bot_token() -> str:
     return "1:a"  # noqa S106  # not a real password, but required
 
@@ -100,6 +107,32 @@ def base_bot_storage() -> MemoryStorage:
 def bot_storage(base_bot_storage: MemoryStorage) -> Iterable[MemoryStorage]:
     yield base_bot_storage
     base_bot_storage.storage.clear()
+
+
+class TelegramAppInitializer(Protocol):
+    def __call__(self, telegram_app: TelegramApp, **kwargs: Any) -> TelegramApp:
+        pass
+
+
+@pytest.fixture(scope="session")
+def initialize_telegram_app(
+    bot_username: str,
+    bot: Bot,
+    base_bot_storage: MemoryStorage,
+) -> TelegramAppInitializer:
+    def initialize_telegram_app_inner(
+        telegram_app: TelegramApp, **dispatcher_kwargs: Any
+    ) -> TelegramApp:
+        telegram_app._bot = bot
+        telegram_app._bot_username = bot_username
+        dispatcher = Dispatcher(storage=base_bot_storage, **dispatcher_kwargs)
+        for router in telegram_app.routers:
+            dispatcher.include_router(router)
+        telegram_app._dispatcher = dispatcher
+        telegram_app._initialized = True
+        return telegram_app
+
+    return initialize_telegram_app_inner
 
 
 @pytest.fixture()

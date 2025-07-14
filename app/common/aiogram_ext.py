@@ -17,16 +17,18 @@ class TelegramApp:
     def __init__(self) -> None:
         self.routers: list[Router] = []
         self._bot: Bot | None = None
+        self._bot_username: str | None = None
         self._dispatcher: Dispatcher | None = None
         self._initialized: bool = False
 
     def include_router(self, router: Router) -> None:
         self.routers.append(router)
 
-    def initialize(self, bot: Bot, dispatcher: Dispatcher) -> None:
+    async def initialize(self, bot: Bot, dispatcher: Dispatcher) -> None:
         if self._initialized:
             return
         self._bot = bot
+        self._bot_username = (await bot.me()).username
         self._dispatcher = dispatcher
         for router in self.routers:
             self._dispatcher.include_router(router)
@@ -41,6 +43,12 @@ class TelegramApp:
         if self._bot is None:
             raise EnvironmentError("Bot is not initialized")
         return self._bot
+
+    @property
+    def bot_username(self) -> str:
+        if self._bot_username is None:
+            raise EnvironmentError("Bot username is not initialized")
+        return self._bot_username
 
     @property
     def dispatcher(self) -> Dispatcher:
@@ -90,7 +98,7 @@ class TelegramApp:
                 logging.warning(f"Configuration for {bot_name} is missing")
             return
 
-        self.initialize(
+        await self.initialize(
             bot=Bot(bot_settings.token),
             dispatcher=Dispatcher(**dispatcher_kwargs),
         )
