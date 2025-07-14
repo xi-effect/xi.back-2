@@ -14,6 +14,7 @@ from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
 )
+from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_factories import UserFactory
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -91,13 +92,22 @@ async def test_telegram_connection_link_generation_telegram_connection_already_e
 @pytest.mark.usefixtures(telegram_connection.__name__)
 async def test_telegram_connection_removing(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     proxy_auth_data: ProxyAuthData,
     authorized_client: TestClient,
 ) -> None:
+    remove_personal_telegram_contact_mock = mock_stack.enter_async_mock(
+        user_contacts_svc, "remove_personal_telegram_contact"
+    )
+
     assert_nodata_response(
         authorized_client.delete(
             "/api/protected/notification-service/users/current/telegram-connection/"
         ),
+    )
+
+    remove_personal_telegram_contact_mock.assert_awaited_once_with(
+        user_id=proxy_auth_data.user_id
     )
 
     async with active_session():

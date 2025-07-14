@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 
 from app.common.aiogram_ext import (
-    MessageExt,
+    MessageFromUser,
     StartCommandWithDeepLinkObject,
 )
 from app.notifications import texts
@@ -11,6 +11,7 @@ from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
 )
+from app.notifications.services import user_contacts_svc
 from app.notifications.utils.deep_links import DeepLinkException
 
 router = Router(name="telegram connections")
@@ -28,13 +29,16 @@ async def check_if_other_connections_exist_and_replace_them(chat_id: int) -> boo
         return False
 
     telegram_connection.status = TelegramConnectionStatus.REPLACED
+    await user_contacts_svc.remove_personal_telegram_contact(
+        user_id=telegram_connection.user_id
+    )
     # TODO notify user on-platform (& email?) about the connection replacement
     return True
 
 
 @router.message(CommandStart(deep_link=True))
 async def create_telegram_connection(
-    message: MessageExt,
+    message: MessageFromUser,
     command: StartCommandWithDeepLinkObject,
 ) -> None:
     try:
@@ -62,6 +66,10 @@ async def create_telegram_connection(
         user_id=user_id,
         chat_id=message.chat.id,
         status=TelegramConnectionStatus.ACTIVE,
+    )
+    await user_contacts_svc.sync_personal_telegram_contact(
+        user_id=user_id,
+        new_username=message.from_user.username,
     )
 
     # TODO notify user on-platform (frontend?) about the connection completion

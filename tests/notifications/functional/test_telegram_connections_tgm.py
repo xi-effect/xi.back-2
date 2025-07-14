@@ -13,41 +13,53 @@ from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
 )
+from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
-from tests.common.aiogram_factories import MessageFactory, UpdateFactory, UserFactory
+from tests.common.aiogram_factories import (
+    MessageFactory,
+    UpdateFactory,
+    UserFactory,
+)
 from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
 from tests.common.id_provider import IDProvider
+from tests.common.mock_stack import MockStack
 
 pytestmark = pytest.mark.anyio
 
 
 @pytest.mark.parametrize(
-    ("other_connection_status", "expected_reply_text"),
+    ("other_connection_status", "is_user_contact_removed", "expected_reply_text"),
     [
         pytest.param(
             None,
+            False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
             id="no_other_connections",
         ),
         pytest.param(
             TelegramConnectionStatus.REPLACED,
+            False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
             id="replaced_other_connection",
         ),
         pytest.param(
             TelegramConnectionStatus.ACTIVE,
+            True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
             id="active_other_connection",
         ),
         pytest.param(
             TelegramConnectionStatus.BLOCKED,
+            True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
             id="blocked_other_connection",
         ),
     ],
 )
 async def test_telegram_connection_creating(
+    faker: Faker,
     active_session: ActiveSession,
+    mock_stack: MockStack,
     id_provider: IDProvider,
     proxy_auth_data: ProxyAuthData,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
@@ -55,12 +67,14 @@ async def test_telegram_connection_creating(
     tg_chat_id: int,
     tg_user_id: int,
     other_connection_status: TelegramConnectionStatus | None,
+    is_user_contact_removed: bool,
     expected_reply_text: str,
 ) -> None:
+    other_user_id = id_provider.generate_id()
     if other_connection_status is not None:
         async with active_session():
             other_telegram_connection = await TelegramConnection.create(
-                user_id=id_provider.generate_id(),
+                user_id=other_user_id,
                 chat_id=tg_chat_id,
                 status=other_connection_status,
             )
@@ -69,15 +83,35 @@ async def test_telegram_connection_creating(
         user_id=proxy_auth_data.user_id
     )
 
+    # Specific cases for user_contacts_svc are tested in service/test_user_contacts
+    sync_personal_telegram_contact_mock = mock_stack.enter_async_mock(
+        user_contacts_svc, "sync_personal_telegram_contact"
+    )
+    remove_personal_telegram_contact_mock = mock_stack.enter_async_mock(
+        user_contacts_svc, "remove_personal_telegram_contact"
+    )
+
+    new_username: str = faker.user_name()
     notifications_bot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=f"/start {signed_deep_link_content}",
                 chat=Chat(id=tg_chat_id, type="private"),
-                from_user=UserFactory.build(id=tg_user_id),
+                from_user=UserFactory.build(id=tg_user_id, username=new_username),
             ),
         )
     )
+
+    sync_personal_telegram_contact_mock.assert_awaited_once_with(
+        user_id=proxy_auth_data.user_id,
+        new_username=new_username,
+    )
+    if is_user_contact_removed:
+        remove_personal_telegram_contact_mock.assert_awaited_once_with(
+            user_id=other_user_id
+        )
+    else:
+        remove_personal_telegram_contact_mock.assert_not_called()
 
     async with active_session() as session:
         telegram_connection = await TelegramConnection.find_first_by_id(

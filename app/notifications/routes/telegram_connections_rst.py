@@ -5,6 +5,7 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.notifications.config import telegram_app, telegram_deep_link_provider
 from app.notifications.models.telegram_connections_db import TelegramConnection
+from app.notifications.services import user_contacts_svc
 
 router = APIRouterExt(tags=["telegram connections"])
 
@@ -53,3 +54,4 @@ async def remove_telegram_connection(auth_data: AuthorizationData) -> None:
     if telegram_connection is None:
         raise TelegramConnectionResponses.TELEGRAM_CONNECTION_NOT_FOUND
     await telegram_connection.delete()
+    await user_contacts_svc.remove_personal_telegram_contact(user_id=auth_data.user_id)
