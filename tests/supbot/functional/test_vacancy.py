@@ -10,8 +10,8 @@ from respx import MockRouter
 from starlette import status
 
 from app.supbot import texts
+from app.supbot.dependencies.documents_tgm_dep import DocumentErrorType, DocumentFilter
 from app.supbot.routers.vacancy_tgm import VacancyStates
-from app.supbot.utils.filters import DocumentErrorType, DocumentFilter
 from tests.common.aiogram_factories import (
     DocumentFactory,
     MessageFactory,

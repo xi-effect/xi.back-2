@@ -5,8 +5,8 @@ from aiogram.types.reaction_type_emoji import ReactionTypeEmoji
 
 from app.common.aiogram_ext import MessageExt
 from app.supbot import texts
+from app.supbot.dependencies.support_tgm_dep import SupportTicketFilter
 from app.supbot.models.support_db import SupportTicket
-from app.supbot.utils.filters import SupportTicketFilter
 
 router = Router(name="support team")
 
