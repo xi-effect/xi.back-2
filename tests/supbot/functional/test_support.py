@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
@@ -7,7 +9,6 @@ from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember
 from aiogram.types.forum_topic import ForumTopic
 from faker import Faker
 
-from app.common.utils.datetime import datetime_utc_now
 from app.supbot import texts
 from app.supbot.models.support_db import SupportTicket
 from app.supbot.routers.support_tgm import Support
@@ -277,7 +278,7 @@ async def test_closing_ticket_after_user_banned_bot(
                 new_chat_member=ChatMemberBanned(
                     user=UserFactory.build(id=tg_user_id),
                     status=ChatMemberStatus.KICKED,
-                    until_date=datetime_utc_now(),
+                    until_date=datetime.fromtimestamp(0),
                 ),
             ),
         )

@@ -15,3 +15,12 @@ NOTIFICATIONS_CONNECTED_MESSAGE = """
 NOTIFICATIONS_REPLACES_MESSAGE = """
 Уведомления для предыдущего аккаунта отключены, а для нового — подключены
 """
+
+NOTIFICATIONS_RECONNECTED_MESSAGE = """
+Уведомления успешно возобновлены
+"""
+
+START_WITHOUT_DEEP_LINK_MESSAGE = """
+Добро пожаловать!
+Для подключения уведомлений через бота посетите настройки на платформе
+"""

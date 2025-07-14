@@ -1,12 +1,17 @@
 from aiogram import Router
-from aiogram.filters import CommandStart
+from aiogram.filters import KICKED, ChatMemberUpdatedFilter, CommandStart
 
 from app.common.aiogram_ext import (
+    ChatMemberUpdatedExt,
+    MessageExt,
     MessageFromUser,
     StartCommandWithDeepLinkObject,
 )
 from app.notifications import texts
 from app.notifications.config import telegram_deep_link_provider
+from app.notifications.dependencies.telegram_connections_tgm_dep import (
+    TelegramConnectionFilter,
+)
 from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
@@ -79,3 +84,40 @@ async def create_telegram_connection(
         if is_replacing_another_connection
         else texts.NOTIFICATIONS_CONNECTED_MESSAGE
     )
+
+
+@router.my_chat_member(
+    ChatMemberUpdatedFilter(member_status_changed=KICKED),
+    TelegramConnectionFilter(TelegramConnectionStatus.ACTIVE),
+)
+async def block_telegram_connection(
+    _event: ChatMemberUpdatedExt,
+    telegram_connection: TelegramConnection,
+) -> None:
+    telegram_connection.status = TelegramConnectionStatus.BLOCKED
+    await user_contacts_svc.remove_personal_telegram_contact(
+        user_id=telegram_connection.user_id
+    )
+    # TODO notify user on-platform about the blocked connection
+
+
+@router.message(
+    CommandStart(),
+    TelegramConnectionFilter(TelegramConnectionStatus.BLOCKED),
+)
+async def unblock_telegram_connection(
+    message: MessageFromUser,
+    telegram_connection: TelegramConnection,
+) -> None:
+    telegram_connection.status = TelegramConnectionStatus.ACTIVE
+    await user_contacts_svc.sync_personal_telegram_contact(
+        user_id=telegram_connection.user_id,
+        new_username=message.from_user.username,
+    )
+    # TODO notify user on-platform (frontend?) about the unblocked connection
+    await message.answer(texts.NOTIFICATIONS_RECONNECTED_MESSAGE)
+
+
+@router.message(CommandStart())
+async def start_without_deep_link(message: MessageExt) -> None:
+    await message.answer(texts.START_WITHOUT_DEEP_LINK_MESSAGE)
