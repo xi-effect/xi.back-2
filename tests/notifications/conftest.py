@@ -11,6 +11,10 @@ from app.common.config import TelegramBotSettings, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
 from app.notifications.config import telegram_app
+from app.notifications.models.telegram_connections_db import (
+    TelegramConnection,
+    TelegramConnectionStatus,
+)
 from app.notifications.models.user_contacts_db import ContactKind, UserContact
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_testing import (
@@ -69,6 +73,39 @@ def initialized_telegram_app(
     return initialize_telegram_app(
         telegram_app=telegram_app,
     )
+
+
+@pytest.fixture()
+def random_telegram_connection_status() -> TelegramConnectionStatus:
+    # mypy gets confused, the real type is TelegramConnectionStatus
+    return cast(TelegramConnectionStatus, random.choice(list(TelegramConnectionStatus)))
+
+
+@pytest.fixture()
+async def telegram_connection(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    tg_chat_id: int,
+    random_telegram_connection_status: TelegramConnectionStatus,
+) -> AsyncIterator[TelegramConnection]:
+    async with active_session():
+        telegram_connection = await TelegramConnection.create(
+            user_id=proxy_auth_data.user_id,
+            chat_id=tg_chat_id,
+            status=random_telegram_connection_status,
+        )
+
+    yield telegram_connection
+
+    async with active_session():
+        await TelegramConnection.delete_by_kwargs(user_id=proxy_auth_data.user_id)
+
+
+@pytest.fixture()
+def telegram_connection_data(telegram_connection: TelegramConnection) -> AnyJSON:
+    return TelegramConnection.ResponseMUBSchema.model_validate(
+        telegram_connection, from_attributes=True
+    ).model_dump(mode="json")
 
 
 @pytest.fixture()

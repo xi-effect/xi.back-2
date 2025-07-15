@@ -1,6 +1,7 @@
 from enum import StrEnum, auto
 from typing import Self
 
+from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import BigInteger, Enum, select
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +23,11 @@ class TelegramConnection(Base):
     status: Mapped[TelegramConnectionStatus] = mapped_column(
         Enum(TelegramConnectionStatus)
     )
+
+    StatusSchema = MappedModel.create(columns=[status])
+    InputMUBSchema = StatusSchema.extend(columns=[chat_id])
+    PatchMUBSchema = InputMUBSchema.as_patch()
+    ResponseMUBSchema = InputMUBSchema.extend()
 
     @classmethod
     async def find_first_by_user_id_and_status(

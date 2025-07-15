@@ -50,7 +50,7 @@ def test_payload_decoding_expired_deep_link(
     mock_stack.enter_mock(
         telegram_deep_link_provider,
         "get_current_timestamp",
-        return_value=time() + telegram_deep_link_provider.ttl + randint(2, 100),
+        return_value=time() + telegram_deep_link_provider.ttl + randint(60, 120),
     )
     with pytest.raises(deep_links.ExpiredDeepLinkException):
         telegram_deep_link_provider.verify_and_decode_signed_link_payload(

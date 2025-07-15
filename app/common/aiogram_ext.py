@@ -112,6 +112,8 @@ class TelegramApp:
             if settings.production_mode:
                 logging.error("Polling shouldn't be used in production")
                 return
+            # noinspection PyAsyncCall
+            # PyCharm can't comprehend background tasks
             create_task(
                 self.feed_updates_into_webhook(
                     webhook_url=f"{settings.bridge_base_url}{full_webhook_path}",

@@ -1,33 +1,26 @@
 from aiogram.utils.deep_linking import create_deep_link
+from fastapi import Depends
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.fastapi_ext import APIRouterExt
 from app.notifications.config import telegram_app, telegram_deep_link_provider
-from app.notifications.models.telegram_connections_db import TelegramConnection
+from app.notifications.dependencies.telegram_connections_dep import (
+    CurrentUserTelegramConnection,
+    check_telegram_connection_already_exists_for_current_user,
+)
 from app.notifications.services import user_contacts_svc
 
 router = APIRouterExt(tags=["telegram connections"])
 
 
-class ExistingTelegramConnectionResponses(Responses):
-    TELEGRAM_CONNECTION_ALREADY_EXISTS = (
-        status.HTTP_409_CONFLICT,
-        "Telegram connection already exists",
-    )
-
-
 @router.post(
     path="/users/current/telegram-connection-requests/",
     response_model=str,
-    responses=ExistingTelegramConnectionResponses.responses(),
     summary="Generate a link for connecting telegram notifications for the current user",
+    dependencies=[Depends(check_telegram_connection_already_exists_for_current_user)],
 )
 async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str:
-    telegram_connection = await TelegramConnection.find_first_by_id(auth_data.user_id)
-    if telegram_connection is not None:
-        raise ExistingTelegramConnectionResponses.TELEGRAM_CONNECTION_ALREADY_EXISTS
-
     return create_deep_link(
         username=telegram_app.bot_username,
         link_type="start",
@@ -37,22 +30,15 @@ async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str
     )
 
 
-class TelegramConnectionResponses(Responses):
-    TELEGRAM_CONNECTION_NOT_FOUND = (
-        status.HTTP_404_NOT_FOUND,
-        "Telegram connection not found",
-    )
-
-
 @router.delete(
     path="/users/current/telegram-connection/",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses=TelegramConnectionResponses.responses(),
     summary="Remove telegram connection for the current user",
 )
-async def remove_telegram_connection(auth_data: AuthorizationData) -> None:
-    telegram_connection = await TelegramConnection.find_first_by_id(auth_data.user_id)
-    if telegram_connection is None:
-        raise TelegramConnectionResponses.TELEGRAM_CONNECTION_NOT_FOUND
+async def remove_telegram_connection(
+    telegram_connection: CurrentUserTelegramConnection,
+) -> None:
     await telegram_connection.delete()
-    await user_contacts_svc.remove_personal_telegram_contact(user_id=auth_data.user_id)
+    await user_contacts_svc.remove_personal_telegram_contact(
+        user_id=telegram_connection.user_id
+    )

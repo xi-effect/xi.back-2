@@ -1,6 +1,4 @@
-import random
 import re
-from collections.abc import AsyncIterator
 
 import pytest
 from aiogram import Bot
@@ -10,10 +8,7 @@ from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.notifications.config import telegram_deep_link_provider
-from app.notifications.models.telegram_connections_db import (
-    TelegramConnection,
-    TelegramConnectionStatus,
-)
+from app.notifications.models.telegram_connections_db import TelegramConnection
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -50,26 +45,7 @@ async def test_telegram_connection_link_generation(
     assert actual_decoded_user_id == proxy_auth_data.user_id
 
 
-@pytest.fixture()
-async def telegram_connection(
-    active_session: ActiveSession,
-    proxy_auth_data: ProxyAuthData,
-    tg_chat_id: int,
-) -> AsyncIterator[TelegramConnection]:
-    async with active_session():
-        telegram_connection = await TelegramConnection.create(
-            user_id=proxy_auth_data.user_id,
-            chat_id=tg_chat_id,
-            status=random.choice(list(TelegramConnectionStatus)),
-        )
-
-    yield telegram_connection
-
-    async with active_session():
-        await TelegramConnection.delete_by_kwargs(user_id=proxy_auth_data.user_id)
-
-
-@pytest.mark.usefixtures(telegram_connection.__name__)
+@pytest.mark.usefixtures("telegram_connection")
 async def test_telegram_connection_link_generation_telegram_connection_already_exists(
     authorized_client: TestClient,
 ) -> None:
@@ -82,7 +58,7 @@ async def test_telegram_connection_link_generation_telegram_connection_already_e
     )
 
 
-@pytest.mark.usefixtures(telegram_connection.__name__)
+@pytest.mark.usefixtures("telegram_connection")
 async def test_telegram_connection_removing(
     active_session: ActiveSession,
     mock_stack: MockStack,

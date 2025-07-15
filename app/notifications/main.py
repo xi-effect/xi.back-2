@@ -9,6 +9,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.notifications.config import telegram_app
 from app.notifications.routes import (
+    telegram_connections_mub,
     telegram_connections_rst,
     telegram_connections_tgm,
     telegram_webhook_rst,
@@ -33,6 +34,7 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/notification-service",
 )
+mub_router.include_router(telegram_connections_mub.router)
 mub_router.include_router(user_contacts_mub.router)
 
 internal_router = APIRouterExt(
