@@ -13,6 +13,7 @@ from app.notifications.routes import (
     telegram_connections_tgm,
     telegram_webhook_rst,
     user_contacts_int,
+    user_contacts_mub,
     user_contacts_rst,
 )
 
@@ -32,6 +33,7 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/notification-service",
 )
+mub_router.include_router(user_contacts_mub.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],

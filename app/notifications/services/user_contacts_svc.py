@@ -13,9 +13,10 @@ async def remove_personal_telegram_contact(user_id: int) -> None:
 async def sync_personal_telegram_contact(
     user_id: int,
     new_username: str | None,
-) -> None:
+) -> UserContact | None:
     if new_username is None:
-        return await remove_personal_telegram_contact(user_id=user_id)
+        await remove_personal_telegram_contact(user_id=user_id)
+        return None
 
     telegram_contact_link = create_telegram_link(new_username)
     telegram_contact_title = f"@{new_username}"
@@ -26,15 +27,16 @@ async def sync_personal_telegram_contact(
     )
 
     if user_contact is None:
-        await UserContact.create(
+        return await UserContact.create(
             user_id=user_id,
             kind=ContactKind.PERSONAL_TELEGRAM,
             link=telegram_contact_link,
             title=telegram_contact_title,
             is_public=True,
         )
-    else:
-        user_contact.update(
-            link=telegram_contact_link,
-            title=telegram_contact_title,
-        )
+
+    user_contact.update(
+        link=telegram_contact_link,
+        title=telegram_contact_title,
+    )
+    return user_contact

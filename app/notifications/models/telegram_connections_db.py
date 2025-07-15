@@ -24,6 +24,17 @@ class TelegramConnection(Base):
     )
 
     @classmethod
+    async def find_first_by_user_id_and_status(
+        cls, user_id: int, allowed_statuses: list[TelegramConnectionStatus]
+    ) -> Self | None:
+        stmt = (
+            select(cls)
+            .filter_by(user_id=user_id)
+            .filter(cls.status.in_(allowed_statuses))
+        )
+        return await db.get_first(stmt)
+
+    @classmethod
     async def find_first_by_chat_id_and_status(
         cls, chat_id: int, allowed_statuses: list[TelegramConnectionStatus]
     ) -> Self | None:

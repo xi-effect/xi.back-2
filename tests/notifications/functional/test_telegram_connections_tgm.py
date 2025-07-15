@@ -86,7 +86,7 @@ async def test_telegram_connection_creating(
         user_id=proxy_auth_data.user_id
     )
 
-    # Specific cases for user_contacts_svc are tested in service/test_user_contacts
+    # Specific cases for user_contacts_svc are tested in service/test_user_contacts_svc
     sync_personal_telegram_contact_mock = mock_stack.enter_async_mock(
         user_contacts_svc, "sync_personal_telegram_contact"
     )

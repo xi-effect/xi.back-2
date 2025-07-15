@@ -54,10 +54,11 @@ async def test_personal_telegram_contact_syncing_empty_username(
         user_contacts_svc, "remove_personal_telegram_contact"
     )
 
-    await user_contacts_svc.sync_personal_telegram_contact(
+    user_contact = await user_contacts_svc.sync_personal_telegram_contact(
         user_id=proxy_auth_data.user_id,
         new_username=None,
     )
+    assert user_contact is None
 
     remove_personal_telegram_contact_mock.assert_awaited_once_with(
         user_id=proxy_auth_data.user_id
@@ -92,21 +93,19 @@ async def test_personal_telegram_contact_syncing(
     new_username: str = faker.user_name()
 
     async with active_session():
-        await user_contacts_svc.sync_personal_telegram_contact(
+        user_contact = await user_contacts_svc.sync_personal_telegram_contact(
             user_id=proxy_auth_data.user_id,
             new_username=new_username,
         )
-
-    async with active_session():
-        user_contact = await UserContact.find_first_by_primary_key(
-            user_id=proxy_auth_data.user_id,
-            kind=ContactKind.PERSONAL_TELEGRAM,
-        )
+        assert user_contact is not None
         assert_contains(
             user_contact,
             {
+                "user_id": proxy_auth_data.user_id,
+                "kind": ContactKind.PERSONAL_TELEGRAM,
                 "title": f"@{new_username}",
                 "link": f"https://t.me/{new_username}",
                 "is_public": expected_is_public,
             },
         )
+        await user_contact.delete()
