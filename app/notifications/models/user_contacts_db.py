@@ -26,6 +26,7 @@ class UserContact(Base):
 
     InputSchema = MappedModel.create(columns=[link, title, is_public])
     PublicSchema = MappedModel.create(columns=[kind, link, title])
+    ResponseSchema = InputSchema.extend()
     FullSchema = PublicSchema.extend(columns=[is_public])
 
     @classmethod

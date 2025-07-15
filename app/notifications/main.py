@@ -9,6 +9,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.notifications.config import telegram_app
 from app.notifications.routes import (
+    notification_settings_rst,
     telegram_connections_mub,
     telegram_connections_rst,
     telegram_connections_tgm,
@@ -27,6 +28,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/notification-service",
 )
+authorized_router.include_router(notification_settings_rst.router)
 authorized_router.include_router(telegram_connections_rst.router)
 authorized_router.include_router(user_contacts_rst.router)
 
