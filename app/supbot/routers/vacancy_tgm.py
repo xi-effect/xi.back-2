@@ -6,11 +6,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup
 
+from app.common.aiogram_ext import MessageExt, MessageFromUser
 from app.common.config_bdg import public_users_bridge
 from app.common.schemas.vacancy_form_sch import VacancyFormSchema
 from app.supbot import texts
-from app.supbot.utils.aiogram_ext import MessageExt, MessageFromUser
-from app.supbot.utils.filters import DocumentErrorType, DocumentFilter, command_filter
+from app.supbot.dependencies.commands_tgm_dep import command_filter
+from app.supbot.dependencies.documents_tgm_dep import DocumentErrorType, DocumentFilter
 
 router = Router()
 
