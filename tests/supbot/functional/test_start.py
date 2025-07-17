@@ -3,23 +3,20 @@ from aiogram.methods import SendMessage
 from aiogram.types import Chat
 
 from app.supbot import texts
-from tests.supbot.conftest import (
-    EXPECTED_MAIN_MENU_KEYBOARD_MARKUP,
-    MockedBot,
-    WebhookUpdater,
-)
-from tests.supbot.factories import MessageFactory, UpdateFactory, UserFactory
+from tests.common.aiogram_factories import MessageFactory, UpdateFactory, UserFactory
+from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
+from tests.supbot.conftest import EXPECTED_MAIN_MENU_KEYBOARD_MARKUP
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_starting(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
 ) -> None:
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text="/start",

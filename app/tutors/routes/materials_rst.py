@@ -10,6 +10,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.datetime import datetime_utc_now
 from app.tutors.dependencies.materials_dep import MaterialByID
 from app.tutors.models.materials_db import Material, MaterialKind
+from app.tutors.services import materials_svc
 
 router = APIRouterExt(tags=["tutor materials"])
 
@@ -42,7 +43,9 @@ async def list_materials(
 async def create_material(
     auth_data: AuthorizationData, input_data: Material.InputSchema
 ) -> Material:
-    return await Material.create(**input_data.model_dump(), tutor_id=auth_data.user_id)
+    return await materials_svc.create_material(
+        input_data=input_data, auth_data=auth_data
+    )
 
 
 @router.get(
@@ -76,4 +79,4 @@ async def patch_material(
     summary="Delete tutor material by id",
 )
 async def delete_material(material: MaterialByID) -> None:
-    await material.delete()
+    await materials_svc.delete_material(material=material)

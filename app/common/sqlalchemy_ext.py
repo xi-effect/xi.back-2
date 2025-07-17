@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from contextvars import ContextVar
 from typing import Any, Self
 
-from sqlalchemy import Row, Select, func, select
+from sqlalchemy import Row, Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 if sys.platform == "win32":
@@ -94,6 +94,10 @@ class MappingBase:
     @classmethod
     async def count_by_kwargs(cls, *expressions: Any, **kwargs: Any) -> int:
         return await db.get_count(select(func.count(*expressions)).filter_by(**kwargs))
+
+    @classmethod
+    async def delete_by_kwargs(cls, **kwargs: Any) -> None:
+        await db.session.execute(delete(cls).filter_by(**kwargs))
 
     def update(self, **kwargs: Any) -> None:
         for key, value in kwargs.items():

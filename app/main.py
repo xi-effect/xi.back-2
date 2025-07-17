@@ -16,6 +16,7 @@ from app import (
     communities,
     invoices,
     messenger,
+    notifications,
     payments,
     pochta,
     posts,
@@ -135,6 +136,7 @@ include_unused_services = not settings.production_mode
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(invoices.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
+app.include_router(notifications.api_router)
 app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
 app.include_router(posts.api_router, include_in_schema=include_unused_services)

@@ -7,18 +7,15 @@ from aiogram.types.forum_topic_closed import ForumTopicClosed
 
 from app.supbot import texts
 from app.supbot.models.support_db import SupportTicket
-from tests.supbot.conftest import (
-    EXPECTED_MAIN_MENU_KEYBOARD_MARKUP,
-    MockedBot,
-    WebhookUpdater,
-)
-from tests.supbot.factories import MessageFactory, UpdateFactory, UserFactory
+from tests.common.aiogram_factories import MessageFactory, UpdateFactory, UserFactory
+from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
+from tests.supbot.conftest import EXPECTED_MAIN_MENU_KEYBOARD_MARKUP
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_sending_message_to_user(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -32,7 +29,7 @@ async def test_sending_message_to_user(
         bot_storage_key, {"thread_id": support_ticket.message_thread_id}
     )
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 message_id=message_id,
@@ -62,7 +59,7 @@ async def test_sending_message_to_user(
 
 
 async def test_closing_ticket_by_support(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -71,7 +68,7 @@ async def test_closing_ticket_by_support(
     tg_user_id: int,
     support_ticket: SupportTicket,
 ) -> None:
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 forum_topic_closed=ForumTopicClosed(),

@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 
 from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.common.schemas.storage_sch import YDocAccessLevel
+from app.common.schemas.storage_sch import StorageAccessGroupKind, YDocAccessLevel
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
@@ -38,6 +38,64 @@ async def test_ydoc_creating(
         assert ydoc.access_group_id == access_group.id
 
 
+async def test_personal_ydoc_creating_missing_access_group(
+    active_session: ActiveSession,
+    authorized_internal_client: TestClient,
+    proxy_auth_data: ProxyAuthData,
+) -> None:
+    ydoc_id = assert_response(
+        authorized_internal_client.post(
+            "/internal/storage-service/access-groups/personal/ydocs/",
+        ),
+        expected_code=201,
+        expected_json={"id": UUID},
+    ).json()["id"]
+
+    async with active_session():
+        ydoc = await YDoc.find_first_by_id(ydoc_id)
+        assert ydoc is not None
+        access_group: AccessGroup = await ydoc.awaitable_attrs.access_group
+        assert ydoc.access_group_id == access_group.id
+        assert access_group.kind == StorageAccessGroupKind.PERSONAL
+        assert access_group.related_id == str(proxy_auth_data.user_id)
+
+        await ydoc.delete()
+        await access_group.delete()
+
+
+async def test_personal_ydoc_creating_access_group_exists(
+    active_session: ActiveSession,
+    authorized_internal_client: TestClient,
+    personal_access_group: AccessGroup,
+    proxy_auth_data: ProxyAuthData,
+) -> None:
+    ydoc_id = assert_response(
+        authorized_internal_client.post(
+            "/internal/storage-service/access-groups/personal/ydocs/",
+        ),
+        expected_code=201,
+        expected_json={"id": UUID},
+    ).json()["id"]
+
+    async with active_session():
+        ydoc = await YDoc.find_first_by_id(ydoc_id)
+        assert ydoc is not None
+        assert ydoc.access_group_id == personal_access_group.id
+        assert (
+            await AccessGroup.count_by_kwargs(
+                AccessGroup.id,
+                kind=StorageAccessGroupKind.PERSONAL,
+                related_id=str(proxy_auth_data.user_id),
+            )
+        ) == 1
+        access_group: AccessGroup = await ydoc.awaitable_attrs.access_group
+        assert access_group.kind == StorageAccessGroupKind.PERSONAL
+        assert access_group.related_id == str(proxy_auth_data.user_id)
+
+        await ydoc.delete()
+        await access_group.delete()
+
+
 async def test_ydoc_creating_access_group_not_found(
     faker: Faker,
     internal_client: TestClient,
@@ -52,6 +110,17 @@ async def test_ydoc_creating_access_group_not_found(
     )
 
 
+async def test_ydoc_deleting(
+    active_session: ActiveSession, internal_client: TestClient, ydoc: YDoc
+) -> None:
+    assert_nodata_response(
+        internal_client.delete(f"/internal/storage-service/ydocs/{ydoc.id}/"),
+    )
+
+    async with active_session():
+        assert (await YDoc.find_first_by_id(ydoc.id)) is None
+
+
 @pytest.mark.parametrize(
     "access_level",
     [
@@ -59,21 +128,21 @@ async def test_ydoc_creating_access_group_not_found(
         for access_level in YDocAccessLevel
     ],
 )
-async def test_ydoc_access_level_retrieving(
+async def test_board_channel_ydoc_access_level_retrieving(
     communities_respx_mock: MockRouter,
     proxy_auth_data: ProxyAuthData,
     authorized_internal_client: TestClient,
-    access_group: AccessGroup,
-    ydoc: YDoc,
+    board_channel_access_group: AccessGroup,
+    board_channel_ydoc: YDoc,
     access_level: YDocAccessLevel,
 ) -> None:
     board_channel_access_level_mock = communities_respx_mock.get(
-        path=f"/channels/{access_group.related_id}/board/access-level/",
+        path=f"/channels/{board_channel_access_group.related_id}/board/access-level/",
     ).respond(json=access_level.value)
 
     assert_response(
         authorized_internal_client.get(
-            f"/internal/storage-service/ydocs/{ydoc.id}/access-level/",
+            f"/internal/storage-service/ydocs/{board_channel_ydoc.id}/access-level/",
         ),
         expected_json=access_level.value,
     )
@@ -81,6 +150,32 @@ async def test_ydoc_access_level_retrieving(
     assert_last_httpx_request(
         board_channel_access_level_mock,
         expected_headers={"X-Api-Key": settings.api_key, **proxy_auth_data.as_headers},
+    )
+
+
+async def test_personal_ydoc_access_level_retrieving_read_write(
+    proxy_auth_data: ProxyAuthData,
+    authorized_internal_client: TestClient,
+    personal_ydoc: YDoc,
+) -> None:
+    assert_response(
+        authorized_internal_client.get(
+            f"/internal/storage-service/ydocs/{personal_ydoc.id}/access-level/",
+        ),
+        expected_json=YDocAccessLevel.READ_WRITE,
+    )
+
+
+async def test_personal_ydoc_access_level_retrieving_no_access(
+    proxy_auth_data: ProxyAuthData,
+    outsider_internal_client: TestClient,
+    personal_ydoc: YDoc,
+) -> None:
+    assert_response(
+        outsider_internal_client.get(
+            f"/internal/storage-service/ydocs/{personal_ydoc.id}/access-level/",
+        ),
+        expected_json=YDocAccessLevel.NO_ACCESS,
     )
 
 
