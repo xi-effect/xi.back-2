@@ -8,7 +8,12 @@ from app.invoices.models.invoices_db import Invoice
 from app.invoices.routes.invoices_rst import InvoiceFormSchema
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.invoices.factories import InvoiceInputFactory, InvoiceItemInputFactory
+from tests.common.types import AnyJSON
+from tests.invoices.factories import (
+    InvoiceInputFactory,
+    InvoiceItemInputFactory,
+    InvoicePatchFactory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +90,7 @@ async def test_invoice_empty_listing(
     assert_response(
         mub_client.get(
             f"/mub/invoice-service/users/{creator_user_id}/invoices",
-            params={"offset": 0, "limit": 50},
+            params={"offset": 0, "limit": INVOICES_LIST_SIZE},
         ),
         expected_code=status.HTTP_200_OK,
         expected_json=[],
@@ -100,9 +105,22 @@ async def _test_invoice_creator_user_not_exist(
     assert_nodata_response(
         mub_client.get(
             "/mub/invoice-service/users/999/invoices",
-            params={"offset": 0, "limit": 50},
+            params={"offset": 0, "limit": INVOICES_LIST_SIZE},
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
+    )
+
+
+@pytest.fixture()
+async def _test_invoice_update(
+    mub_client: TestClient, invoice: Invoice, comment_data: AnyJSON
+) -> None:
+    invoice_patch_data = InvoicePatchFactory.build_json()
+    assert_response(
+        mub_client.patch(
+            f"/mub/invoice-service/invoices/{invoice.id}", json=invoice_patch_data
+        ),
+        expected_json={**comment_data, **invoice_patch_data},
     )
 
 
