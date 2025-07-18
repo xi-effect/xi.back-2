@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
@@ -7,35 +9,31 @@ from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember
 from aiogram.types.forum_topic import ForumTopic
 from faker import Faker
 
-from app.common.utils.datetime import datetime_utc_now
 from app.supbot import texts
 from app.supbot.models.support_db import SupportTicket
 from app.supbot.routers.support_tgm import Support
-from tests.common.mock_stack import MockStack
-from tests.supbot.conftest import (
-    EXPECTED_MAIN_MENU_KEYBOARD_MARKUP,
-    MockedBot,
-    WebhookUpdater,
-)
-from tests.supbot.factories import (
+from tests.common.aiogram_factories import (
     ChatMemberUpdatedFactory,
     MessageFactory,
     UpdateFactory,
     UserFactory,
 )
+from tests.common.aiogram_testing import MockedBot, TelegramBotWebhookDriver
+from tests.common.mock_stack import MockStack
+from tests.supbot.conftest import EXPECTED_MAIN_MENU_KEYBOARD_MARKUP
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_starting_support(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
     tg_chat_id: int,
     tg_user_id: int,
 ) -> None:
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text="/support",
@@ -61,7 +59,7 @@ async def test_starting_support(
 
 
 async def test_exiting_support(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -70,7 +68,7 @@ async def test_exiting_support(
 ) -> None:
     await bot_storage.set_state(bot_storage_key, Support.start)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=texts.MAIN_MENU_BUTTON_TEXT,
@@ -96,7 +94,7 @@ async def test_exiting_support(
 async def test_creating_support_ticket(
     faker: Faker,
     mock_stack: MockStack,
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     bot: Bot,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
@@ -119,7 +117,7 @@ async def test_creating_support_ticket(
     await bot_storage.set_state(bot_storage_key, Support.start)
 
     username: str = faker.user_name()
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 chat=Chat(id=tg_chat_id, type="private", username=username),
@@ -158,7 +156,7 @@ async def test_creating_support_ticket(
 
 
 async def test_sending_message_to_support(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -172,7 +170,7 @@ async def test_sending_message_to_support(
     )
     await bot_storage.set_state(bot_storage_key, Support.conversation)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 chat=Chat(id=tg_chat_id, type="private"),
@@ -193,7 +191,7 @@ async def test_sending_message_to_support(
 
 
 async def test_closing_support_ticket_by_user(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -207,7 +205,7 @@ async def test_closing_support_ticket_by_user(
     )
     await bot_storage.set_state(bot_storage_key, Support.conversation)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text=texts.CLOSE_SUPPORT_BUTTON_TEXT,
@@ -254,7 +252,7 @@ async def test_closing_support_ticket_by_user(
 
 
 async def test_closing_ticket_after_user_banned_bot(
-    webhook_updater: WebhookUpdater,
+    supbot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     bot_storage: BaseStorage,
     bot_storage_key: StorageKey,
@@ -268,7 +266,7 @@ async def test_closing_ticket_after_user_banned_bot(
     )
     await bot_storage.set_state(bot_storage_key, Support.conversation)
 
-    webhook_updater(
+    supbot_webhook_driver.feed_update(
         UpdateFactory.build(
             my_chat_member=ChatMemberUpdatedFactory.build(
                 chat=Chat(id=tg_chat_id, type="private"),
@@ -280,7 +278,7 @@ async def test_closing_ticket_after_user_banned_bot(
                 new_chat_member=ChatMemberBanned(
                     user=UserFactory.build(id=tg_user_id),
                     status=ChatMemberStatus.KICKED,
-                    until_date=datetime_utc_now(),
+                    until_date=datetime.fromtimestamp(0),
                 ),
             ),
         )

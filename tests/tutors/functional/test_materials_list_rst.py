@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator, Sequence
 from datetime import timezone
+from uuid import uuid4
 
 import pytest
 from faker import Faker
@@ -34,6 +35,7 @@ async def materials(
                         kind=MATERIAL_KINDS[i % len(MATERIAL_KINDS)],
                     ),
                     tutor_id=tutor_user_id,
+                    ydoc_id=str(uuid4()),
                     last_opened_at=faker.date_time_this_month(
                         before_now=False,
                         after_now=True,

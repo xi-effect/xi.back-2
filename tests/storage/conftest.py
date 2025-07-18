@@ -5,14 +5,36 @@ from uuid import UUID, uuid4
 import pytest
 from faker import Faker
 from starlette.responses import FileResponse
+from starlette.testclient import TestClient
 
+from app.common.config import settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.storage_sch import StorageAccessGroupKind
 from app.storage.models.access_groups_db import AccessGroup
 from app.storage.models.files_db import FILE_KIND_TO_CONTENT_DISPOSITION, File, FileKind
 from app.storage.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
+from tests.factories import ProxyAuthDataFactory
 from tests.storage import factories
+
+
+@pytest.fixture()
+def outsider_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def outsider_internal_client(
+    client: TestClient, outsider_auth_data: ProxyAuthData
+) -> TestClient:
+    return TestClient(
+        client.app,
+        headers={
+            **outsider_auth_data.as_headers,
+            "X-Api-Key": settings.api_key,
+        },
+    )
 
 
 @pytest.fixture()
@@ -34,6 +56,28 @@ def missing_access_group_id() -> UUID:
 
 
 @pytest.fixture()
+async def board_channel_access_group(
+    active_session: ActiveSession, access_group_data: AnyJSON
+) -> AccessGroup:
+    async with active_session():
+        return await AccessGroup.create(
+            **{**access_group_data, "kind": StorageAccessGroupKind.BOARD_CHANNEL}
+        )
+
+
+@pytest.fixture()
+async def personal_access_group(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+) -> AccessGroup:
+    async with active_session():
+        return await AccessGroup.create(
+            kind=StorageAccessGroupKind.PERSONAL,
+            related_id=str(proxy_auth_data.user_id),
+        )
+
+
+@pytest.fixture()
 async def ydoc(
     faker: Faker,
     active_session: ActiveSession,
@@ -42,6 +86,31 @@ async def ydoc(
     async with active_session():
         return await YDoc.create(
             access_group_id=access_group.id, content=faker.binary(length=64)
+        )
+
+
+@pytest.fixture()
+async def board_channel_ydoc(
+    faker: Faker,
+    active_session: ActiveSession,
+    board_channel_access_group: AccessGroup,
+) -> YDoc:
+    async with active_session():
+        return await YDoc.create(
+            access_group_id=board_channel_access_group.id,
+            content=faker.binary(length=64),
+        )
+
+
+@pytest.fixture()
+async def personal_ydoc(
+    faker: Faker,
+    active_session: ActiveSession,
+    personal_access_group: AccessGroup,
+) -> YDoc:
+    async with active_session():
+        return await YDoc.create(
+            access_group_id=personal_access_group.id, content=faker.binary(length=64)
         )
 
 

@@ -1943,6 +1943,18 @@ colors = ["colorama"]
 plugins = ["setuptools"]
 
 [[package]]
+name = "itsdangerous"
+version = "2.2.0"
+description = "Safely pass data to untrusted environments and back."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"},
+    {file = "itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"},
+]
+
+[[package]]
 name = "livekit-api"
 version = "1.0.2"
 description = "Python Server API for LiveKit"
@@ -4115,4 +4127,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "~=3.12,<4.0"
-content-hash = "1c0f8c8251d91ab814de08e79d92266ebd78404306fe73fadce07327ffb20b55"
+content-hash = "80636f1e8531af0235f95a57b79b283411c7d69e3abedddd84ae6583f89fcfdf"
