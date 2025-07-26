@@ -27,3 +27,11 @@ class InvoiceItemInputFactory(BaseModelFactory[InvoiceItem.InputSchema]):
 
 class InvoiceFormFactory(BaseModelFactory[InvoiceFormSchema]):
     __model__ = InvoiceFormSchema
+
+
+class InvoiceResponseFactory(BaseModelFactory[Invoice.ResponseSchema]):
+    __model__ = Invoice.ResponseSchema
+
+
+class InvoicePatchFactory(BasePatchModelFactory[Invoice.PatchSchema]):
+    __model__ = Invoice.PatchSchema
