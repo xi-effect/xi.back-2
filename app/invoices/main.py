@@ -19,7 +19,7 @@ authorized_router.include_router(invoices_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
-    prefix="/mub/invoice-service",
+    prefix="/mub/invoice",
 )
 
 mub_router.include_router(invoices_mub.router)
