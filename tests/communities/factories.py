@@ -24,6 +24,10 @@ class CommunityFullPatchFactory(BasePatchModelFactory[Community.FullPatchSchema]
     __model__ = Community.FullPatchSchema
 
 
+class ParticipantMUBInputFactory(BasePatchModelFactory[Participant.MUBInputSchema]):
+    __model__ = Participant.MUBInputSchema
+
+
 class ParticipantMUBPatchFactory(BasePatchModelFactory[Participant.MUBPatchSchema]):
     __model__ = Participant.MUBPatchSchema
 

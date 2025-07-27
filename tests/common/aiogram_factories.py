@@ -1,23 +1,29 @@
 from aiogram.types import ChatMemberUpdated, Document, Message, Update, User
+from pydantic import BaseModel
 
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
-class UpdateFactory(BaseModelFactory[Update]):
+class BaseAiogramFactory[T: BaseModel](BaseModelFactory[T]):
+    __is_base_factory__ = True
+    __use_defaults__ = True
+
+
+class UpdateFactory(BaseAiogramFactory[Update]):
     __model__ = Update
 
 
-class MessageFactory(BaseModelFactory[Message]):
+class MessageFactory(BaseAiogramFactory[Message]):
     __model__ = Message
 
 
-class UserFactory(BaseModelFactory[User]):
+class UserFactory(BaseAiogramFactory[User]):
     __model__ = User
 
 
-class ChatMemberUpdatedFactory(BaseModelFactory[ChatMemberUpdated]):
+class ChatMemberUpdatedFactory(BaseAiogramFactory[ChatMemberUpdated]):
     __model__ = ChatMemberUpdated
 
 
-class DocumentFactory(BaseModelFactory[Document]):
+class DocumentFactory(BaseAiogramFactory[Document]):
     __model__ = Document

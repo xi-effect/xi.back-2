@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, ClassVar, Self
 
-from pydantic import AwareDatetime, FutureDatetime, PositiveInt
+from pydantic import AwareDatetime, PositiveInt
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import CHAR, DateTime, ForeignKey, Index, Row, or_, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,6 +10,7 @@ from sqlalchemy.sql.functions import count, func
 
 from app.common.config import Base
 from app.common.cyptography import TokenGenerator
+from app.common.pydantic_ext import FutureAwareDatetime
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 from app.communities.models.communities_db import Community
@@ -53,7 +54,10 @@ class Invitation(Base):
 
     # schemas
     InputSchema = MappedModel.create(
-        columns=[(expiry, FutureDatetime | None), (usage_limit, PositiveInt | None)],
+        columns=[
+            (expiry, FutureAwareDatetime | None),
+            (usage_limit, PositiveInt | None),
+        ],
     )
     MUBInputSchema = InputSchema.extend(
         columns=[(created_at, AwareDatetime), creator_id]
@@ -62,7 +66,7 @@ class Invitation(Base):
         columns=[
             id,
             token,
-            expiry,
+            (expiry, AwareDatetime | None),
             usage_count,
             usage_limit,
             (created_at, AwareDatetime),
