@@ -15,7 +15,7 @@ router = APIRouterExt(tags=["invoices"])
 class InvoiceFormSchema(BaseModel):
     invoice: Invoice.InputSchema
     items: Annotated[list[InvoiceItem.InputSchema], Field(min_length=1, max_length=10)]
-    recipient_user_ids: Annotated[list[int], Field(min_length=1, max_length=20)]
+    student_ids: Annotated[list[int], Field(min_length=1, max_length=20)]
 
 
 class InvoiceFormResponses(Responses):
@@ -23,7 +23,7 @@ class InvoiceFormResponses(Responses):
 
 
 @router.post(
-    path="/invoices/",
+    path="/roles/tutor/invoices/",
     status_code=status.HTTP_201_CREATED,
     response_model=Invoice.IDSchema,
     responses=InvoiceFormResponses.responses(),
@@ -33,7 +33,7 @@ async def create_invoice(
     data: InvoiceFormSchema,
     auth_data: AuthorizationData,
 ) -> Invoice:
-    if auth_data.user_id in data.recipient_user_ids:
+    if auth_data.user_id in data.student_ids:
         raise InvoiceFormResponses.TARGET_IS_THE_SOURCE
     # TODO check if creator is allowed to send invoices to recipients (51967762)
 
@@ -44,8 +44,7 @@ async def create_invoice(
 
     invoice = await Invoice.create(
         **data.invoice.model_dump(),
-        creator_user_id=auth_data.user_id,
-        total=total,
+        tutor_id=auth_data.user_id,
     )
 
     for position, invoice_item_data in enumerate(data.items):
@@ -55,10 +54,11 @@ async def create_invoice(
             position=position,
         )
 
-    for recipient_user_id in data.recipient_user_ids:
+    for student_id in data.student_ids:
         await RecipientInvoice.create(
             invoice_id=invoice.id,
-            recipient_user_id=recipient_user_id,
+            student_id=student_id,
+            total=total,
             status=PaymentStatus.WF_PAYMENT,
         )
         # TODO send notification to each recipient (worker task)

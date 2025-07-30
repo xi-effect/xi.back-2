@@ -25,7 +25,7 @@ async def get_invoice_item_template_by_id(
     )
     if invoice_item_template is None:
         raise InvoiceItemTemplateResponses.INVOICE_ITEM_TEMPLATE_NOT_FOUND
-    if invoice_item_template.creator_user_id != auth_data.user_id:
+    if invoice_item_template.tutor_id != auth_data.user_id:
         raise InvoiceItemTemplateResponses.ACCESS_DENIED
     return invoice_item_template
 
