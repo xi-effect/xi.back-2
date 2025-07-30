@@ -19,7 +19,7 @@ class InvoiceItemTemplate(Base):
     max_count_per_user: ClassVar[int] = 20
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    creator_user_id: Mapped[int] = mapped_column(index=True)
+    tutor_id: Mapped[int] = mapped_column(index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
@@ -46,11 +46,11 @@ class InvoiceItemTemplate(Base):
     @classmethod
     async def is_limit_per_user_reached(cls, user_id: int) -> bool:
         return (
-            await cls.count_by_kwargs(cls.id, creator_user_id=user_id)
+            await cls.count_by_kwargs(cls.id, tutor_id=user_id)
             >= cls.max_count_per_user
         )
 
     @classmethod
-    async def find_all_by_creator(cls, creator_user_id: int) -> Sequence[Self]:
-        stmt = select(cls).filter_by(creator_user_id=creator_user_id)
+    async def find_all_by_tutor(cls, tutor_id: int) -> Sequence[Self]:
+        stmt = select(cls).filter_by(tutor_id=tutor_id)
         return await db.get_all(stmt=stmt.order_by(cls.updated_at.desc()))

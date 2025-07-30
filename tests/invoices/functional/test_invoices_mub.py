@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -28,8 +27,7 @@ INVOICES_LIST_SIZE = 5
 async def test_invoices_listing(
     active_session: ActiveSession,
     mub_client: TestClient,
-    creator_user_id: int,
-    total: Decimal,
+    tutor_id: int,
     offset: int,
     limit: int,
 ) -> None:
@@ -37,15 +35,14 @@ async def test_invoices_listing(
         invoices: list[Invoice] = [
             await Invoice.create(
                 **InvoiceInputFactory.build_python(),
-                creator_user_id=creator_user_id,
-                total=total,
+                tutor_id=tutor_id,
             )
             for _ in range(INVOICES_LIST_SIZE)
         ]
 
     assert_response(
         mub_client.get(
-            f"/mub/invoice-service/users/{creator_user_id}/invoices/",
+            f"/mub/invoice-service/users/{tutor_id}/invoices/",
             params={"offset": offset, "limit": limit},
         ),
         expected_json=[

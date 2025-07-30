@@ -18,12 +18,12 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_invoice_item_templates_listing(
-    creator_client: TestClient,
+    tutor_client: TestClient,
     invoice_item_template_data: AnyJSON,
 ) -> None:
     assert_response(
-        creator_client.get(
-            "/api/protected/invoice-service/invoice-item-templates/",
+        tutor_client.get(
+            "/api/protected/invoice-service/roles/tutor/invoice-item-templates/",
         ),
         expected_json=[invoice_item_template_data],
     )
@@ -32,15 +32,15 @@ async def test_invoice_item_templates_listing(
 @freeze_time()
 async def test_invoice_item_template_creation(
     active_session: ActiveSession,
-    creator_client: TestClient,
-    creator_user_id: int,
+    tutor_client: TestClient,
+    tutor_id: int,
 ) -> None:
     invoice_item_template_input_data = (
         factories.InvoiceItemTemplateInputFactory.build_json()
     )
     invoice_item_template_id: int = assert_response(
-        creator_client.post(
-            "/api/protected/invoice-service/invoice-item-templates/",
+        tutor_client.post(
+            "/api/protected/invoice-service/roles/tutor/invoice-item-templates/",
             json=invoice_item_template_input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
@@ -57,18 +57,18 @@ async def test_invoice_item_template_creation(
             invoice_item_template_id
         )
         assert invoice_item_template is not None
-        assert invoice_item_template.creator_user_id == creator_user_id
+        assert invoice_item_template.tutor_id == tutor_id
         await invoice_item_template.delete()
 
 
 async def test_invoice_item_template_creation_quantity_exceeded(
     mock_stack: MockStack,
-    creator_client: TestClient,
+    tutor_client: TestClient,
 ) -> None:
     mock_stack.enter_mock(InvoiceItemTemplate, "max_count_per_user", property_value=0)
     assert_response(
-        creator_client.post(
-            "/api/protected/invoice-service/invoice-item-templates/",
+        tutor_client.post(
+            "/api/protected/invoice-service/roles/tutor/invoice-item-templates/",
             json=factories.InvoiceItemTemplateInputFactory.build_json(),
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -77,12 +77,12 @@ async def test_invoice_item_template_creation_quantity_exceeded(
 
 
 async def test_invoice_item_template_retrieving(
-    creator_client: TestClient,
+    tutor_client: TestClient,
     invoice_item_template_data: AnyJSON,
 ) -> None:
     assert_response(
-        creator_client.get(
-            f"/api/protected/invoice-service/invoice-item-templates/{invoice_item_template_data["id"]}/"
+        tutor_client.get(
+            f"/api/protected/invoice-service/roles/tutor/invoice-item-templates/{invoice_item_template_data["id"]}/"
         ),
         expected_json=invoice_item_template_data,
     )
@@ -90,7 +90,7 @@ async def test_invoice_item_template_retrieving(
 
 @freeze_time()
 async def test_invoice_item_template_updating(
-    creator_client: TestClient,
+    tutor_client: TestClient,
     invoice_item_template_data: AnyJSON,
 ) -> None:
     patch_invoice_item_template_data = (
@@ -98,8 +98,8 @@ async def test_invoice_item_template_updating(
     )
 
     assert_response(
-        creator_client.patch(
-            f"/api/protected/invoice-service/invoice-item-templates/{invoice_item_template_data["id"]}/",
+        tutor_client.patch(
+            f"/api/protected/invoice-service/roles/tutor/invoice-item-templates/{invoice_item_template_data["id"]}/",
             json=patch_invoice_item_template_data,
         ),
         expected_json={
@@ -112,12 +112,12 @@ async def test_invoice_item_template_updating(
 
 async def test_invoice_item_template_deleting(
     active_session: ActiveSession,
-    creator_client: TestClient,
+    tutor_client: TestClient,
     invoice_item_template: InvoiceItemTemplate,
 ) -> None:
     assert_nodata_response(
-        creator_client.delete(
-            f"/api/protected/invoice-service/invoice-item-templates/{invoice_item_template.id}/"
+        tutor_client.delete(
+            f"/api/protected/invoice-service/roles/tutor/invoice-item-templates/{invoice_item_template.id}/"
         )
     )
 
@@ -138,15 +138,15 @@ invoice_item_template_requests_params = [
     ("method", "body_factory"), invoice_item_template_requests_params
 )
 async def test_invoice_item_template_not_finding(
-    creator_client: TestClient,
+    tutor_client: TestClient,
     deleted_invoice_item_template_id: int,
     method: str,
     body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
-        creator_client.request(
+        tutor_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/invoice-item-templates/{deleted_invoice_item_template_id}/",
+            url=f"/api/protected/invoice-service/roles/tutor/invoice-item-templates/{deleted_invoice_item_template_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
@@ -166,7 +166,7 @@ async def test_invoice_item_template_access_denied(
     assert_response(
         outsider_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/invoice-item-templates/{invoice_item_template.id}/",
+            url=f"/api/protected/invoice-service/roles/tutor/invoice-item-templates/{invoice_item_template.id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
