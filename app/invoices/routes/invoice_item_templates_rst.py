@@ -20,9 +20,7 @@ router = APIRouterExt(tags=["invoice item templates"])
 async def list_invoice_item_templates(
     auth_data: AuthorizationData,
 ) -> Sequence[InvoiceItemTemplate]:
-    return await InvoiceItemTemplate.find_all_by_creator(
-        creator_user_id=auth_data.user_id
-    )
+    return await InvoiceItemTemplate.find_all_by_tutor(tutor_id=auth_data.user_id)
 
 
 @router.post(
@@ -40,7 +38,7 @@ async def create_invoice_item_template(
         raise LimitedListResponses.QUANTITY_EXCEEDED
     return await InvoiceItemTemplate.create(
         **input_data.model_dump(),
-        creator_user_id=auth_data.user_id,
+        tutor_id=auth_data.user_id,
     )
 
 
