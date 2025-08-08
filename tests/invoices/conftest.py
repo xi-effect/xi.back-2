@@ -1,8 +1,12 @@
+from decimal import Decimal
+
 import pytest
+from faker import Faker
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.invoices.models.invoice_item_templates_db import InvoiceItemTemplate
+from app.invoices.models.invoices_db import Invoice
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON
 from tests.factories import ProxyAuthDataFactory
@@ -84,3 +88,34 @@ async def deleted_invoice_item_template_id(
     async with active_session():
         await invoice_item_template.delete()
     return invoice_item_template.id
+
+
+@pytest.fixture()
+def total(faker: Faker) -> Decimal:
+    return faker.pydecimal(right_digits=2)
+
+
+@pytest.fixture()
+async def invoice(
+    active_session: ActiveSession, creator_user_id: int, total: Decimal
+) -> Invoice:
+    async with active_session():
+        return await Invoice.create(
+            creator_user_id=creator_user_id,
+            total=total,
+            **factories.InvoiceInputFactory.build_python(),
+        )
+
+
+@pytest.fixture()
+async def invoice_data(invoice: Invoice) -> AnyJSON:
+    return Invoice.ResponseSchema.model_validate(
+        invoice, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_invoice_id(active_session: ActiveSession, invoice: Invoice) -> int:
+    async with active_session():
+        await invoice.delete()
+    return invoice.id
