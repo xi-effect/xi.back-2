@@ -4,7 +4,7 @@ from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.tutors.dependencies.invitations_dep import MyInvitationById
+from app.tutors.dependencies.invitations_dep import MyInvitationByID
 from app.tutors.models.invitations_db import Invitation
 
 router = APIRouterExt(tags=["tutor invitations"])
@@ -50,5 +50,5 @@ async def create_invitation(auth_data: AuthorizationData) -> Invitation:
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete tutor invitation from current user by id",
 )
-async def delete_invitation(invitation: MyInvitationById) -> None:
+async def delete_invitation(invitation: MyInvitationByID) -> None:
     await invitation.delete()

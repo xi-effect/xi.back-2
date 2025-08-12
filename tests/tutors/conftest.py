@@ -74,7 +74,7 @@ async def subject(active_session: ActiveSession, tutor_user_id: int) -> Subject:
 
 @pytest.fixture()
 async def subject_data(subject: Subject) -> AnyJSON:
-    return Subject.ResponseSchema.model_validate(subject).model_dump(mode="json")
+    return Subject.ResponseMUBSchema.model_validate(subject).model_dump(mode="json")
 
 
 @pytest.fixture()
