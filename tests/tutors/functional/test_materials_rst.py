@@ -37,7 +37,7 @@ async def test_material_creation(
     material_input_data = MaterialInputFactory.build_json()
     material_id: int = assert_response(
         tutor_client.post(
-            "/api/protected/tutor-service/materials/",
+            "/api/protected/tutor-service/roles/tutor/materials/",
             json=material_input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
@@ -70,7 +70,7 @@ async def test_material_retrieving(
 ) -> None:
     assert_response(
         tutor_client.get(
-            f"/api/protected/tutor-service/materials/{material_data["id"]}/"
+            f"/api/protected/tutor-service/roles/tutor/materials/{material_data["id"]}/"
         ),
         expected_json={**material_data, "last_opened_at": datetime_utc_now()},
     )
@@ -85,7 +85,7 @@ async def test_material_updating(
 
     assert_response(
         tutor_client.patch(
-            f"/api/protected/tutor-service/materials/{material_data["id"]}/",
+            f"/api/protected/tutor-service/roles/tutor/materials/{material_data["id"]}/",
             json=patch_material_data,
         ),
         expected_json={
@@ -108,7 +108,9 @@ async def test_material_deleting(
     ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     assert_nodata_response(
-        tutor_client.delete(f"/api/protected/tutor-service/materials/{material.id}/")
+        tutor_client.delete(
+            f"/api/protected/tutor-service/roles/tutor/materials/{material.id}/"
+        )
     )
 
     assert_last_httpx_request(
@@ -135,7 +137,7 @@ async def test_material_not_finding(
     assert_response(
         tutor_client.request(
             method=method,
-            url=f"/api/protected/tutor-service/materials/{deleted_material_id}/",
+            url=f"/api/protected/tutor-service/roles/tutor/materials/{deleted_material_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
@@ -153,7 +155,7 @@ async def test_material_access_denied(
     assert_response(
         outsider_client.request(
             method=method,
-            url=f"/api/protected/tutor-service/materials/{material.id}/",
+            url=f"/api/protected/tutor-service/roles/tutor/materials/{material.id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,

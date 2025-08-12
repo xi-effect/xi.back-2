@@ -11,7 +11,7 @@ router = APIRouterExt(tags=["tutor invitations"])
 
 
 @router.get(
-    "/invitations/",
+    "/roles/tutor/invitations/",
     response_model=list[Invitation.ResponseSchema],
     summary="List all tutor invitations for the current user",
 )
@@ -30,7 +30,7 @@ class InvitationCreationResponses(Responses):
 
 
 @router.post(
-    "/invitations/",
+    "/roles/tutor/invitations/",
     status_code=status.HTTP_201_CREATED,
     response_model=Invitation.ResponseSchema,
     responses=InvitationCreationResponses.responses(),
@@ -46,7 +46,7 @@ async def create_invitation(auth_data: AuthorizationData) -> Invitation:
 
 
 @router.delete(
-    "/invitations/{invitation_id}/",
+    "/roles/tutor/invitations/{invitation_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete tutor invitation from current user by id",
 )
