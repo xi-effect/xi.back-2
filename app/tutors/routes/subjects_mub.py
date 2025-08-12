@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.tutors.dependencies.subjects_dep import SubjectById
+from app.tutors.dependencies.subjects_dep import SubjectByID
 from app.tutors.models.subjects_db import Subject
 
 router = APIRouterExt(tags=["subjects mub"])
@@ -11,7 +11,7 @@ router = APIRouterExt(tags=["subjects mub"])
 
 @router.get(
     "/subjects/",
-    response_model=list[Subject.ResponseSchema],
+    response_model=list[Subject.ResponseMUBSchema],
     summary="List all subjects",
 )
 async def list_subjects(
@@ -33,7 +33,7 @@ class SubjectCreationResponses(Responses):
 @router.post(
     "/subjects/",
     status_code=status.HTTP_201_CREATED,
-    response_model=Subject.ResponseSchema,
+    response_model=Subject.ResponseMUBSchema,
     responses=SubjectCreationResponses.responses(),
     summary="Create a new subject",
 )
@@ -45,10 +45,10 @@ async def create_subject(data: Subject.InputMUBSchema) -> Subject:
 
 @router.patch(
     "/subjects/{subject_id}/",
-    response_model=Subject.ResponseSchema,
+    response_model=Subject.ResponseMUBSchema,
     summary="Update any subject by id",
 )
-async def patch_subject(subject: SubjectById, data: Subject.PatchMUBSchema) -> Subject:
+async def patch_subject(subject: SubjectByID, data: Subject.PatchMUBSchema) -> Subject:
     subject.update(**data.model_dump(exclude_defaults=True))
     return subject
 
@@ -58,5 +58,5 @@ async def patch_subject(subject: SubjectById, data: Subject.PatchMUBSchema) -> S
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any subject by id",
 )
-async def delete_subject(subject: SubjectById) -> None:
+async def delete_subject(subject: SubjectByID) -> None:
     await subject.delete()

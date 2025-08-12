@@ -19,4 +19,4 @@ async def get_subject_by_id(subject_id: Annotated[int, Path()]) -> Subject:
     return subject
 
 
-SubjectById = Annotated[Subject, Depends(get_subject_by_id)]
+SubjectByID = Annotated[Subject, Depends(get_subject_by_id)]

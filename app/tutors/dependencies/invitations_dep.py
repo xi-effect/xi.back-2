@@ -20,7 +20,7 @@ async def get_invitation_by_id(invitation_id: Annotated[int, Path()]) -> Invitat
     return invitation
 
 
-InvitationById = Annotated[Invitation, Depends(get_invitation_by_id)]
+InvitationByID = Annotated[Invitation, Depends(get_invitation_by_id)]
 
 
 class MyInvitationResponses(Responses):
@@ -29,11 +29,11 @@ class MyInvitationResponses(Responses):
 
 @with_responses(MyInvitationResponses)
 async def get_my_invitation_by_id(
-    invitation: InvitationById, auth_data: AuthorizationData
+    invitation: InvitationByID, auth_data: AuthorizationData
 ) -> Invitation:
     if invitation.tutor_id != auth_data.user_id:
         raise MyInvitationResponses.INVITATION_ACCESS_DENIED
     return invitation
 
 
-MyInvitationById = Annotated[Invitation, Depends(get_my_invitation_by_id)]
+MyInvitationByID = Annotated[Invitation, Depends(get_my_invitation_by_id)]
