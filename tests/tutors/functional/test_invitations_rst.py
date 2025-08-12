@@ -20,7 +20,7 @@ async def test_invitations_listing(
 ) -> None:
     assert_response(
         tutor_client.get(
-            "/api/protected/tutor-service/invitations/",
+            "/api/protected/tutor-service/roles/tutor/invitations/",
         ),
         expected_json=[invitation_data],
     )
@@ -33,7 +33,7 @@ async def test_invitation_creation(
     tutor_client: TestClient,
 ) -> None:
     real_invitation_data: AnyJSON = assert_response(
-        tutor_client.post("/api/protected/tutor-service/invitations/"),
+        tutor_client.post("/api/protected/tutor-service/roles/tutor/invitations/"),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             "id": int,
@@ -64,7 +64,7 @@ async def test_invitation_creation_invitation_quantity_exceeded(
 ) -> None:
     mock_stack.enter_mock(Invitation, "max_count", property_value=0)
     assert_response(
-        tutor_client.post("/api/protected/tutor-service/invitations/"),
+        tutor_client.post("/api/protected/tutor-service/roles/tutor/invitations/"),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Invitation quantity exceeded"},
     )
@@ -77,7 +77,7 @@ async def test_invitation_deleting(
 ) -> None:
     assert_nodata_response(
         tutor_client.delete(
-            f"/api/protected/tutor-service/invitations/{invitation.id}/"
+            f"/api/protected/tutor-service/roles/tutor/invitations/{invitation.id}/"
         )
     )
 
@@ -91,7 +91,7 @@ async def test_invitation_deleting_invitation_access_denied(
 ) -> None:
     assert_response(
         outsider_client.delete(
-            f"/api/protected/tutor-service/invitations/{invitation.id}/"
+            f"/api/protected/tutor-service/roles/tutor/invitations/{invitation.id}/"
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
         expected_json={"detail": "Invitation access denied"},
@@ -104,7 +104,7 @@ async def test_invitation_deleting_invitation_not_found(
 ) -> None:
     assert_response(
         outsider_client.delete(
-            f"/api/protected/tutor-service/invitations/{deleted_invitation_id}/",
+            f"/api/protected/tutor-service/roles/tutor/invitations/{deleted_invitation_id}/",
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Invitation not found"},
