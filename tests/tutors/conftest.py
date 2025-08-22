@@ -1,12 +1,16 @@
+from collections.abc import AsyncIterator, Sequence
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from faker import Faker
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.tutors.models.invitations_db import Invitation
 from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
+from app.tutors.models.tutorships_db import Tutorship
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON
 from tests.factories import ProxyAuthDataFactory
@@ -26,6 +30,21 @@ def tutor_user_id(tutor_auth_data: ProxyAuthData) -> int:
 @pytest.fixture()
 def tutor_client(client: TestClient, tutor_auth_data: ProxyAuthData) -> TestClient:
     return TestClient(client.app, headers=tutor_auth_data.as_headers)
+
+
+@pytest.fixture()
+def student_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def student_user_id(student_auth_data: ProxyAuthData) -> int:
+    return student_auth_data.user_id
+
+
+@pytest.fixture()
+def student_client(client: TestClient, student_auth_data: ProxyAuthData) -> TestClient:
+    return TestClient(client.app, headers=student_auth_data.as_headers)
 
 
 @pytest.fixture()
@@ -104,3 +123,88 @@ async def deleted_material_id(active_session: ActiveSession, material: Material)
     async with active_session():
         await material.delete()
     return material.id
+
+
+@pytest.fixture()
+async def tutorship(
+    active_session: ActiveSession, tutor_user_id: int, student_user_id: int
+) -> Tutorship:
+    async with active_session():
+        return await Tutorship.create(
+            tutor_id=tutor_user_id,
+            student_id=student_user_id,
+        )
+
+
+@pytest.fixture()
+async def tutorship_data(tutorship: Tutorship) -> AnyJSON:
+    return Tutorship.ResponseSchema.model_validate(tutorship).model_dump(mode="json")
+
+
+TUTORSHIPS_LIST_SIZE = 6
+
+
+async def create_tutorships(
+    faker: Faker,
+    active_session: ActiveSession,
+    user_ids: list[tuple[int, int]],
+) -> AsyncIterator[Tutorship]:
+    last_created_at: datetime = faker.date_time_between(tzinfo=timezone.utc)
+    async with active_session():
+        for tutor_id, student_id in user_ids:
+            last_created_at = last_created_at - timedelta(minutes=faker.random_int())
+            yield await Tutorship.create(
+                tutor_id=tutor_id,
+                student_id=student_id,
+                created_at=last_created_at,
+            )
+
+
+@pytest.fixture()
+async def tutor_tutorships(
+    faker: Faker,
+    active_session: ActiveSession,
+    tutor_user_id: int,
+) -> AsyncIterator[Sequence[Tutorship]]:
+    tutorships: list[Tutorship] = [
+        tutorship
+        async for tutorship in create_tutorships(
+            faker=faker,
+            active_session=active_session,
+            user_ids=[
+                (tutor_user_id, tutor_user_id + i + 1)
+                for i in range(TUTORSHIPS_LIST_SIZE)
+            ],
+        )
+    ]
+
+    yield tutorships
+
+    async with active_session():
+        for tutorship in tutorships:
+            await tutorship.delete()
+
+
+@pytest.fixture()
+async def student_tutorships(
+    faker: Faker,
+    active_session: ActiveSession,
+    student_user_id: int,
+) -> AsyncIterator[Sequence[Tutorship]]:
+    tutorships: list[Tutorship] = [
+        tutorship
+        async for tutorship in create_tutorships(
+            faker=faker,
+            active_session=active_session,
+            user_ids=[
+                (student_user_id + i + 1, student_user_id)
+                for i in range(TUTORSHIPS_LIST_SIZE)
+            ],
+        )
+    ]
+
+    yield tutorships
+
+    async with active_session():
+        for tutorship in tutorships:
+            await tutorship.delete()
