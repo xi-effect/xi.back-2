@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, DateTime, Index, select
+from sqlalchemy import CHAR, DateTime, select
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.functions import count
 
@@ -26,13 +26,9 @@ class Invitation(Base):
         DateTime(timezone=True), default=datetime_utc_now
     )
     code: Mapped[str] = mapped_column(
-        CHAR(invitation_token_generator.token_length), unique=True
+        CHAR(invitation_token_generator.token_length), index=True, unique=True
     )
     usage_count: Mapped[int] = mapped_column(default=0)
-
-    __table_args__ = (
-        Index("hash_index_tutor_invitations_code", code, postgresql_using="hash"),
-    )
 
     ResponseSchema = MappedModel.create(columns=[id, created_at, code, usage_count])
 

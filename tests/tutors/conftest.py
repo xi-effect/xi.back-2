@@ -74,13 +74,23 @@ async def invitation_data(invitation: Subject) -> AnyJSON:
 
 
 @pytest.fixture()
-async def deleted_invitation_id(
+async def deleted_invitation(
     active_session: ActiveSession,
     invitation: Invitation,
-) -> int:
+) -> Invitation:
     async with active_session():
         await invitation.delete()
-    return invitation.id
+    return invitation
+
+
+@pytest.fixture()
+async def deleted_invitation_id(deleted_invitation: Invitation) -> int:
+    return deleted_invitation.id
+
+
+@pytest.fixture()
+async def deleted_invitation_code(deleted_invitation: Invitation) -> str:
+    return deleted_invitation.code
 
 
 @pytest.fixture()
