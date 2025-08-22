@@ -7,7 +7,7 @@ from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import SelfReferenceResponses
-from app.tutors.dependencies.tutorships_dep import TutorshipByIDs
+from app.tutors.dependencies.tutorships_dep import MUBTutorshipByIDs
 from app.tutors.models.tutorships_db import Tutorship
 
 router = APIRouterExt(tags=["tutorships mub"])
@@ -88,7 +88,7 @@ async def create_tutorship(
     response_model=Tutorship.ResponseSchema,
     summary="Retrieve a tutorship by ids",
 )
-async def retrieve_tutorship(tutorship: TutorshipByIDs) -> Tutorship:
+async def retrieve_tutorship(tutorship: MUBTutorshipByIDs) -> Tutorship:
     return tutorship
 
 
@@ -97,5 +97,5 @@ async def retrieve_tutorship(tutorship: TutorshipByIDs) -> Tutorship:
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a tutorship by ids",
 )
-async def delete_tutorship(tutorship: TutorshipByIDs) -> None:
+async def delete_tutorship(tutorship: MUBTutorshipByIDs) -> None:
     await tutorship.delete()
