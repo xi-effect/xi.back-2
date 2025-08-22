@@ -23,6 +23,17 @@ async def get_invitation_by_id(invitation_id: Annotated[int, Path()]) -> Invitat
 InvitationByID = Annotated[Invitation, Depends(get_invitation_by_id)]
 
 
+@with_responses(InvitationResponses)
+async def get_invitation_by_code(code: Annotated[str, Path()]) -> Invitation:
+    invitation = await Invitation.find_first_by_kwargs(code=code)
+    if invitation is None:
+        raise InvitationResponses.INVITATION_NOT_FOUND
+    return invitation
+
+
+InvitationByCode = Annotated[Invitation, Depends(get_invitation_by_code)]
+
+
 class MyInvitationResponses(Responses):
     INVITATION_ACCESS_DENIED = status.HTTP_403_FORBIDDEN, "Invitation access denied"
 

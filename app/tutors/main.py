@@ -7,6 +7,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.tutors.routes import (
+    invitations_student_rst,
     invitations_tutor_rst,
     materials_tutor_rst,
     subjects_mub,
@@ -22,6 +23,7 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/tutor-service",
 )
 authorized_router.include_router(invitations_tutor_rst.router)
+authorized_router.include_router(invitations_student_rst.router)
 authorized_router.include_router(materials_tutor_rst.router)
 authorized_router.include_router(tutorships_tutor_rst.router)
 authorized_router.include_router(tutorships_student_rst.router)
