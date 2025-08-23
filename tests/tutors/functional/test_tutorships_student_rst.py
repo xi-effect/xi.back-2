@@ -1,13 +1,17 @@
 from collections.abc import Sequence
 
 import pytest
+from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.config import settings
 from app.tutors.models.tutorships_db import Tutorship
 from tests.common.assert_contains_ext import assert_response
+from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
 from tests.common.utils import remove_none_values
+from tests.factories import UserProfileFactory
 from tests.tutors.conftest import TUTORSHIPS_LIST_SIZE
 
 pytestmark = pytest.mark.anyio
@@ -24,11 +28,25 @@ pytestmark = pytest.mark.anyio
     ],
 )
 async def test_tutorships_listing(
+    users_internal_respx_mock: MockRouter,
     student_client: TestClient,
     student_tutorships: Sequence[Tutorship],
     offset: int,
     limit: int,
 ) -> None:
+    user_profiles: dict[str, AnyJSON] = {
+        str(tutorship.tutor_id): UserProfileFactory.build_json()
+        for tutorship in student_tutorships[offset:limit]
+    }
+    users_internal_bridge_mock = users_internal_respx_mock.get(
+        path="/users/",
+        params={
+            "user_ids": [
+                tutorship.tutor_id for tutorship in student_tutorships[offset:limit]
+            ]
+        },
+    ).respond(json=user_profiles)
+
     assert_response(
         student_client.get(
             "/api/protected/tutor-service/roles/student/tutors/",
@@ -44,24 +62,42 @@ async def test_tutorships_listing(
             ),
         ),
         expected_json=[
-            Tutorship.StudentResponseSchema.model_validate(
-                tutorship, from_attributes=True
-            )
-            for tutorship in student_tutorships
-        ][offset:limit],
+            {
+                "tutorship": Tutorship.StudentResponseSchema.model_validate(
+                    tutorship, from_attributes=True
+                ),
+                "user": user_profiles[str(tutorship.tutor_id)],
+            }
+            for tutorship in student_tutorships[offset:limit]
+        ],
+    )
+
+    assert_last_httpx_request(
+        users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 
 async def test_tutorship_retrieving(
+    users_internal_respx_mock: MockRouter,
     student_client: TestClient,
     tutorship: Tutorship,
-    tutorship_data: AnyJSON,
 ) -> None:
+    tutor_profile_data: AnyJSON = UserProfileFactory.build_json()
+    users_internal_bridge_mock = users_internal_respx_mock.get(
+        path=f"/users/{tutorship.tutor_id}/"
+    ).respond(json=tutor_profile_data)
+
     assert_response(
         student_client.get(
             f"/api/protected/tutor-service/roles/student/tutors/{tutorship.tutor_id}/",
         ),
-        expected_json=tutorship_data,
+        expected_json=tutor_profile_data,
+    )
+
+    assert_last_httpx_request(
+        users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 

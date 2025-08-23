@@ -493,7 +493,7 @@ async def test_sending_resume_unsupported_document(
 )
 async def test_sending_comment(
     faker: Faker,
-    users_respx_mock: MockRouter,
+    users_public_respx_mock: MockRouter,
     pdf_data: tuple[str, bytes, str],
     vacancy_form_data: AnyJSON,
     supbot_webhook_driver: TelegramBotWebhookDriver,
@@ -507,7 +507,7 @@ async def test_sending_comment(
     if not is_comment_provided:
         vacancy_form_data["message"] = None
 
-    public_users_bridge_mock = users_respx_mock.post(
+    users_public_bridge_mock = users_public_respx_mock.post(
         path="/v2/vacancy-applications/",
         data=vacancy_form_data,
         files={"resume": pdf_data},
@@ -543,7 +543,7 @@ async def test_sending_comment(
     )
     mocked_bot.assert_no_more_api_calls()
 
-    assert_last_httpx_request(public_users_bridge_mock)
+    assert_last_httpx_request(users_public_bridge_mock)
 
 
 @pytest.mark.parametrize(

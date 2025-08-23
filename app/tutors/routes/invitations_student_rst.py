@@ -1,17 +1,23 @@
 from pydantic_marshals.base import CompositeMarshalModel
 from starlette import status
 
+from app.common.config_bdg import users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.responses import SelfReferenceResponses
+from app.common.schemas.users_sch import UserProfileSchema
 from app.tutors.dependencies.invitations_dep import InvitationByCode
 from app.tutors.models.tutorships_db import Tutorship
 
 router = APIRouterExt(tags=["student invitations"])
 
 
+class TutorPreviewSchema(UserProfileSchema):
+    user_id: int
+
+
 class InvitationPreviewSchema(CompositeMarshalModel):
-    tutor_id: int
+    tutor: TutorPreviewSchema
 
 
 @router.get(
@@ -27,7 +33,17 @@ async def preview_invitation(
     if invitation.tutor_id == auth_data.user_id:
         raise SelfReferenceResponses.TARGET_IS_THE_SOURCE
 
-    return InvitationPreviewSchema(tutor_id=invitation.tutor_id)
+    tutor_profile = await users_internal_bridge.retrieve_user(
+        user_id=invitation.tutor_id
+    )
+
+    return InvitationPreviewSchema(
+        tutor=TutorPreviewSchema(
+            user_id=invitation.tutor_id,
+            username=tutor_profile.username,
+            display_name=tutor_profile.display_name,
+        )
+    )
 
 
 @router.post(
