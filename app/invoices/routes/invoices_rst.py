@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.fastapi_ext import APIRouterExt
+from app.common.responses import SelfReferenceResponses
 from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
 from app.invoices.models.recipient_invoices_db import PaymentStatus, RecipientInvoice
@@ -18,15 +19,11 @@ class InvoiceFormSchema(BaseModel):
     recipient_user_ids: Annotated[list[int], Field(min_length=1, max_length=20)]
 
 
-class InvoiceFormResponses(Responses):
-    TARGET_IS_THE_SOURCE = status.HTTP_409_CONFLICT, "Target is the source"
-
-
 @router.post(
     path="/invoices/",
     status_code=status.HTTP_201_CREATED,
     response_model=Invoice.IDSchema,
-    responses=InvoiceFormResponses.responses(),
+    responses=SelfReferenceResponses.responses(),
     summary="Create a new invoice",
 )
 async def create_invoice(
@@ -34,7 +31,7 @@ async def create_invoice(
     auth_data: AuthorizationData,
 ) -> Invoice:
     if auth_data.user_id in data.recipient_user_ids:
-        raise InvoiceFormResponses.TARGET_IS_THE_SOURCE
+        raise SelfReferenceResponses.TARGET_IS_THE_SOURCE
     # TODO check if creator is allowed to send invoices to recipients (51967762)
 
     total = sum(

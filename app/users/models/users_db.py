@@ -1,16 +1,18 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, ClassVar
+from typing import Annotated, ClassVar, Self
 
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
 from pydantic import AfterValidator, AwareDatetime, StringConstraints
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, DateTime, Enum, Index, String
+from sqlalchemy import CHAR, DateTime, Enum, Index, String, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
 from app.common.cyptography import TokenGenerator
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
 password_reset_token_generator = TokenGenerator(randomness=40, length=50)
@@ -110,6 +112,10 @@ class User(Base):
     FullPatchSchema = InputSchema.extend(
         columns=[(display_name, DisplayNameType), theme, onboarding_stage]
     ).as_patch()
+
+    @classmethod
+    async def find_all_by_ids(cls, user_ids: list[int]) -> Sequence[Self]:
+        return await db.get_all(select(cls).filter(cls.id.in_(user_ids)))
 
     def is_password_valid(self, password: str) -> bool:
         return pbkdf2_sha256.verify(password, self.password)

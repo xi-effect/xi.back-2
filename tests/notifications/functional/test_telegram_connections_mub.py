@@ -129,7 +129,7 @@ async def test_telegram_connection_updating(
             f"/mub/notification-service/users/{telegram_connection.user_id}/telegram-connection/",
             json=input_data,
         ),
-        expected_json={**input_data, **telegram_connection_data},
+        expected_json={**telegram_connection_data, **input_data},
     )
 
 

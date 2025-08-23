@@ -21,7 +21,8 @@ class Subject(Base):
     InputSchema = MappedModel.create(columns=[(name, NameType)])
     InputMUBSchema = InputSchema.extend(columns=[tutor_id])
     PatchMUBSchema = InputMUBSchema.as_patch()
-    ResponseSchema = InputMUBSchema.extend(columns=[id])
+    ResponseMUBSchema = InputMUBSchema.extend(columns=[id])
+    ResponseSchema = InputSchema.extend(columns=[id])
 
     __table_args__ = (
         Index("unique_index_subjects_tutor_id_name", "tutor_id", "name", unique=True),

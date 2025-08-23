@@ -68,7 +68,7 @@ async def test_subjects_by_tutor_listing(
             },
         ),
         expected_json=[
-            Subject.ResponseSchema.model_validate(subject, from_attributes=True)
+            Subject.ResponseMUBSchema.model_validate(subject, from_attributes=True)
             for subject in subjects
         ][offset:limit],
     )
@@ -101,7 +101,7 @@ async def test_common_subjects_listing(
             },
         ),
         expected_json=[
-            Subject.ResponseSchema.model_validate(subject, from_attributes=True)
+            Subject.ResponseMUBSchema.model_validate(subject, from_attributes=True)
             for subject in subjects
             if subject.tutor_id is None
         ][offset:limit],

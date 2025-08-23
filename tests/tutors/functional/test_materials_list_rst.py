@@ -78,7 +78,7 @@ async def test_materials_listing(
 ) -> None:
     assert_response(
         tutor_client.get(
-            "/api/protected/tutor-service/materials/",
+            "/api/protected/tutor-service/roles/tutor/materials/",
             params=remove_none_values(
                 {
                     "limit": limit,
@@ -119,7 +119,7 @@ async def test_materials_listing_any_kind(
 ) -> None:
     assert_response(
         tutor_client.get(
-            "/api/protected/tutor-service/materials/",
+            "/api/protected/tutor-service/roles/tutor/materials/",
             params=remove_none_values(
                 {
                     "limit": limit,

@@ -18,6 +18,7 @@ from app.users.routes import (
     reglog_rst,
     sessions_mub,
     sessions_rst,
+    users_int,
     users_mub,
     users_rst,
 )
@@ -42,6 +43,7 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/user-service",
 )
+internal_router.include_router(users_int.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
