@@ -7,7 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup
 
 from app.common.aiogram_ext import MessageExt, MessageFromUser
-from app.common.config_bdg import public_users_bridge
+from app.common.config_bdg import users_public_bridge
 from app.common.schemas.vacancy_form_sch import VacancyFormSchema
 from app.supbot import texts
 from app.supbot.dependencies.commands_tgm_dep import command_filter
@@ -142,7 +142,7 @@ async def submit_vacancy_form(message: MessageExt, state: FSMContext) -> None:
     if message.text != texts.SKIP_BUTTON_TEXT:
         answers["message"] = message.text
 
-    await public_users_bridge.apply_for_vacancy(
+    await users_public_bridge.apply_for_vacancy(
         vacancy_form=VacancyFormSchema(
             position=answers["position"],
             name=answers["name"],
