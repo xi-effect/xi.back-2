@@ -23,6 +23,13 @@ class ClassroomStatus(StrEnum):
     FINISHED = auto()
 
 
+UserClassroomStatus = Literal[
+    ClassroomStatus.ACTIVE,
+    ClassroomStatus.PAUSED,
+    ClassroomStatus.FINISHED,
+]
+
+
 class Classroom(Base):
     __tablename__ = "classrooms"
 
