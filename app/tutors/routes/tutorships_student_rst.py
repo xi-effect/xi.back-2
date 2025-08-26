@@ -40,7 +40,7 @@ async def list_students(
     return [
         StudentTutorSchema(
             tutorship=tutorship,
-            user=user_id_to_profile[str(tutorship.tutor_id)],
+            user=user_id_to_profile[tutorship.tutor_id],
         )
         for tutorship in tutorships
     ]

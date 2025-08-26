@@ -34,8 +34,8 @@ async def test_tutorships_listing(
     offset: int,
     limit: int,
 ) -> None:
-    user_profiles: dict[str, AnyJSON] = {
-        str(tutorship.tutor_id): UserProfileFactory.build_json()
+    user_profiles: dict[int, AnyJSON] = {
+        tutorship.tutor_id: UserProfileFactory.build_json()
         for tutorship in student_tutorships[offset:limit]
     }
     users_internal_bridge_mock = users_internal_respx_mock.get(
@@ -66,7 +66,7 @@ async def test_tutorships_listing(
                 "tutorship": Tutorship.StudentResponseSchema.model_validate(
                     tutorship, from_attributes=True
                 ),
-                "user": user_profiles[str(tutorship.tutor_id)],
+                "user": user_profiles[tutorship.tutor_id],
             }
             for tutorship in student_tutorships[offset:limit]
         ],

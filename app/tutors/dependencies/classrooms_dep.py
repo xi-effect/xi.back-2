@@ -30,10 +30,10 @@ ClassroomByID = Annotated[Classroom, Depends(get_classroom_by_id)]
 async def get_individual_classroom_by_id(
     classroom_id: Annotated[int, Path()],
 ) -> IndividualClassroom:
-    classroom = await IndividualClassroom.find_first_by_id(classroom_id)
-    if classroom is None:
+    individual_classroom = await IndividualClassroom.find_first_by_id(classroom_id)
+    if individual_classroom is None:
         raise ClassroomResponses.CLASSROOM_NOT_FOUND
-    return classroom
+    return individual_classroom
 
 
 IndividualClassroomByID = Annotated[
@@ -45,10 +45,10 @@ IndividualClassroomByID = Annotated[
 async def get_group_classroom_by_id(
     classroom_id: Annotated[int, Path()],
 ) -> GroupClassroom:
-    classroom = await GroupClassroom.find_first_by_id(classroom_id)
-    if classroom is None:
+    group_classroom = await GroupClassroom.find_first_by_id(classroom_id)
+    if group_classroom is None:
         raise ClassroomResponses.CLASSROOM_NOT_FOUND
-    return classroom
+    return group_classroom
 
 
 GroupClassroomByID = Annotated[GroupClassroom, Depends(get_group_classroom_by_id)]

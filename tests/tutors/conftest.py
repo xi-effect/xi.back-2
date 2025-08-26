@@ -14,7 +14,7 @@ from app.tutors.models.classrooms_db import (
     GroupClassroom,
     IndividualClassroom,
 )
-from app.tutors.models.invitations_db import Invitation
+from app.tutors.models.invitations_db import IndividualInvitation
 from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
 from app.tutors.models.tutorships_db import Tutorship
@@ -67,37 +67,43 @@ def outsider_client(
 
 
 @pytest.fixture()
-async def invitation(
+async def individual_invitation(
     active_session: ActiveSession,
     tutor_user_id: int,
-) -> Invitation:
+) -> IndividualInvitation:
     async with active_session():
-        return await Invitation.create(tutor_id=tutor_user_id)
+        return await IndividualInvitation.create(tutor_id=tutor_user_id)
 
 
 @pytest.fixture()
-async def invitation_data(invitation: Subject) -> AnyJSON:
-    return Invitation.ResponseSchema.model_validate(invitation).model_dump(mode="json")
+async def individual_invitation_data(individual_invitation: Subject) -> AnyJSON:
+    return IndividualInvitation.ResponseSchema.model_validate(
+        individual_invitation
+    ).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def deleted_invitation(
+async def deleted_individual_invitation(
     active_session: ActiveSession,
-    invitation: Invitation,
-) -> Invitation:
+    individual_invitation: IndividualInvitation,
+) -> IndividualInvitation:
     async with active_session():
-        await invitation.delete()
-    return invitation
+        await individual_invitation.delete()
+    return individual_invitation
 
 
 @pytest.fixture()
-async def deleted_invitation_id(deleted_invitation: Invitation) -> int:
-    return deleted_invitation.id
+async def deleted_individual_invitation_id(
+    deleted_individual_invitation: IndividualInvitation,
+) -> int:
+    return deleted_individual_invitation.id
 
 
 @pytest.fixture()
-async def deleted_invitation_code(deleted_invitation: Invitation) -> str:
-    return deleted_invitation.code
+async def deleted_individual_invitation_code(
+    deleted_individual_invitation: IndividualInvitation,
+) -> str:
+    return deleted_individual_invitation.code
 
 
 @pytest.fixture()

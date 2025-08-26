@@ -4,10 +4,11 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy import DateTime, Enum, String, Text, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
 
@@ -97,6 +98,17 @@ class IndividualClassroom(Classroom):
         bases=[Classroom.TutorIDSchema],
         columns=[(tutor_name, Classroom.NameType, "name")],
     )
+
+    @classmethod
+    async def find_classroom_id_by_users(
+        cls, tutor_id: int, student_id: int
+    ) -> int | None:
+        return await db.get_first(
+            select(cls.id).filter_by(
+                tutor_id=tutor_id,
+                student_id=student_id,
+            )
+        )
 
 
 class GroupClassroom(Classroom):

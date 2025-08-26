@@ -13,7 +13,7 @@ class UsersInternalBridge:
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_json_response(TypeAdapter(dict[str, UserProfileSchema]))
+    @validate_json_response(TypeAdapter(dict[int, UserProfileSchema]))
     async def retrieve_multiple_users(self, user_ids: list[int]) -> Response:
         return await self.client.get(
             "/users/",

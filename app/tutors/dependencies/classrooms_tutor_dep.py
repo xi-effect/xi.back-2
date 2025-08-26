@@ -41,9 +41,9 @@ MyTutorClassroomByID = Annotated[Classroom, Depends(get_my_tutor_classroom_by_id
 
 @with_responses(MyTutorClassroomResponses)
 async def get_my_tutor_individual_classroom_by_id(
-    auth_data: AuthorizationData, classroom: IndividualClassroomByID
+    auth_data: AuthorizationData, individual_classroom: IndividualClassroomByID
 ) -> IndividualClassroom:
-    return verify_tutor_classroom_access(auth_data, classroom)
+    return verify_tutor_classroom_access(auth_data, individual_classroom)
 
 
 MyTutorIndividualClassroomByID = Annotated[
@@ -53,9 +53,9 @@ MyTutorIndividualClassroomByID = Annotated[
 
 @with_responses(MyTutorClassroomResponses)
 async def get_my_tutor_group_classroom_by_id(
-    auth_data: AuthorizationData, classroom: GroupClassroomByID
+    auth_data: AuthorizationData, group_classroom: GroupClassroomByID
 ) -> GroupClassroom:
-    return verify_tutor_classroom_access(auth_data, classroom)
+    return verify_tutor_classroom_access(auth_data, group_classroom)
 
 
 MyTutorGroupClassroomByID = Annotated[

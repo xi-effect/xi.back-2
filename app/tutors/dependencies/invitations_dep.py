@@ -5,7 +5,7 @@ from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
-from app.tutors.models.invitations_db import Invitation
+from app.tutors.models.invitations_db import IndividualInvitation, Invitation
 
 
 class InvitationResponses(Responses):
@@ -13,25 +13,30 @@ class InvitationResponses(Responses):
 
 
 @with_responses(InvitationResponses)
-async def get_invitation_by_id(invitation_id: Annotated[int, Path()]) -> Invitation:
-    invitation = await Invitation.find_first_by_id(invitation_id)
+async def get_invitation_by_code(code: Annotated[str, Path()]) -> IndividualInvitation:
+    # TODO group invitations
+    invitation = await IndividualInvitation.find_first_by_kwargs(code=code)
     if invitation is None:
         raise InvitationResponses.INVITATION_NOT_FOUND
     return invitation
 
 
-InvitationByID = Annotated[Invitation, Depends(get_invitation_by_id)]
+InvitationByCode = Annotated[IndividualInvitation, Depends(get_invitation_by_code)]
 
 
 @with_responses(InvitationResponses)
-async def get_invitation_by_code(code: Annotated[str, Path()]) -> Invitation:
-    invitation = await Invitation.find_first_by_kwargs(code=code)
-    if invitation is None:
+async def get_individual_invitation_by_id(
+    invitation_id: Annotated[int, Path()],
+) -> IndividualInvitation:
+    individual_invitation = await IndividualInvitation.find_first_by_id(invitation_id)
+    if individual_invitation is None:
         raise InvitationResponses.INVITATION_NOT_FOUND
-    return invitation
+    return individual_invitation
 
 
-InvitationByCode = Annotated[Invitation, Depends(get_invitation_by_code)]
+IndividualInvitationByID = Annotated[
+    IndividualInvitation, Depends(get_individual_invitation_by_id)
+]
 
 
 class MyInvitationResponses(Responses):
@@ -39,12 +44,14 @@ class MyInvitationResponses(Responses):
 
 
 @with_responses(MyInvitationResponses)
-async def get_my_invitation_by_id(
-    invitation: InvitationByID, auth_data: AuthorizationData
-) -> Invitation:
-    if invitation.tutor_id != auth_data.user_id:
+async def get_my_individual_invitation_by_id(
+    individual_invitation: IndividualInvitationByID, auth_data: AuthorizationData
+) -> IndividualInvitation:
+    if individual_invitation.tutor_id != auth_data.user_id:
         raise MyInvitationResponses.INVITATION_ACCESS_DENIED
-    return invitation
+    return individual_invitation
 
 
-MyInvitationByID = Annotated[Invitation, Depends(get_my_invitation_by_id)]
+MyIndividualInvitationByID = Annotated[
+    Invitation, Depends(get_my_individual_invitation_by_id)
+]
