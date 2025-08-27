@@ -8,6 +8,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.tutors.routes import (
     classrooms_tutor_rst,
+    enrollments_tutor_rst,
     invitations_student_rst,
     invitations_tutor_rst,
     materials_tutor_rst,
@@ -29,6 +30,7 @@ authorized_router.include_router(materials_tutor_rst.router)
 authorized_router.include_router(tutorships_tutor_rst.router)
 authorized_router.include_router(tutorships_student_rst.router)
 authorized_router.include_router(classrooms_tutor_rst.router)
+authorized_router.include_router(enrollments_tutor_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

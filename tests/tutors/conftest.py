@@ -14,6 +14,7 @@ from app.tutors.models.classrooms_db import (
     GroupClassroom,
     IndividualClassroom,
 )
+from app.tutors.models.enrollments_db import Enrollment
 from app.tutors.models.invitations_db import GroupInvitation, IndividualInvitation
 from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
@@ -339,3 +340,16 @@ async def any_classroom_tutor_data(
             return group_classroom_tutor_data
         case _:
             assert_never(parametrized_classroom_kind)
+
+
+@pytest.fixture()
+async def enrollment(
+    active_session: ActiveSession,
+    group_classroom: GroupClassroom,
+    tutorship: Tutorship,
+) -> Enrollment:
+    async with active_session():
+        return await Enrollment.create(
+            group_classroom_id=group_classroom.id,
+            student_id=tutorship.student_id,
+        )
