@@ -1,16 +1,16 @@
 from datetime import datetime
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, DateTime, Enum, select
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import CHAR, DateTime, Enum, ForeignKey, select
+from sqlalchemy.orm import Mapped, mapped_column, raiseload, relationship
 from sqlalchemy.sql.functions import count
 
 from app.common.config import Base
 from app.common.cyptography import TokenGenerator
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
-from app.tutors.models.classrooms_db import ClassroomKind
+from app.tutors.models.classrooms_db import ClassroomKind, GroupClassroom
 
 invitation_token_generator = TokenGenerator(randomness=8, length=10)
 
@@ -55,3 +55,29 @@ class IndividualInvitation(Invitation):
     async def count_by_tutor_id(cls, tutor_id: int) -> int:
         stmt = select(count(cls.id)).filter(cls.tutor_id == tutor_id)
         return await db.get_count(stmt)
+
+
+class GroupInvitation(Invitation):
+    __tablename__ = None  # type: ignore[assignment]  # sqlalchemy magic
+    __mapper_args__ = {
+        "polymorphic_identity": ClassroomKind.GROUP,
+        "polymorphic_load": "inline",
+    }
+
+    group_classroom_id: Mapped[int] = mapped_column(
+        ForeignKey(GroupClassroom.id, ondelete="CASCADE"),
+        index=True,
+        unique=True,
+        nullable=True,
+    )
+    group_classroom: Mapped[GroupClassroom] = relationship(lazy="joined")
+
+    @classmethod
+    async def find_first_by_group_classroom_id(
+        cls, group_classroom_id: int
+    ) -> Self | None:
+        return await db.get_first(
+            select(cls)
+            .options(raiseload(cls.group_classroom))
+            .filter_by(group_classroom_id=group_classroom_id)
+        )

@@ -1,12 +1,14 @@
 from collections.abc import Sequence
 
+from fastapi import Response
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.responses import LimitedListResponses
+from app.tutors.dependencies.classrooms_tutor_dep import MyTutorGroupClassroomByID
 from app.tutors.dependencies.invitations_dep import MyIndividualInvitationByID
-from app.tutors.models.invitations_db import IndividualInvitation
+from app.tutors.models.invitations_db import GroupInvitation, IndividualInvitation
 
 router = APIRouterExt(tags=["tutor invitations"])
 
@@ -41,6 +43,24 @@ async def create_individual_invitation(
     ):
         raise LimitedListResponses.QUANTITY_EXCEEDED
     return await IndividualInvitation.create(tutor_id=auth_data.user_id)
+
+
+@router.post(
+    "/roles/tutor/group-classrooms/{classroom_id}/invitation/",
+    response_model=GroupInvitation.ResponseSchema,
+    summary="Create or retrieve a group tutor invitation for a group classroom by id",
+)
+async def create_or_retrieve_group_invitation(
+    group_classroom: MyTutorGroupClassroomByID,
+    response: Response,
+) -> GroupInvitation:
+    group_invitation = await GroupInvitation.find_first_by_group_classroom_id(
+        group_classroom_id=group_classroom.id,
+    )
+    if group_invitation is None:
+        response.status_code = status.HTTP_201_CREATED
+        return await GroupInvitation.create(group_classroom=group_classroom)
+    return group_invitation
 
 
 @router.delete(

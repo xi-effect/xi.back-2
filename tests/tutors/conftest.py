@@ -14,7 +14,7 @@ from app.tutors.models.classrooms_db import (
     GroupClassroom,
     IndividualClassroom,
 )
-from app.tutors.models.invitations_db import IndividualInvitation
+from app.tutors.models.invitations_db import GroupInvitation, IndividualInvitation
 from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
 from app.tutors.models.tutorships_db import Tutorship
@@ -76,7 +76,9 @@ async def individual_invitation(
 
 
 @pytest.fixture()
-async def individual_invitation_data(individual_invitation: Subject) -> AnyJSON:
+async def individual_invitation_data(
+    individual_invitation: IndividualInvitation,
+) -> AnyJSON:
     return IndividualInvitation.ResponseSchema.model_validate(
         individual_invitation
     ).model_dump(mode="json")
@@ -104,6 +106,22 @@ async def deleted_individual_invitation_code(
     deleted_individual_invitation: IndividualInvitation,
 ) -> str:
     return deleted_individual_invitation.code
+
+
+@pytest.fixture()
+async def group_invitation(
+    active_session: ActiveSession,
+    group_classroom: GroupClassroom,
+) -> GroupInvitation:
+    async with active_session():
+        return await GroupInvitation.create(group_classroom=group_classroom)
+
+
+@pytest.fixture()
+async def group_invitation_data(group_invitation: GroupInvitation) -> AnyJSON:
+    return GroupInvitation.ResponseSchema.model_validate(group_invitation).model_dump(
+        mode="json"
+    )
 
 
 @pytest.fixture()
@@ -275,6 +293,15 @@ async def group_classroom_tutor_data(group_classroom: GroupClassroom) -> AnyJSON
     return GroupClassroom.TutorResponseSchema.model_validate(
         group_classroom
     ).model_dump(mode="json", by_alias=True)
+
+
+@pytest.fixture()
+async def deleted_group_classroom_id(
+    active_session: ActiveSession, group_classroom: GroupClassroom
+) -> int:
+    async with active_session():
+        await group_classroom.delete()
+    return group_classroom.id
 
 
 @pytest.fixture(params=[ClassroomKind.INDIVIDUAL, ClassroomKind.GROUP])

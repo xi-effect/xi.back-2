@@ -5,7 +5,8 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
-from app.tutors.models.invitations_db import IndividualInvitation
+from app.tutors.models.classrooms_db import GroupClassroom
+from app.tutors.models.invitations_db import GroupInvitation, IndividualInvitation
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
@@ -53,8 +54,8 @@ async def test_individual_invitation_creation(
         assert_contains(
             individual_invitation,
             {
-                "tutor_id": tutor_user_id,
                 "code": real_invitation_data["code"],
+                "tutor_id": tutor_user_id,
             },
         )
         await individual_invitation.delete()
@@ -73,6 +74,69 @@ async def test_invitation_creation_quantity_exceeded(
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Quantity exceeded"},
+    )
+
+
+@freeze_time()
+async def test_group_invitation_creating_or_retrieving_new_invitation(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+) -> None:
+    real_invitation_data: AnyJSON = assert_response(
+        tutor_client.post(
+            "/api/protected/tutor-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            "id": int,
+            "code": str,
+            "created_at": datetime_utc_now(),
+            "usage_count": 0,
+        },
+    ).json()
+
+    async with active_session():
+        group_invitation = await GroupInvitation.find_first_by_id(
+            real_invitation_data["id"]
+        )
+        assert group_invitation is not None
+        assert_contains(
+            group_invitation,
+            {
+                "code": real_invitation_data["code"],
+                "group_classroom_id": group_classroom.id,
+            },
+        )
+        await group_invitation.delete()
+
+
+async def test_group_invitation_creating_or_retrieving_invitation_exists(
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+    group_invitation_data: AnyJSON,
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/tutor-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_json=group_invitation_data,
+    )
+
+
+async def test_group_invitation_creating_or_retrieving_classroom_not_found(
+    tutor_client: TestClient,
+    deleted_group_classroom_id: int,
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/tutor-service/roles/tutor"
+            f"/group-classrooms/{deleted_group_classroom_id}/invitation/"
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Classroom not found"},
     )
 
 
