@@ -14,6 +14,25 @@ from tests.invoices.factories import RecipientInvoicePatchFactory
 pytestmark = pytest.mark.anyio
 
 
+async def test_tutor_recipient_invoice_retrieving(
+    tutor_client: TestClient,
+    student_id: int,
+    recipient_invoice: RecipientInvoice,
+    invoice_comment_data: AnyJSON,
+    invoice_item_data: AnyJSON,
+) -> None:
+    assert_response(
+        tutor_client.get(
+            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/"
+        ),
+        expected_json={
+            "invoice": invoice_comment_data,
+            "items": [invoice_item_data],
+            "student_id": student_id,
+        },
+    )
+
+
 async def test_recipient_invoice_updating(
     tutor_client: TestClient,
     recipient_invoice: RecipientInvoice,
@@ -46,6 +65,7 @@ async def test_recipient_invoice_deleting(
 
 
 recipient_invoice_requests_params = [
+    pytest.param("GET", None, id="retrieve"),
     pytest.param("PATCH", RecipientInvoicePatchFactory, id="update"),
     pytest.param("DELETE", None, id="delete"),
 ]
