@@ -48,3 +48,25 @@ async def get_my_tutor_recipient_invoice_by_id(
 TutorRecipientInvoiceByID = Annotated[
     RecipientInvoice, Depends(get_my_tutor_recipient_invoice_by_id)
 ]
+
+
+class MyStudentRecipientInvoiceResponses(Responses):
+    STUDENT_ACCESS_DENIED = (
+        status.HTTP_403_FORBIDDEN,
+        "Recipient invoice student access denied",
+    )
+
+
+@with_responses(MyStudentRecipientInvoiceResponses)
+async def get_my_student_recipient_invoice_by_id(
+    auth_data: AuthorizationData,
+    recipient_invoice: RecipientInvoiceByID,
+) -> RecipientInvoice:
+    if recipient_invoice.student_id != auth_data.user_id:
+        raise MyStudentRecipientInvoiceResponses.STUDENT_ACCESS_DENIED
+    return recipient_invoice
+
+
+StudentRecipientInvoiceByID = Annotated[
+    RecipientInvoice, Depends(get_my_student_recipient_invoice_by_id)
+]

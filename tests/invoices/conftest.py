@@ -7,6 +7,7 @@ from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.invoices.models.invoice_item_templates_db import InvoiceItemTemplate
+from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
 from app.invoices.models.recipient_invoices_db import PaymentStatus, RecipientInvoice
 from tests.common.active_session import ActiveSession
@@ -93,6 +94,14 @@ async def deleted_invoice_item_template_id(
 
 
 @pytest.fixture()
+async def invoice(active_session: ActiveSession, tutor_id: int) -> Invoice:
+    async with active_session():
+        return await Invoice.create(
+            **factories.InvoiceInputFactory.build_python(), tutor_id=tutor_id
+        )
+
+
+@pytest.fixture()
 async def invoice_data(invoice: Invoice) -> AnyJSON:
     return Invoice.ResponseSchema.model_validate(
         invoice, from_attributes=True
@@ -107,16 +116,32 @@ async def deleted_invoice_id(active_session: ActiveSession, invoice: Invoice) ->
 
 
 @pytest.fixture()
-def total(faker: Faker) -> Decimal:
-    return faker.pydecimal(right_digits=2, positive=True)
+def invoice_comment_data(invoice: Invoice) -> AnyJSON:
+    return Invoice.InputSchema.model_validate(invoice, from_attributes=True).model_dump(
+        mode="json"
+    )
 
 
 @pytest.fixture()
-async def invoice(active_session: ActiveSession, tutor_id: int) -> Invoice:
+async def invoice_item(active_session: ActiveSession, invoice: Invoice) -> InvoiceItem:
     async with active_session():
-        return await Invoice.create(
-            **factories.InvoiceInputFactory.build_python(), tutor_id=tutor_id
+        return await InvoiceItem.create(
+            **factories.InvoiceItemInputFactory.build_python(),
+            position=1,
+            invoice_id=invoice.id,
         )
+
+
+@pytest.fixture()
+def invoice_item_data(invoice_item: InvoiceItem) -> AnyJSON:
+    return InvoiceItem.ResponseSchema.model_validate(
+        invoice_item, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+def total(faker: Faker) -> Decimal:
+    return faker.pydecimal(right_digits=2, positive=True)
 
 
 TUTOR_INVOICE_LIST_SIZE = 5

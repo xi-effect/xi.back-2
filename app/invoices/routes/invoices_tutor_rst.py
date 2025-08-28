@@ -10,6 +10,7 @@ from app.invoices.dependencies.recipient_invoices_dep import TutorRecipientInvoi
 from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
 from app.invoices.models.recipient_invoices_db import (
+    DetailedTutorInvoiceSchema,
     PaymentStatus,
     RecipientInvoice,
     TutorInvoiceSearchRequestSchema,
@@ -84,6 +85,23 @@ async def create_invoice(
         # TODO send notification to each recipient (worker task)
 
     return invoice
+
+
+@router.get(
+    path="/roles/tutor/recipient-invoices/{recipient_invoice_id}/",
+    response_model=DetailedTutorInvoiceSchema,
+    summary="Retrieve tutor recipient invoice by id",
+)
+async def retrieve_tutor_recipient_invoice(
+    recipient_invoice: TutorRecipientInvoiceByID,
+) -> DetailedTutorInvoiceSchema:
+    return DetailedTutorInvoiceSchema(
+        invoice=recipient_invoice.invoice,
+        items=await InvoiceItem.find_all_by_kwargs(
+            InvoiceItem.position, invoice_id=recipient_invoice.invoice_id
+        ),
+        student_id=recipient_invoice.student_id,
+    )
 
 
 @router.patch(
