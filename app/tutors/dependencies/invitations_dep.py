@@ -5,7 +5,12 @@ from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
-from app.tutors.models.invitations_db import IndividualInvitation, Invitation
+from app.common.responses import SelfReferenceResponses
+from app.tutors.models.invitations_db import (
+    AnyInvitation,
+    IndividualInvitation,
+    Invitation,
+)
 
 
 class InvitationResponses(Responses):
@@ -13,15 +18,30 @@ class InvitationResponses(Responses):
 
 
 @with_responses(InvitationResponses)
-async def get_invitation_by_code(code: Annotated[str, Path()]) -> IndividualInvitation:
-    # TODO group invitations
-    invitation = await IndividualInvitation.find_first_by_kwargs(code=code)
+async def get_invitation_by_code(code: Annotated[str, Path()]) -> AnyInvitation:
+    invitation = await Invitation.find_first_by_kwargs(code=code)
     if invitation is None:
         raise InvitationResponses.INVITATION_NOT_FOUND
+    if not isinstance(invitation, AnyInvitation):  # pragma: no cover
+        raise TypeError("SQLAlchemy returned an unknown type of Invitation")
     return invitation
 
 
-InvitationByCode = Annotated[IndividualInvitation, Depends(get_invitation_by_code)]
+InvitationByCode = Annotated[AnyInvitation, Depends(get_invitation_by_code)]
+
+
+@with_responses(SelfReferenceResponses)
+async def get_foreign_invitation_by_code(
+    invitation: InvitationByCode, auth_data: AuthorizationData
+) -> AnyInvitation:
+    if invitation.tutor_id == auth_data.user_id:
+        raise SelfReferenceResponses.TARGET_IS_THE_SOURCE
+    return invitation
+
+
+ForeignInvitationByCode = Annotated[
+    AnyInvitation, Depends(get_foreign_invitation_by_code)
+]
 
 
 @with_responses(InvitationResponses)

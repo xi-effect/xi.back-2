@@ -37,6 +37,15 @@ class Tutorship(Base):
     StudentResponseSchema = ResponseSchema.extend(columns=[tutor_id])
 
     @classmethod
+    async def find_or_create(cls, tutor_id: int, student_id: int) -> Self:
+        tutorship = await cls.find_first_by_kwargs(
+            tutor_id=tutor_id, student_id=student_id
+        )
+        if tutorship is None:
+            return await cls.create(tutor_id=tutor_id, student_id=student_id)
+        return tutorship
+
+    @classmethod
     async def find_paginated_by_tutor_id(
         cls,
         tutor_id: int,

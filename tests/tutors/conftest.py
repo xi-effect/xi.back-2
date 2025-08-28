@@ -15,7 +15,11 @@ from app.tutors.models.classrooms_db import (
     IndividualClassroom,
 )
 from app.tutors.models.enrollments_db import Enrollment
-from app.tutors.models.invitations_db import GroupInvitation, IndividualInvitation
+from app.tutors.models.invitations_db import (
+    GroupInvitation,
+    IndividualInvitation,
+    Invitation,
+)
 from app.tutors.models.materials_db import Material
 from app.tutors.models.subjects_db import Subject
 from app.tutors.models.tutorships_db import Tutorship
@@ -65,64 +69,6 @@ def outsider_client(
     client: TestClient, outsider_auth_data: ProxyAuthData
 ) -> TestClient:
     return TestClient(client.app, headers=outsider_auth_data.as_headers)
-
-
-@pytest.fixture()
-async def individual_invitation(
-    active_session: ActiveSession,
-    tutor_user_id: int,
-) -> IndividualInvitation:
-    async with active_session():
-        return await IndividualInvitation.create(tutor_id=tutor_user_id)
-
-
-@pytest.fixture()
-async def individual_invitation_data(
-    individual_invitation: IndividualInvitation,
-) -> AnyJSON:
-    return IndividualInvitation.ResponseSchema.model_validate(
-        individual_invitation
-    ).model_dump(mode="json")
-
-
-@pytest.fixture()
-async def deleted_individual_invitation(
-    active_session: ActiveSession,
-    individual_invitation: IndividualInvitation,
-) -> IndividualInvitation:
-    async with active_session():
-        await individual_invitation.delete()
-    return individual_invitation
-
-
-@pytest.fixture()
-async def deleted_individual_invitation_id(
-    deleted_individual_invitation: IndividualInvitation,
-) -> int:
-    return deleted_individual_invitation.id
-
-
-@pytest.fixture()
-async def deleted_individual_invitation_code(
-    deleted_individual_invitation: IndividualInvitation,
-) -> str:
-    return deleted_individual_invitation.code
-
-
-@pytest.fixture()
-async def group_invitation(
-    active_session: ActiveSession,
-    group_classroom: GroupClassroom,
-) -> GroupInvitation:
-    async with active_session():
-        return await GroupInvitation.create(group_classroom=group_classroom)
-
-
-@pytest.fixture()
-async def group_invitation_data(group_invitation: GroupInvitation) -> AnyJSON:
-    return GroupInvitation.ResponseSchema.model_validate(group_invitation).model_dump(
-        mode="json"
-    )
 
 
 @pytest.fixture()
@@ -297,6 +243,22 @@ async def group_classroom_tutor_data(group_classroom: GroupClassroom) -> AnyJSON
 
 
 @pytest.fixture()
+async def group_classroom_student_preview_data(
+    group_classroom: GroupClassroom,
+) -> AnyJSON:
+    return GroupClassroom.StudentPreviewSchema.model_validate(
+        group_classroom
+    ).model_dump(mode="json", by_alias=True)
+
+
+@pytest.fixture()
+async def group_classroom_student_data(group_classroom: GroupClassroom) -> AnyJSON:
+    return GroupClassroom.StudentResponseSchema.model_validate(
+        group_classroom
+    ).model_dump(mode="json", by_alias=True)
+
+
+@pytest.fixture()
 async def deleted_group_classroom_id(
     active_session: ActiveSession, group_classroom: GroupClassroom
 ) -> int:
@@ -353,3 +315,75 @@ async def enrollment(
             group_classroom_id=group_classroom.id,
             student_id=tutorship.student_id,
         )
+
+
+@pytest.fixture()
+async def invalid_invitation_code(faker: Faker) -> str:
+    return faker.pystr(min_chars=10, max_chars=10)
+
+
+@pytest.fixture()
+async def individual_invitation(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+) -> IndividualInvitation:
+    async with active_session():
+        return await IndividualInvitation.create(tutor_id=tutor_user_id)
+
+
+@pytest.fixture()
+async def individual_invitation_data(
+    individual_invitation: IndividualInvitation,
+) -> AnyJSON:
+    return IndividualInvitation.ResponseSchema.model_validate(
+        individual_invitation
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_individual_invitation(
+    active_session: ActiveSession,
+    individual_invitation: IndividualInvitation,
+) -> IndividualInvitation:
+    async with active_session():
+        await individual_invitation.delete()
+    return individual_invitation
+
+
+@pytest.fixture()
+async def deleted_individual_invitation_id(
+    deleted_individual_invitation: IndividualInvitation,
+) -> int:
+    return deleted_individual_invitation.id
+
+
+@pytest.fixture()
+async def group_invitation(
+    active_session: ActiveSession,
+    group_classroom: GroupClassroom,
+) -> GroupInvitation:
+    async with active_session():
+        return await GroupInvitation.create(group_classroom=group_classroom)
+
+
+@pytest.fixture()
+async def group_invitation_data(group_invitation: GroupInvitation) -> AnyJSON:
+    return GroupInvitation.ResponseSchema.model_validate(group_invitation).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def any_invitation(
+    active_session: ActiveSession,
+    parametrized_classroom_kind: ClassroomKind,
+    individual_invitation: IndividualInvitation,
+    group_invitation: GroupInvitation,
+) -> Invitation:
+    match parametrized_classroom_kind:
+        case ClassroomKind.INDIVIDUAL:
+            return individual_invitation
+        case ClassroomKind.GROUP:
+            return group_invitation
+        case _:
+            assert_never(parametrized_classroom_kind)

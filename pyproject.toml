@@ -120,7 +120,7 @@ skip_covered = true
 
 fail_under = 100
 
-exclude_lines = [
+exclude_also = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
   "if( not)? settings.production_mode",
@@ -128,6 +128,9 @@ exclude_lines = [
   "except ImportError",
   "raise AssertionError",
   "raise NotImplementedError",
+  "assert_never",
+  "else:\n *?assert_never",
+  "case _:\n *?assert_never",
   "if __name__ == [\"']__main__[\"']:",
   "class .*\\(Protocol\\):",
   "@abstractmethod",

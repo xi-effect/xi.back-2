@@ -1,6 +1,7 @@
 import pytest
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
+from pytest_lazy_fixtures import lf
 from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
@@ -13,7 +14,12 @@ from app.tutors.models.classrooms_db import (
     ClassroomStatus,
     IndividualClassroom,
 )
-from app.tutors.models.invitations_db import IndividualInvitation
+from app.tutors.models.enrollments_db import Enrollment
+from app.tutors.models.invitations_db import (
+    GroupInvitation,
+    IndividualInvitation,
+    Invitation,
+)
 from app.tutors.models.tutorships_db import Tutorship
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
@@ -26,13 +32,13 @@ pytestmark = pytest.mark.anyio
 
 async def test_individual_invitation_previewing(
     users_internal_respx_mock: MockRouter,
-    student_client: TestClient,
     tutor_user_id: int,
+    student_client: TestClient,
     individual_invitation: IndividualInvitation,
 ) -> None:
     tutor_profile_data: AnyJSON = UserProfileFactory.build_json()
     users_internal_bridge_mock = users_internal_respx_mock.get(
-        path=f"/users/{individual_invitation.tutor_id}/"
+        path=f"/users/{tutor_user_id}/"
     ).respond(json=tutor_profile_data)
 
     assert_response(
@@ -57,14 +63,14 @@ async def test_individual_invitation_previewing(
 
 async def test_individual_invitation_previewing_has_already_joined(
     users_internal_respx_mock: MockRouter,
-    student_client: TestClient,
     tutor_user_id: int,
-    individual_invitation: IndividualInvitation,
+    student_client: TestClient,
     individual_classroom: IndividualClassroom,
+    individual_invitation: IndividualInvitation,
 ) -> None:
     tutor_profile_data: AnyJSON = UserProfileFactory.build_json()
     users_internal_bridge_mock = users_internal_respx_mock.get(
-        path=f"/users/{individual_invitation.tutor_id}/"
+        path=f"/users/{tutor_user_id}/"
     ).respond(json=tutor_profile_data)
 
     assert_response(
@@ -87,14 +93,22 @@ async def test_individual_invitation_previewing_has_already_joined(
     )
 
 
+@pytest.mark.parametrize(
+    "existing_tutorship",
+    [
+        pytest.param(None, id="new_tutorship"),
+        pytest.param(lf("tutorship"), id="old_tutorship"),
+    ],
+)
 @freeze_time()
 async def test_individual_invitation_accepting(
     active_session: ActiveSession,
     users_internal_respx_mock: MockRouter,
-    student_client: TestClient,
     tutor_user_id: int,
     student_user_id: int,
+    student_client: TestClient,
     individual_invitation: IndividualInvitation,
+    existing_tutorship: Tutorship | None,
 ) -> None:
     user_profiles: dict[int, UserProfileSchema] = {
         tutor_user_id: UserProfileFactory.build(),
@@ -144,7 +158,11 @@ async def test_individual_invitation_accepting(
         assert_contains(
             tutorship,
             {
-                "created_at": datetime_utc_now(),
+                "created_at": (
+                    datetime_utc_now()
+                    if existing_tutorship is None
+                    else existing_tutorship.created_at
+                ),
                 "active_classroom_count": 0,
             },
         )
@@ -162,13 +180,153 @@ async def test_individual_invitation_accepting(
 
 async def test_individual_invitation_accepting_has_already_joined(
     student_client: TestClient,
-    individual_invitation: IndividualInvitation,
     individual_classroom: IndividualClassroom,
+    individual_invitation: IndividualInvitation,
 ) -> None:
     assert_response(
         student_client.post(
             f"/api/protected/tutor-service/roles/student"
             f"/invitations/{individual_invitation.code}/usages/",
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Already joined"},
+    )
+
+
+async def test_group_invitation_previewing(
+    users_internal_respx_mock: MockRouter,
+    tutor_user_id: int,
+    student_client: TestClient,
+    group_classroom_student_preview_data: AnyJSON,
+    group_invitation: GroupInvitation,
+) -> None:
+    tutor_profile_data: AnyJSON = UserProfileFactory.build_json()
+    users_internal_bridge_mock = users_internal_respx_mock.get(
+        path=f"/users/{tutor_user_id}/"
+    ).respond(json=tutor_profile_data)
+
+    assert_response(
+        student_client.get(
+            f"/api/protected/tutor-service/roles/student"
+            f"/invitations/{group_invitation.code}/preview/",
+        ),
+        expected_json={
+            "tutor": {
+                **tutor_profile_data,
+                "user_id": tutor_user_id,
+            },
+            "classroom": group_classroom_student_preview_data,
+            "has_already_joined": False,
+        },
+    )
+
+    assert_last_httpx_request(
+        users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+
+async def test_group_invitation_previewing_has_already_joined(
+    users_internal_respx_mock: MockRouter,
+    tutor_user_id: int,
+    student_client: TestClient,
+    group_classroom_student_preview_data: AnyJSON,
+    enrollment: Enrollment,
+    group_invitation: GroupInvitation,
+) -> None:
+    tutor_profile_data: AnyJSON = UserProfileFactory.build_json()
+    users_internal_bridge_mock = users_internal_respx_mock.get(
+        path=f"/users/{tutor_user_id}/"
+    ).respond(json=tutor_profile_data)
+
+    assert_response(
+        student_client.get(
+            f"/api/protected/tutor-service/roles/student"
+            f"/invitations/{group_invitation.code}/preview/",
+        ),
+        expected_json={
+            "tutor": {
+                **tutor_profile_data,
+                "user_id": tutor_user_id,
+            },
+            "classroom": group_classroom_student_preview_data,
+            "has_already_joined": True,
+        },
+    )
+
+    assert_last_httpx_request(
+        users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+
+@pytest.mark.parametrize(
+    "existing_tutorship",
+    [
+        pytest.param(None, id="new_tutorship"),
+        pytest.param(lf("tutorship"), id="old_tutorship"),
+    ],
+)
+@freeze_time()
+async def test_group_invitation_accepting(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    student_user_id: int,
+    student_client: TestClient,
+    group_classroom_student_data: AnyJSON,
+    group_invitation: GroupInvitation,
+    existing_tutorship: Tutorship | None,
+) -> None:
+    initial_invitation_usage_count = group_invitation.usage_count
+
+    assert_response(
+        student_client.post(
+            f"/api/protected/tutor-service/roles/student"
+            f"/invitations/{group_invitation.code}/usages/",
+        ),
+        expected_json=group_classroom_student_data,
+    )
+
+    async with active_session() as session:
+        session.add(group_invitation)
+        await session.refresh(group_invitation)
+        assert group_invitation.usage_count == initial_invitation_usage_count + 1
+
+        tutorship = await Tutorship.find_first_by_kwargs(
+            tutor_id=tutor_user_id,
+            student_id=student_user_id,
+        )
+        assert tutorship is not None
+        assert_contains(
+            tutorship,
+            {
+                "created_at": (
+                    datetime_utc_now()
+                    if existing_tutorship is None
+                    else existing_tutorship.created_at
+                ),
+                "active_classroom_count": 0,
+            },
+        )
+        await tutorship.delete()
+
+        enrollment = await Enrollment.find_first_by_kwargs(
+            group_classroom_id=group_invitation.group_classroom_id,
+            student_id=student_user_id,
+        )
+        assert enrollment is not None
+        await enrollment.delete()
+
+
+async def test_group_invitation_accepting_has_already_joined(
+    student_client: TestClient,
+    group_invitation: IndividualInvitation,
+    enrollment: Enrollment,
+) -> None:
+    assert_response(
+        student_client.post(
+            f"/api/protected/tutor-service/roles/student"
+            f"/invitations/{group_invitation.code}/usages/",
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Already joined"},
@@ -187,7 +345,7 @@ invitation_request_parametrization = pytest.mark.parametrize(
 @invitation_request_parametrization
 async def test_invitation_requesting_target_is_the_source(
     tutor_client: TestClient,
-    individual_invitation: IndividualInvitation,  # TODO nq any_invitation
+    any_invitation: Invitation,
     method: str,
     path: str,
 ) -> None:
@@ -196,7 +354,7 @@ async def test_invitation_requesting_target_is_the_source(
             method=method,
             url=(
                 f"/api/protected/tutor-service/roles/student"
-                f"/invitations/{individual_invitation.code}/{path}"
+                f"/invitations/{any_invitation.code}/{path}"
             ),
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -207,7 +365,7 @@ async def test_invitation_requesting_target_is_the_source(
 @invitation_request_parametrization
 async def test_invitation_not_finding(
     student_client: TestClient,
-    deleted_individual_invitation_code: str,  # TODO nq any_invitation
+    invalid_invitation_code: str,
     method: str,
     path: str,
 ) -> None:
@@ -216,7 +374,7 @@ async def test_invitation_not_finding(
             method=method,
             url=(
                 f"/api/protected/tutor-service/roles/student/invitations"
-                f"/{deleted_individual_invitation_code}/{path}"
+                f"/{invalid_invitation_code}/{path}"
             ),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,

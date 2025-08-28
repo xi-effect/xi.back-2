@@ -131,6 +131,7 @@ class GroupClassroom(Classroom):
         extra_fields={"kind": (Literal[ClassroomKind.GROUP], ClassroomKind.GROUP)},
     )
     TutorResponseSchema = BaseResponseSchema.extend()
+    StudentPreviewSchema = NameSchema.extend()
     StudentResponseSchema = BaseResponseSchema.extend(
         bases=[Classroom.TutorIDSchema],
     )

@@ -72,6 +72,10 @@ class GroupInvitation(Invitation):
     )
     group_classroom: Mapped[GroupClassroom] = relationship(lazy="joined")
 
+    @property
+    def tutor_id(self) -> int:
+        return self.group_classroom.tutor_id
+
     @classmethod
     async def find_first_by_group_classroom_id(
         cls, group_classroom_id: int
@@ -81,3 +85,6 @@ class GroupInvitation(Invitation):
             .options(raiseload(cls.group_classroom))
             .filter_by(group_classroom_id=group_classroom_id)
         )
+
+
+AnyInvitation = IndividualInvitation | GroupInvitation
