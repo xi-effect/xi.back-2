@@ -15,7 +15,7 @@ from app.invoices.models.recipient_invoices_db import (
     TutorInvoiceSearchRequestSchema,
 )
 
-router = APIRouterExt(tags=["tutor recipient invoices"])
+router = APIRouterExt(tags=["tutor invoices"])
 
 
 @router.post(

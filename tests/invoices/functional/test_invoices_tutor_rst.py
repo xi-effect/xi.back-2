@@ -52,7 +52,7 @@ recipient_invoice_requests_params = [
 
 
 @pytest.mark.parametrize(("method", "body_factory"), recipient_invoice_requests_params)
-async def test_recipient_invoice_not_finding(
+async def test_tutor_recipient_invoice_not_finding(
     tutor_client: TestClient,
     deleted_recipient_invoice_id: int,
     method: str,
@@ -70,7 +70,7 @@ async def test_recipient_invoice_not_finding(
 
 
 @pytest.mark.parametrize(("method", "body_factory"), recipient_invoice_requests_params)
-async def test_recipient_invoice_access_denied(
+async def test_tutor_recipient_invoice_access_denied(
     outsider_client: TestClient,
     recipient_invoice: RecipientInvoice,
     method: str,
@@ -80,6 +80,7 @@ async def test_recipient_invoice_access_denied(
         outsider_client.request(
             method=method,
             url=f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/",
+            json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
         expected_json={"detail": "Recipient invoice tutor access denied"},
