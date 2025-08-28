@@ -31,9 +31,14 @@ class RecipientInvoiceCursorSchema(BaseModel):
     recipient_invoice_id: int
 
 
-class TutorInvoiceSearchRequestSchema(BaseModel):
+class RecipientInvoiceSearchRequestSchema(BaseModel):
     cursor: RecipientInvoiceCursorSchema | None = None
     limit: Annotated[int, Field(gt=0, lt=100)] = 12
+
+
+class TutorInvoiceSearchRequestSchema(RecipientInvoiceSearchRequestSchema):
+    # filters
+    ...
 
 
 class RecipientInvoice(Base):

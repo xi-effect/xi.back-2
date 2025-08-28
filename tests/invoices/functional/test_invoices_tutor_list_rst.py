@@ -1,54 +1,12 @@
-from collections.abc import AsyncIterator
-from decimal import Decimal
-
 import pytest
 from starlette.testclient import TestClient
 
-from app.invoices.models.invoices_db import Invoice
-from app.invoices.models.recipient_invoices_db import PaymentStatus, RecipientInvoice
-from tests.common.active_session import ActiveSession
+from app.invoices.models.recipient_invoices_db import RecipientInvoice
 from tests.common.assert_contains_ext import assert_response
 from tests.common.utils import remove_none_values
-from tests.invoices import factories
+from tests.invoices.conftest import TUTOR_INVOICE_LIST_SIZE
 
 pytestmark = pytest.mark.anyio
-
-TUTOR_INVOICE_LIST_SIZE = 5
-
-
-@pytest.fixture()
-async def recipient_invoices(
-    active_session: ActiveSession,
-    tutor_id: int,
-    student_id: int,
-    total: Decimal,
-) -> AsyncIterator[list[RecipientInvoice]]:
-    recipient_invoices: list[RecipientInvoice] = []
-
-    async with active_session():
-        for _ in range(TUTOR_INVOICE_LIST_SIZE):
-            invoice: Invoice = await Invoice.create(
-                **factories.InvoiceInputFactory.build_python(),
-                tutor_id=tutor_id,
-            )
-            recipient_invoices.append(
-                await RecipientInvoice.create(
-                    invoice=invoice,
-                    student_id=student_id,
-                    total=total,
-                    status=PaymentStatus.WF_PAYMENT,
-                )
-            )
-
-    recipient_invoices.sort(
-        key=lambda recipient_invoice: recipient_invoice.created_at, reverse=True
-    )
-
-    yield recipient_invoices
-
-    async with active_session():
-        for recipient_invoice in recipient_invoices:
-            await recipient_invoice.invoice.delete()
 
 
 @pytest.mark.parametrize(
