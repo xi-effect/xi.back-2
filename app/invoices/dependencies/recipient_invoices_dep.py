@@ -70,3 +70,10 @@ async def get_my_student_recipient_invoice_by_id(
 StudentRecipientInvoiceByID = Annotated[
     RecipientInvoice, Depends(get_my_student_recipient_invoice_by_id)
 ]
+
+
+class PaymentStatusResponses(Responses):
+    INVALID_CONFIRMATION = (
+        status.HTTP_409_CONFLICT,
+        "Invalid payment confirmation for the current payment status",
+    )

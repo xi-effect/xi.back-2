@@ -27,6 +27,9 @@ class Invoice(Base):
     InputSchema = MappedModel.create(columns=[(comment, CommentType)])
     IDSchema = MappedModel.create(columns=[id])
     PatchSchema = InputSchema.as_patch()
+    BaseResponseSchema = MappedModel.create(
+        columns=[created_at, (comment, CommentType)]
+    )
     ResponseSchema = MappedModel.create(
         columns=[id, created_at, (comment, CommentType)]
     )
