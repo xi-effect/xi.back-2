@@ -17,9 +17,8 @@ from app.invoices.models.invoices_db import Invoice
 
 
 class PaymentStatus(StrEnum):
-    WF_PAYMENT = auto()
-    WF_CONFIRMATION = auto()
-    CANCELED = auto()
+    WF_SENDER_CONFIRMATION = auto()
+    WF_RECEIVER_CONFIRMATION = auto()
     COMPLETE = auto()
 
 
@@ -40,25 +39,12 @@ class RecipientInvoiceSearchRequestSchema(BaseModel):
 
 class TutorInvoiceSearchRequestSchema(RecipientInvoiceSearchRequestSchema):
     # filters
-    ...
+    pass
 
 
 class StudentInvoiceSearchRequestSchema(RecipientInvoiceSearchRequestSchema):
     # filters
-    ...
-
-
-class DetailedRecipientInvoiceSchema(CompositeMarshalModel):
-    invoice: Annotated[Invoice, Invoice.InputSchema]
-    items: list[Annotated[InvoiceItem, InvoiceItem.ResponseSchema]]
-
-
-class DetailedTutorInvoiceSchema(DetailedRecipientInvoiceSchema):
-    student_id: int
-
-
-class DetailedStudentInvoiceSchema(DetailedRecipientInvoiceSchema):
-    tutor_id: int
+    pass
 
 
 class RecipientInvoice(Base):
@@ -92,12 +78,16 @@ class RecipientInvoice(Base):
     PatchSchema = MappedModel.create(
         columns=[(total, TotalType), payment_type]
     ).as_patch()
-    BaseResponseSchema = MappedModel.create(
+    PaymentSchema = MappedModel.create(columns=[(payment_type, PaymentType)])
+    ResponseSchema = MappedModel.create(
+        columns=[(total, TotalType), status, payment_type]
+    )
+    BaseFullResponseSchema = MappedModel.create(
         columns=[id, (total, TotalType), status, payment_type],
         properties=[created_at],
     )
-    TutorResponseSchema = BaseResponseSchema.extend([student_id])
-    StudentResponseSchema = BaseResponseSchema.extend(properties=[tutor_id])
+    TutorResponseSchema = BaseFullResponseSchema.extend(columns=[student_id])
+    StudentResponseSchema = BaseFullResponseSchema.extend(properties=[tutor_id])
 
     @classmethod
     def select_after_cursor(
@@ -114,7 +104,7 @@ class RecipientInvoice(Base):
         )
 
     @classmethod
-    async def find_paginated_by_tutor(
+    async def find_paginated_by_tutor_id(
         cls,
         tutor_id: int,
         cursor: RecipientInvoiceCursorSchema | None,
@@ -130,8 +120,11 @@ class RecipientInvoice(Base):
         )
 
     @classmethod
-    async def find_paginated_by_student(
-        cls, student_id: int, cursor: RecipientInvoiceCursorSchema | None, limit: int
+    async def find_paginated_by_student_id(
+        cls,
+        student_id: int,
+        cursor: RecipientInvoiceCursorSchema | None,
+        limit: int,
     ) -> Sequence[Self]:
         stmt = select(cls).filter_by(student_id=student_id).join(cls.invoice)
 
@@ -141,3 +134,17 @@ class RecipientInvoice(Base):
         return await db.get_all(
             stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(limit=limit)
         )
+
+
+class DetailedRecipientInvoiceSchema(CompositeMarshalModel):
+    invoice: Annotated[Invoice, Invoice.BaseResponseSchema]
+    recipient_invoice: Annotated[RecipientInvoice, RecipientInvoice.ResponseSchema]
+    invoice_items: list[Annotated[InvoiceItem, InvoiceItem.InputSchema]]
+
+
+class DetailedTutorRecipientInvoiceSchema(DetailedRecipientInvoiceSchema):
+    student_id: int
+
+
+class DetailedStudentRecipientInvoiceSchema(DetailedRecipientInvoiceSchema):
+    tutor_id: int

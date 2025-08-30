@@ -6,11 +6,14 @@ from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.invoices.dependencies.recipient_invoices_dep import TutorRecipientInvoiceByID
+from app.invoices.dependencies.recipient_invoices_dep import (
+    PaymentStatusResponses,
+    TutorRecipientInvoiceByID,
+)
 from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
 from app.invoices.models.recipient_invoices_db import (
-    DetailedTutorInvoiceSchema,
+    DetailedTutorRecipientInvoiceSchema,
     PaymentStatus,
     RecipientInvoice,
     TutorInvoiceSearchRequestSchema,
@@ -28,7 +31,7 @@ async def list_tutor_recipient_invoices(
     auth_data: AuthorizationData,
     data: TutorInvoiceSearchRequestSchema,
 ) -> Sequence[RecipientInvoice]:
-    return await RecipientInvoice.find_paginated_by_tutor(
+    return await RecipientInvoice.find_paginated_by_tutor_id(
         tutor_id=auth_data.user_id, cursor=data.cursor, limit=data.limit
     )
 
@@ -80,7 +83,7 @@ async def create_invoice(
             invoice_id=invoice.id,
             student_id=student_id,
             total=total,
-            status=PaymentStatus.WF_PAYMENT,
+            status=PaymentStatus.WF_SENDER_CONFIRMATION,
         )
         # TODO send notification to each recipient (worker task)
 
@@ -89,16 +92,17 @@ async def create_invoice(
 
 @router.get(
     path="/roles/tutor/recipient-invoices/{recipient_invoice_id}/",
-    response_model=DetailedTutorInvoiceSchema,
+    response_model=DetailedTutorRecipientInvoiceSchema.build_marshal(),
     summary="Retrieve tutor recipient invoice by id",
 )
 async def retrieve_tutor_recipient_invoice(
     recipient_invoice: TutorRecipientInvoiceByID,
-) -> DetailedTutorInvoiceSchema:
-    return DetailedTutorInvoiceSchema(
+) -> DetailedTutorRecipientInvoiceSchema:
+    return DetailedTutorRecipientInvoiceSchema(
         invoice=recipient_invoice.invoice,
-        items=await InvoiceItem.find_all_by_kwargs(
-            InvoiceItem.position, invoice_id=recipient_invoice.invoice_id
+        recipient_invoice=recipient_invoice,
+        invoice_items=await InvoiceItem.find_all_by_invoice_id(
+            invoice_id=recipient_invoice.invoice_id
         ),
         student_id=recipient_invoice.student_id,
     )
@@ -107,14 +111,44 @@ async def retrieve_tutor_recipient_invoice(
 @router.patch(
     path="/roles/tutor/recipient-invoices/{recipient_invoice_id}/",
     response_model=RecipientInvoice.TutorResponseSchema,
-    summary="Update recipient invoice by id",
+    summary="Update tutor recipient invoice by id",
 )
 async def patch_recipient_invoice(
-    tutor_invoice: TutorRecipientInvoiceByID,
+    recipient_invoice: TutorRecipientInvoiceByID,
     patch_data: RecipientInvoice.PatchSchema,
 ) -> RecipientInvoice:
-    tutor_invoice.update(**patch_data.model_dump(exclude_defaults=True))
-    return tutor_invoice
+    recipient_invoice.update(**patch_data.model_dump(exclude_defaults=True))
+    return recipient_invoice
+
+
+@router.post(
+    path="/roles/tutor/recipient-invoices/{recipient_invoice_id}/payment-confirmations/unilateral/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=PaymentStatusResponses.responses(),
+    summary="Unilaterally confirm tutor recipient invoice payment by id",
+)
+async def confirm_tutor_recipient_invoice_payment_with_payment_type(
+    recipient_invoice: TutorRecipientInvoiceByID,
+    data: RecipientInvoice.PaymentSchema,
+) -> None:
+    if recipient_invoice.status is not PaymentStatus.WF_SENDER_CONFIRMATION:
+        raise PaymentStatusResponses.INVALID_CONFIRMATION
+    recipient_invoice.update(**data.model_dump())
+    recipient_invoice.status = PaymentStatus.COMPLETE
+
+
+@router.post(
+    path="/roles/tutor/recipient-invoices/{recipient_invoice_id}/payment-confirmations/receiver/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=PaymentStatusResponses.responses(),
+    summary="Confirm tutor recipient invoice payment by id",
+)
+async def confirm_tutor_recipient_invoice_payment(
+    recipient_invoice: TutorRecipientInvoiceByID,
+) -> None:
+    if recipient_invoice.status is not PaymentStatus.WF_RECEIVER_CONFIRMATION:
+        raise PaymentStatusResponses.INVALID_CONFIRMATION
+    recipient_invoice.status = PaymentStatus.COMPLETE
 
 
 @router.delete(

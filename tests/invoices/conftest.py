@@ -1,4 +1,3 @@
-from collections.abc import AsyncIterator
 from decimal import Decimal
 
 import pytest
@@ -116,10 +115,10 @@ async def deleted_invoice_id(active_session: ActiveSession, invoice: Invoice) ->
 
 
 @pytest.fixture()
-def invoice_comment_data(invoice: Invoice) -> AnyJSON:
-    return Invoice.InputSchema.model_validate(invoice, from_attributes=True).model_dump(
-        mode="json"
-    )
+def invoice_data_base_schema(invoice: Invoice) -> AnyJSON:
+    return Invoice.BaseResponseSchema.model_validate(
+        invoice, from_attributes=True
+    ).model_dump(mode="json")
 
 
 @pytest.fixture()
@@ -133,53 +132,16 @@ async def invoice_item(active_session: ActiveSession, invoice: Invoice) -> Invoi
 
 
 @pytest.fixture()
-def invoice_item_data(invoice_item: InvoiceItem) -> AnyJSON:
-    return InvoiceItem.ResponseSchema.model_validate(
-        invoice_item, from_attributes=True
+def invoice_item_data_input_schema(invoice_item: InvoiceItem) -> AnyJSON:
+    return InvoiceItem.InputSchema.model_validate(
+        invoice_item,
+        from_attributes=True,
     ).model_dump(mode="json")
 
 
 @pytest.fixture()
 def total(faker: Faker) -> Decimal:
     return faker.pydecimal(right_digits=2, positive=True)
-
-
-TUTOR_INVOICE_LIST_SIZE = 5
-
-
-@pytest.fixture()
-async def recipient_invoices(
-    active_session: ActiveSession,
-    tutor_id: int,
-    student_id: int,
-    total: Decimal,
-) -> AsyncIterator[list[RecipientInvoice]]:
-    recipient_invoices: list[RecipientInvoice] = []
-
-    async with active_session():
-        for _ in range(TUTOR_INVOICE_LIST_SIZE):
-            invoice: Invoice = await Invoice.create(
-                **factories.InvoiceInputFactory.build_python(),
-                tutor_id=tutor_id,
-            )
-            recipient_invoices.append(
-                await RecipientInvoice.create(
-                    invoice=invoice,
-                    student_id=student_id,
-                    total=total,
-                    status=PaymentStatus.WF_PAYMENT,
-                )
-            )
-
-    recipient_invoices.sort(
-        key=lambda recipient_invoice: recipient_invoice.created_at, reverse=True
-    )
-
-    yield recipient_invoices
-
-    async with active_session():
-        for recipient_invoice in recipient_invoices:
-            await recipient_invoice.invoice.delete()
 
 
 @pytest.fixture()
@@ -191,12 +153,19 @@ async def recipient_invoice(
             invoice=invoice,
             student_id=student_id,
             total=total,
-            status=PaymentStatus.WF_PAYMENT,
+            status=PaymentStatus.WF_SENDER_CONFIRMATION,
         )
 
 
 @pytest.fixture()
 def recipient_invoice_data(recipient_invoice: RecipientInvoice) -> AnyJSON:
+    return RecipientInvoice.ResponseSchema.model_validate(
+        recipient_invoice, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+def recipient_invoice_tutor_data(recipient_invoice: RecipientInvoice) -> AnyJSON:
     return RecipientInvoice.TutorResponseSchema.model_validate(
         recipient_invoice
     ).model_dump(mode="json")
