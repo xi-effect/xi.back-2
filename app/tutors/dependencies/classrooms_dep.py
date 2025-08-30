@@ -5,6 +5,7 @@ from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
 from app.tutors.models.classrooms_db import (
+    AnyClassroom,
     Classroom,
     GroupClassroom,
     IndividualClassroom,
@@ -16,14 +17,16 @@ class ClassroomResponses(Responses):
 
 
 @with_responses(ClassroomResponses)
-async def get_classroom_by_id(classroom_id: Annotated[int, Path()]) -> Classroom:
+async def get_classroom_by_id(classroom_id: Annotated[int, Path()]) -> AnyClassroom:
     classroom = await Classroom.find_first_by_id(classroom_id)
     if classroom is None:
         raise ClassroomResponses.CLASSROOM_NOT_FOUND
+    if not isinstance(classroom, AnyClassroom):  # pragma: no cover
+        raise TypeError("SQLAlchemy returned an unknown type of Classroom")
     return classroom
 
 
-ClassroomByID = Annotated[Classroom, Depends(get_classroom_by_id)]
+ClassroomByID = Annotated[AnyClassroom, Depends(get_classroom_by_id)]
 
 
 @with_responses(ClassroomResponses)

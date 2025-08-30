@@ -9,7 +9,7 @@ from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.tutors.models.classrooms_db import (
-    Classroom,
+    AnyClassroom,
     ClassroomKind,
     GroupClassroom,
     IndividualClassroom,
@@ -140,7 +140,7 @@ async def create_tutorships(
     last_created_at: datetime = faker.date_time_between(tzinfo=timezone.utc)
     async with active_session():
         for tutor_id, student_id in user_ids:
-            last_created_at = last_created_at - timedelta(minutes=faker.random_int())
+            last_created_at -= timedelta(minutes=faker.random_int(min=1))
             yield await Tutorship.create(
                 tutor_id=tutor_id,
                 student_id=student_id,
@@ -225,6 +225,15 @@ async def individual_classroom_tutor_data(
 
 
 @pytest.fixture()
+async def individual_classroom_student_data(
+    individual_classroom: IndividualClassroom,
+) -> AnyJSON:
+    return IndividualClassroom.StudentResponseSchema.model_validate(
+        individual_classroom
+    ).model_dump(mode="json", by_alias=True)
+
+
+@pytest.fixture()
 async def group_classroom(
     active_session: ActiveSession, tutor_user_id: int
 ) -> GroupClassroom:
@@ -279,7 +288,7 @@ async def any_classroom(
     individual_classroom: IndividualClassroom,
     group_classroom: GroupClassroom,
     parametrized_classroom_kind: ClassroomKind,
-) -> Classroom:
+) -> AnyClassroom:
     match parametrized_classroom_kind:
         case ClassroomKind.INDIVIDUAL:
             return individual_classroom

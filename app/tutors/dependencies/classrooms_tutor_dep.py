@@ -11,6 +11,7 @@ from app.tutors.dependencies.classrooms_dep import (
     IndividualClassroomByID,
 )
 from app.tutors.models.classrooms_db import (
+    AnyClassroom,
     Classroom,
     GroupClassroom,
     IndividualClassroom,
@@ -32,11 +33,11 @@ def verify_tutor_classroom_access[T: Classroom](
 @with_responses(MyTutorClassroomResponses)
 async def get_my_tutor_classroom_by_id(
     auth_data: AuthorizationData, classroom: ClassroomByID
-) -> Classroom:
+) -> AnyClassroom:
     return verify_tutor_classroom_access(auth_data, classroom)
 
 
-MyTutorClassroomByID = Annotated[Classroom, Depends(get_my_tutor_classroom_by_id)]
+MyTutorClassroomByID = Annotated[AnyClassroom, Depends(get_my_tutor_classroom_by_id)]
 
 
 @with_responses(MyTutorClassroomResponses)

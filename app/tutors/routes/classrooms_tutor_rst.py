@@ -1,16 +1,21 @@
+from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Body
+from pydantic import AwareDatetime, Field
+from sqlalchemy import select
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.sqlalchemy_ext import db
 from app.tutors.dependencies.classrooms_tutor_dep import (
     MyTutorClassroomByID,
     MyTutorGroupClassroomByID,
     MyTutorIndividualClassroomByID,
 )
 from app.tutors.models.classrooms_db import (
+    AnyClassroom,
     Classroom,
     GroupClassroom,
     IndividualClassroom,
@@ -19,6 +24,22 @@ from app.tutors.models.classrooms_db import (
 )
 
 router = APIRouterExt(tags=["tutor classrooms"])
+
+
+@router.get(
+    path="/roles/tutor/classrooms/",
+    response_model=list[TutorClassroomResponseSchema],
+    summary="List paginated tutor classrooms for the current user",
+)
+async def list_classrooms(
+    auth_data: AuthorizationData,
+    created_before: AwareDatetime | None = None,
+    limit: Annotated[int, Field(gt=0, le=100)] = 50,
+) -> Sequence[Classroom]:
+    stmt = select(Classroom).filter_by(tutor_id=auth_data.user_id)
+    if created_before is not None:
+        stmt = stmt.filter(Classroom.created_at < created_before)
+    return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
 
 
 @router.post(
@@ -43,7 +64,7 @@ async def create_group_classroom(
     response_model=TutorClassroomResponseSchema,
     summary="Retrieve tutor's classroom by id",
 )
-async def retrieve_classroom(classroom: MyTutorClassroomByID) -> Classroom:
+async def retrieve_classroom(classroom: MyTutorClassroomByID) -> AnyClassroom:
     return classroom
 
 

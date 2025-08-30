@@ -11,7 +11,7 @@ from app.common.responses import SelfReferenceResponses
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 from app.tutors.dependencies.invitations_dep import ForeignInvitationByCode
 from app.tutors.models.classrooms_db import (
-    Classroom,
+    AnyClassroom,
     ClassroomKind,
     GroupClassroom,
     IndividualClassroom,
@@ -171,8 +171,8 @@ async def accept_group_invitation(
 async def accept_invitation(
     auth_data: AuthorizationData,
     invitation: ForeignInvitationByCode,
-) -> Classroom:
-    classroom: Classroom
+) -> AnyClassroom:
+    classroom: AnyClassroom
     match invitation:
         case IndividualInvitation():
             classroom = await accept_individual_invitation(

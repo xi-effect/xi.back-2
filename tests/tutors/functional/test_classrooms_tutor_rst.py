@@ -8,6 +8,7 @@ from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
 from app.tutors.models.classrooms_db import (
+    AnyClassroom,
     Classroom,
     ClassroomKind,
     ClassroomStatus,
@@ -57,7 +58,7 @@ async def test_group_classroom_creation(
 
 async def test_classroom_retrieving(
     tutor_client: TestClient,
-    any_classroom: GroupClassroom,
+    any_classroom: AnyClassroom,
     any_classroom_tutor_data: AnyJSON,
 ) -> None:
     assert_response(
@@ -117,7 +118,7 @@ async def test_group_classroom_updating(
 async def test_classroom_status_updating(
     active_session: ActiveSession,
     tutor_client: TestClient,
-    any_classroom: GroupClassroom,
+    any_classroom: AnyClassroom,
     any_classroom_tutor_data: AnyJSON,
     new_status: ClassroomStatus,
 ) -> None:
@@ -138,7 +139,7 @@ async def test_classroom_status_updating(
 async def test_classroom_deleting(
     active_session: ActiveSession,
     tutor_client: TestClient,
-    any_classroom: GroupClassroom,
+    any_classroom: AnyClassroom,
     any_classroom_tutor_data: AnyJSON,
 ) -> None:
     assert_nodata_response(
@@ -205,7 +206,7 @@ async def test_classroom_requesting_access_denied(
     collection: str,
     path: str,
     body_factory: type[BaseModelFactory[Any]] | None,
-    classroom: Classroom,
+    classroom: AnyClassroom,
 ) -> None:
     assert_response(
         outsider_client.request(
@@ -226,7 +227,7 @@ async def test_classroom_not_finding(
     collection: str,
     path: str,
     body_factory: type[BaseModelFactory[Any]] | None,
-    classroom: Classroom,
+    classroom: AnyClassroom,
 ) -> None:
     async with active_session():
         await Classroom.delete_by_kwargs(id=classroom.id)

@@ -137,6 +137,8 @@ class GroupClassroom(Classroom):
     )
 
 
+AnyClassroom = IndividualClassroom | GroupClassroom
+
 TutorClassroomResponseSchema = Annotated[  # schema for the tutor to see
     IndividualClassroom.TutorResponseSchema | GroupClassroom.TutorResponseSchema,
     Field(discriminator="kind"),
