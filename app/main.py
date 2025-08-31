@@ -14,6 +14,7 @@ from tmexio.documentation import OpenAPIBuilder
 
 from app import (
     autocomplete,
+    classrooms,
     communities,
     invoices,
     messenger,
@@ -24,7 +25,6 @@ from app import (
     scheduler,
     storage,
     supbot,
-    tutors,
     users,
 )
 from app.common.config import Base, engine, sessionmaker, settings
@@ -147,7 +147,7 @@ app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage.api_router)
 app.include_router(supbot.api_router)
-app.include_router(tutors.api_router)
+app.include_router(classrooms.api_router)
 app.include_router(users.api_router)
 
 old_openapi = app.openapi
