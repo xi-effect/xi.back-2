@@ -6,7 +6,11 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.invoices.routes import invoice_item_templates_rst, invoices_rst
+from app.invoices.routes import (
+    invoice_item_templates_mub,
+    invoice_item_templates_rst,
+    invoices_rst,
+)
 
 outside_router = APIRouterExt(prefix="/api/public/invoice-service")
 
@@ -21,6 +25,7 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/invoice-service",
 )
+mub_router.include_router(invoice_item_templates_mub.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],

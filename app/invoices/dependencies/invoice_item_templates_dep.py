@@ -30,6 +30,22 @@ async def get_invoice_item_template_by_id(
     return invoice_item_template
 
 
+@with_responses(InvoiceItemTemplateResponses)
+async def get_invoice_item_template_by_id_mub(
+    invoice_item_template_id: Annotated[int, Path()],
+) -> InvoiceItemTemplate:
+    invoice_item_template = await InvoiceItemTemplate.find_first_by_id(
+        invoice_item_template_id
+    )
+    if invoice_item_template is None:
+        raise InvoiceItemTemplateResponses.INVOICE_ITEM_TEMPLATE_NOT_FOUND
+    return invoice_item_template
+
+
 InvoiceItemTemplateByID = Annotated[
     InvoiceItemTemplate, Depends(get_invoice_item_template_by_id)
+]
+
+InvoiceItemTemplateByIDMUB = Annotated[
+    InvoiceItemTemplate, Depends(get_invoice_item_template_by_id_mub)
 ]
