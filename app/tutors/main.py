@@ -13,7 +13,6 @@ from app.tutors.routes import (
     invitations_student_rst,
     invitations_tutor_rst,
     materials_tutor_rst,
-    subjects_mub,
     tutorships_mub,
     tutorships_student_rst,
     tutorships_tutor_rst,
@@ -38,7 +37,6 @@ mub_router = APIRouterExt(
     dependencies=[MUBProtection],
     prefix="/mub/tutor-service",
 )
-mub_router.include_router(subjects_mub.router)
 mub_router.include_router(tutorships_mub.router)
 
 internal_router = APIRouterExt(

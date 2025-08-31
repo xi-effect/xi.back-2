@@ -4,12 +4,12 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.tutors.models.subjects_db import Subject
+from app.autocomplete.models.subjects_db import Subject
+from tests.autocomplete import factories
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
-from tests.tutors import factories
 
 pytestmark = pytest.mark.anyio
 
@@ -21,7 +21,7 @@ async def test_subject_creation(
     subject_input_data = factories.SubjectInputMUBFactory.build_json()
     subject_id: int = assert_response(
         mub_client.post(
-            "/mub/tutor-service/subjects/",
+            "/mub/autocomplete-service/subjects/",
             json=subject_input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
@@ -44,7 +44,7 @@ async def test_subject_creation_subject_already_exists(
 ) -> None:
     assert_response(
         mub_client.post(
-            "/mub/tutor-service/subjects/",
+            "/mub/autocomplete-service/subjects/",
             json=subject_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -60,7 +60,7 @@ async def test_subject_updating(
 
     assert_response(
         mub_client.patch(
-            f"/mub/tutor-service/subjects/{subject_data["id"]}/",
+            f"/mub/autocomplete-service/subjects/{subject_data["id"]}/",
             json=patch_subject_data,
         ),
         expected_json={
@@ -76,7 +76,7 @@ async def test_subject_deleting(
     subject: Subject,
 ) -> None:
     assert_nodata_response(
-        mub_client.delete(f"/mub/tutor-service/subjects/{subject.id}/")
+        mub_client.delete(f"/mub/autocomplete-service/subjects/{subject.id}/")
     )
 
     async with active_session():
@@ -99,7 +99,7 @@ async def test_subject_not_finding(
     assert_response(
         mub_client.request(
             method=method,
-            url=f"/mub/tutor-service/subjects/{deleted_subject_id}/",
+            url=f"/mub/autocomplete-service/subjects/{deleted_subject_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,

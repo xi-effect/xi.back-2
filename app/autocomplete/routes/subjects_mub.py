@@ -2,9 +2,9 @@ from collections.abc import Sequence
 
 from starlette import status
 
+from app.autocomplete.dependencies.subjects_dep import SubjectByID
+from app.autocomplete.models.subjects_db import Subject
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.tutors.dependencies.subjects_dep import SubjectByID
-from app.tutors.models.subjects_db import Subject
 
 router = APIRouterExt(tags=["subjects mub"])
 

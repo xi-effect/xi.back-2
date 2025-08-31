@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import Depends, Path
 from starlette import status
 
+from app.autocomplete.models.subjects_db import Subject
 from app.common.fastapi_ext import Responses, with_responses
-from app.tutors.models.subjects_db import Subject
 
 
 class SubjectResponses(Responses):

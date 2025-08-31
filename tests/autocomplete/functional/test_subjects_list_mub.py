@@ -5,10 +5,10 @@ import pytest
 from faker import Faker
 from starlette.testclient import TestClient
 
-from app.tutors.models.subjects_db import Subject
+from app.autocomplete.models.subjects_db import Subject
+from tests.autocomplete.factories import SubjectInputFactory
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
-from tests.tutors.factories import SubjectInputFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -60,7 +60,7 @@ async def test_subjects_by_tutor_listing(
 ) -> None:
     assert_response(
         mub_client.get(
-            "/mub/tutor-service/subjects/",
+            "/mub/autocomplete-service/subjects/",
             params={
                 "offset": offset,
                 "limit": limit,
@@ -94,7 +94,7 @@ async def test_common_subjects_listing(
 ) -> None:
     assert_response(
         mub_client.get(
-            "/mub/tutor-service/subjects/",
+            "/mub/autocomplete-service/subjects/",
             params={
                 "offset": offset,
                 "limit": limit,
