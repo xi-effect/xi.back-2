@@ -10,7 +10,10 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
-from tests.communities.factories import ParticipantMUBPatchFactory
+from tests.communities.factories import (
+    ParticipantMUBInputFactory,
+    ParticipantMUBPatchFactory,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -53,27 +56,23 @@ async def test_participants_listing_community_not_found(
     )
 
 
-@pytest.fixture()
-def participant_patch_data() -> AnyJSON:
-    return ParticipantMUBPatchFactory.build_json()
-
-
 async def test_participant_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
     community: Community,
     participant_user_id: int,
-    participant_patch_data: AnyJSON,
 ) -> None:
+    participant_input_data = ParticipantMUBInputFactory.build_json()
+
     participant_id: int = assert_response(
         mub_client.post(
             f"/mub/community-service/communities/{community.id}/participants/",
             params={"user_id": participant_user_id},
-            json=participant_patch_data,
+            json=participant_input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
-            **participant_patch_data,
+            **participant_input_data,
             "user_id": participant_user_id,
             "id": int,
         },
@@ -100,8 +99,9 @@ async def test_participant_updating(
     mub_client: TestClient,
     participant: Participant,
     participant_data: AnyJSON,
-    participant_patch_data: AnyJSON,
 ) -> None:
+    participant_patch_data = ParticipantMUBPatchFactory.build_json()
+
     assert_response(
         mub_client.patch(
             f"/mub/community-service/participants/{participant.id}/",

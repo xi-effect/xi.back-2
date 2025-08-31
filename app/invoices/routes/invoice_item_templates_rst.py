@@ -13,20 +13,18 @@ router = APIRouterExt(tags=["invoice item templates"])
 
 
 @router.get(
-    path="/invoice-item-templates/",
+    path="/roles/tutor/invoice-item-templates/",
     response_model=list[InvoiceItemTemplate.ResponseSchema],
     summary="List all invoice item templates for the current user",
 )
 async def list_invoice_item_templates(
     auth_data: AuthorizationData,
 ) -> Sequence[InvoiceItemTemplate]:
-    return await InvoiceItemTemplate.find_all_by_creator(
-        creator_user_id=auth_data.user_id
-    )
+    return await InvoiceItemTemplate.find_all_by_tutor(tutor_id=auth_data.user_id)
 
 
 @router.post(
-    path="/invoice-item-templates/",
+    path="/roles/tutor/invoice-item-templates/",
     status_code=status.HTTP_201_CREATED,
     response_model=InvoiceItemTemplate.ResponseSchema,
     responses=LimitedListResponses.responses(),
@@ -40,12 +38,12 @@ async def create_invoice_item_template(
         raise LimitedListResponses.QUANTITY_EXCEEDED
     return await InvoiceItemTemplate.create(
         **input_data.model_dump(),
-        creator_user_id=auth_data.user_id,
+        tutor_id=auth_data.user_id,
     )
 
 
 @router.get(
-    path="/invoice-item-templates/{invoice_item_template_id}/",
+    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
     response_model=InvoiceItemTemplate.ResponseSchema,
     summary="Retrieve invoice item template by id",
 )
@@ -56,7 +54,7 @@ async def retrieve_invoice_item_template(
 
 
 @router.patch(
-    path="/invoice-item-templates/{invoice_item_template_id}/",
+    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
     response_model=InvoiceItemTemplate.ResponseSchema,
     summary="Update invoice item template by id",
 )
@@ -72,7 +70,7 @@ async def patch_invoice_item_template(
 
 
 @router.delete(
-    path="/invoice-item-templates/{invoice_item_template_id}/",
+    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete invoice item template by id",
 )
