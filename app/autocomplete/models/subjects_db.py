@@ -35,7 +35,7 @@ class Subject(Base):
         offset: int,
         limit: int,
     ) -> Sequence[Self]:
-        stmt = select(cls).order_by(cls.id)
+        stmt = select(cls).order_by(cls.name)
         if tutor_id is None:
             stmt = stmt.filter(cls.tutor_id.is_(None))
         else:
@@ -49,3 +49,12 @@ class Subject(Base):
             or_(cls.tutor_id == tutor_id, cls.tutor_id.is_(None)),
         )
         return await db.is_present(stmt)
+
+    @classmethod
+    async def find_for_autocomplete(cls, search: str, limit: int) -> Sequence[Self]:
+        return await db.get_all(
+            select(cls)
+            .filter(cls.name.icontains(search.lower()))
+            .order_by(cls.name)
+            .limit(limit)
+        )
