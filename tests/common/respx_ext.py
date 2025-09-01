@@ -10,6 +10,15 @@ from app.common.config import settings
 
 
 @pytest.fixture()
+def autocomplete_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(
+        base_url=f"{settings.bridge_base_url}/internal/autocomplete-service"
+    )
+    with mock_router:
+        yield mock_router
+
+
+@pytest.fixture()
 def communities_respx_mock() -> Iterator[MockRouter]:
     mock_router: MockRouter = mock(
         base_url=f"{settings.bridge_base_url}/internal/community-service"

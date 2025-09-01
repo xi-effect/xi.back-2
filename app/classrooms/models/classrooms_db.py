@@ -41,13 +41,13 @@ class Classroom(Base):
         DateTime(timezone=True), default=datetime_utc_now
     )
 
-    description: Mapped[str | None] = mapped_column(Text, default=None)
     kind: Mapped[ClassroomKind] = mapped_column(Enum(ClassroomKind))
     status: Mapped[ClassroomStatus] = mapped_column(
         Enum(ClassroomStatus), default=ClassroomStatus.ACTIVE
     )
 
-    # TODO subject
+    subject_id: Mapped[int | None] = mapped_column(default=None)
+    description: Mapped[str | None] = mapped_column(Text, default=None)
 
     __mapper_args__ = {
         "polymorphic_on": kind,
@@ -57,7 +57,9 @@ class Classroom(Base):
     NameType = Annotated[str, Field(min_length=1, max_length=100)]
     DescriptionType = Annotated[str | None, Field(min_length=1)]
 
-    BaseInputSchema = MappedModel.create(columns=[(description, DescriptionType)])
+    BaseInputSchema = MappedModel.create(
+        columns=[subject_id, (description, DescriptionType)]
+    )
     BasePatchSchema = BaseInputSchema.as_patch()
     TutorIDSchema = MappedModel.create(columns=[tutor_id])
     BaseResponseSchema = BaseInputSchema.extend(
