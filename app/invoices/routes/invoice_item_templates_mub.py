@@ -23,7 +23,7 @@ router = APIRouterExt(tags=["invoice item templates mub"])
 async def list_invoice_item_templates(
     user_id: Annotated[int, Path()],
 ) -> Sequence[InvoiceItemTemplate]:
-    return await InvoiceItemTemplate.find_all_by_creator(creator_user_id=user_id)
+    return await InvoiceItemTemplate.find_all_by_tutor(tutor_id=user_id)
 
 
 @router.get(

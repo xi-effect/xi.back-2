@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Self
 
+from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,7 +22,9 @@ class ChatUser(Base):
         DateTime(timezone=True), default=None
     )
 
-    InputSchema = MappedModel.create(columns=[last_message_read])
+    InputSchema = MappedModel.create(
+        columns=[(last_message_read, AwareDatetime | None)]
+    )
     PatchSchema = InputSchema.as_patch()
     ResponseSchema = InputSchema.extend(columns=[chat_id, user_id])
 

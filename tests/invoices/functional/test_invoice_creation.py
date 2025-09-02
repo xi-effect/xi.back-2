@@ -8,7 +8,7 @@ from app.common.utils.datetime import datetime_utc_now
 from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
 from app.invoices.models.recipient_invoices_db import PaymentStatus, RecipientInvoice
-from app.invoices.routes.invoices_rst import InvoiceFormSchema
+from app.invoices.routes.invoices_tutor_rst import InvoiceFormSchema
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.invoices import factories
@@ -19,9 +19,9 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_invoice_creation(
     active_session: ActiveSession,
-    creator_client: TestClient,
-    creator_user_id: int,
-    recipient_user_id: int,
+    tutor_client: TestClient,
+    tutor_id: int,
+    student_id: int,
 ) -> None:
     invoice_data: Invoice.InputSchema = factories.InvoiceInputFactory.build()
     invoice_item_data: InvoiceItem.InputSchema = (
@@ -30,12 +30,12 @@ async def test_invoice_creation(
     invoice_form_data = InvoiceFormSchema(
         invoice=invoice_data,
         items=[invoice_item_data],
-        recipient_user_ids=[recipient_user_id],
+        student_ids=[student_id],
     )
 
     invoice_id: int = assert_response(
-        creator_client.post(
-            "/api/protected/invoice-service/invoices/",
+        tutor_client.post(
+            "/api/protected/invoice-service/roles/tutor/invoices/",
             json=invoice_form_data.model_dump(mode="json"),
         ),
         expected_code=status.HTTP_201_CREATED,
@@ -48,9 +48,8 @@ async def test_invoice_creation(
         assert_contains(
             invoice,
             {
-                "creator_user_id": creator_user_id,
+                "tutor_id": tutor_id,
                 "created_at": datetime_utc_now(),
-                "total": invoice_item_data.price * invoice_item_data.quantity,
                 **invoice_data.model_dump(),
             },
         )
@@ -72,7 +71,7 @@ async def test_invoice_creation(
         assert_contains(
             recipient_invoices[0],
             {
-                "recipient_user_id": recipient_user_id,
+                "student_id": student_id,
                 "status": PaymentStatus.WF_PAYMENT,
             },
         )
@@ -82,14 +81,14 @@ async def test_invoice_creation(
 
 async def test_invoice_creation_target_is_the_source(
     active_session: ActiveSession,
-    creator_client: TestClient,
-    creator_user_id: int,
+    tutor_client: TestClient,
+    tutor_id: int,
 ) -> None:
     assert_response(
-        creator_client.post(
-            "/api/protected/invoice-service/invoices/",
+        tutor_client.post(
+            "/api/protected/invoice-service/roles/tutor/invoices/",
             json=factories.InvoiceFormFactory.build_json(
-                recipient_user_ids=[creator_user_id],
+                student_ids=[tutor_id],
             ),
         ),
         expected_code=status.HTTP_409_CONFLICT,
