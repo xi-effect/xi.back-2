@@ -41,7 +41,7 @@ class Responses(HTTPException, Enum):
     def chain(cls, *responses_classes: type[Self]) -> ResponsesSchema:
         result: ResponsesSchema = {}
         for responses_class in responses_classes:
-            result = responses_class.responses(result)
+            result.update(responses_class.responses(result))
         return result
 
 
