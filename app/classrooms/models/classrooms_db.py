@@ -58,6 +58,7 @@ class Classroom(Base):
     DescriptionType = Annotated[str | None, Field(min_length=1)]
 
     BaseInputSchema = MappedModel.create(columns=[(description, DescriptionType)])
+    BasePatchSchema = BaseInputSchema.as_patch()
     TutorIDSchema = MappedModel.create(columns=[tutor_id])
     BaseResponseSchema = BaseInputSchema.extend(
         columns=[
@@ -81,7 +82,7 @@ class IndividualClassroom(Classroom):
     student_name: Mapped[str] = mapped_column(String(100), nullable=True)
 
     InputSchema = MappedModel.create(bases=[Classroom.BaseInputSchema])
-    PatchSchema = InputSchema.as_patch()
+    PatchSchema = MappedModel.create(bases=[Classroom.BasePatchSchema])
     BaseResponseSchema = MappedModel.create(
         bases=[Classroom.BaseResponseSchema],
         extra_fields={
@@ -125,7 +126,7 @@ class GroupClassroom(Classroom):
         columns=[(group_name, Classroom.NameType, "name")],
     )
     InputSchema = NameSchema.extend(bases=[Classroom.BaseInputSchema])
-    PatchSchema = InputSchema.as_patch()
+    PatchSchema = InputSchema.as_patch().extend(bases=[Classroom.BasePatchSchema])
     BaseResponseSchema = NameSchema.extend(
         bases=[Classroom.BaseResponseSchema],
         extra_fields={"kind": (Literal[ClassroomKind.GROUP], ClassroomKind.GROUP)},
