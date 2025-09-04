@@ -23,7 +23,7 @@ uvicorn = {extras = ["standard"], version = "^0.34.2"}
 python-multipart = "^0.0.20"
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.40"}
 psycopg = {extras = ["binary"], version = "3.1.19"}
-pydantic-marshals = {extras = ["sqlalchemy"], version = "0.3.15"}
+pydantic-marshals = {extras = ["sqlalchemy"], version = "0.3.18"}
 alembic = "^1.15.2"
 redis = {extras = ["hiredis"], version = "^5.1.1"}
 filetype = "^1.2.0"
@@ -69,14 +69,15 @@ flake8-type-checking = "2.3.1"
 flake8-print = "5.0.0"
 flake8-use-fstring = "1.4"
 flake8-use-pathlib = "0.3.0"
-flake8-test-name = "^0.1.5"
+flake8-test-name = "0.1.6"
 wemake-python-styleguide = "0.18.0"
 dlint = "0.14.0"
 
 [tool.poetry.group.tests.dependencies]
 pytest = "^8.3.5"
 pytest-cov = "^6.1.1"
-pydantic-marshals = {extras = ["assert-contains"], version = "0.3.15"}
+pytest-lazy-fixtures = "^1.3.4"
+pydantic-marshals = {extras = ["assert-contains"], version = "0.3.18"}
 freezegun = "^1.5.1"
 respx = "^0.22.0"
 polyfactory = "^2.21.0"
@@ -119,7 +120,7 @@ skip_covered = true
 
 fail_under = 100
 
-exclude_lines = [
+exclude_also = [
   "pragma: no cover",
   "if TYPE_CHECKING:",
   "if( not)? settings.production_mode",
@@ -127,6 +128,9 @@ exclude_lines = [
   "except ImportError",
   "raise AssertionError",
   "raise NotImplementedError",
+  "assert_never",
+  "else:\n *?assert_never",
+  "case _:\n *?assert_never",
   "if __name__ == [\"']__main__[\"']:",
   "class .*\\(Protocol\\):",
   "@abstractmethod",
