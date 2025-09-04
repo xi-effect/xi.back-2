@@ -22,6 +22,9 @@ async def list_classroom_students(
     student_ids = await Enrollment.find_all_student_ids_by_classroom_id(
         group_classroom_id=group_classroom.id
     )
+    if len(student_ids) == 0:
+        return []
+
     user_id_to_profile = await users_internal_bridge.retrieve_multiple_users(
         user_ids=list(student_ids)
     )

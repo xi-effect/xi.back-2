@@ -45,6 +45,22 @@ async def test_enrollments_listing(
     )
 
 
+async def test_enrollments_listing_empty_list(
+    users_internal_respx_mock: MockRouter,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+) -> None:
+    assert_response(
+        tutor_client.get(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/students/",
+        ),
+        expected_json=[],
+    )
+
+    users_internal_respx_mock.calls.assert_not_called()
+
+
 @freeze_time()
 async def test_adding_classroom_student(
     active_session: ActiveSession,

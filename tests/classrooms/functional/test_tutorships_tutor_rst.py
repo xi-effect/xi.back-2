@@ -79,6 +79,21 @@ async def test_tutorships_listing(
     )
 
 
+async def test_tutorships_listing_empty_list(
+    users_internal_respx_mock: MockRouter,
+    tutor_client: TestClient,
+) -> None:
+    assert_response(
+        tutor_client.get(
+            "/api/protected/classroom-service/roles/tutor/students/",
+            params={"limit": 1},
+        ),
+        expected_json=[],
+    )
+
+    users_internal_respx_mock.calls.assert_not_called()
+
+
 async def test_tutorship_retrieving(
     users_internal_respx_mock: MockRouter,
     tutor_client: TestClient,

@@ -34,6 +34,9 @@ async def list_students(
         created_before=created_before,
         limit=limit,
     )
+    if len(tutorships) == 0:
+        return []
+
     user_id_to_profile = await users_internal_bridge.retrieve_multiple_users(
         user_ids=[tutorship.tutor_id for tutorship in tutorships]
     )
