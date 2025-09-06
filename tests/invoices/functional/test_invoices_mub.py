@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -16,21 +17,10 @@ pytestmark = pytest.mark.anyio
 INVOICES_LIST_SIZE = 5
 
 
-@pytest.mark.parametrize(
-    ("offset", "limit"),
-    [
-        pytest.param(0, INVOICES_LIST_SIZE, id="start_to_end"),
-        pytest.param(INVOICES_LIST_SIZE // 2, INVOICES_LIST_SIZE, id="middle_to_end"),
-        pytest.param(0, INVOICES_LIST_SIZE // 2, id="start_to_middle"),
-    ],
-)
-async def test_invoices_listing(
-    active_session: ActiveSession,
-    mub_client: TestClient,
-    tutor_id: int,
-    offset: int,
-    limit: int,
-) -> None:
+@pytest.fixture()
+async def invoices(
+    active_session: ActiveSession, tutor_id: int
+) -> AsyncIterator[list[Invoice]]:
     async with active_session():
         invoices: list[Invoice] = [
             await Invoice.create(
@@ -40,6 +30,28 @@ async def test_invoices_listing(
             for _ in range(INVOICES_LIST_SIZE)
         ]
 
+    yield invoices
+
+    async with active_session():
+        for invoice in invoices:
+            await invoice.delete()
+
+
+@pytest.mark.parametrize(
+    ("offset", "limit"),
+    [
+        pytest.param(0, INVOICES_LIST_SIZE, id="start_to_end"),
+        pytest.param(INVOICES_LIST_SIZE // 2, INVOICES_LIST_SIZE, id="middle_to_end"),
+        pytest.param(0, INVOICES_LIST_SIZE // 2, id="start_to_middle"),
+    ],
+)
+async def test_invoices_listing(
+    mub_client: TestClient,
+    tutor_id: int,
+    invoices: list[Invoice],
+    offset: int,
+    limit: int,
+) -> None:
     assert_response(
         mub_client.get(
             f"/mub/invoice-service/users/{tutor_id}/invoices/",

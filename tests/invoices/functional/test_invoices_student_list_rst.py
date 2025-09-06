@@ -21,15 +21,15 @@ pytestmark = pytest.mark.anyio
         pytest.param(0, TUTOR_INVOICE_LIST_SIZE // 2, id="start_to_middle"),
     ],
 )
-async def test_tutor_invoices_listing(
-    tutor_client: TestClient,
+async def test_student_invoices_listing(
+    student_client: TestClient,
     recipient_invoices: list[RecipientInvoice],
     offset: int,
     limit: int,
 ) -> None:
     assert_response(
-        tutor_client.post(
-            "/api/protected/invoice-service/roles/tutor/recipient-invoices/searches/",
+        student_client.post(
+            "/api/protected/invoice-service/roles/student/recipient-invoices/searches/",
             json=remove_none_values(
                 {
                     "cursor": (
@@ -47,7 +47,7 @@ async def test_tutor_invoices_listing(
             ),
         ),
         expected_json=[
-            RecipientInvoice.TutorResponseSchema.model_validate(
+            RecipientInvoice.StudentResponseSchema.model_validate(
                 recipient_invoice, from_attributes=True
             )
             for recipient_invoice in recipient_invoices[offset:limit]
