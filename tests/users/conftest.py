@@ -5,6 +5,7 @@ from faker import Faker
 from fastapi.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.users_sch import UserProfileSchema
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
@@ -48,6 +49,13 @@ async def user(
 
 
 @pytest.fixture()
+async def user_profile_data(user: User) -> AnyJSON:
+    return UserProfileSchema.model_validate(user, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
 async def session(session_factory: Factory[Session]) -> Session:
     return await session_factory()
 
@@ -80,6 +88,13 @@ async def other_user(
     other_user_data: AnyJSON,
 ) -> User:
     return await user_factory(**other_user_data)
+
+
+@pytest.fixture()
+async def other_user_profile_data(other_user: User) -> AnyJSON:
+    return UserProfileSchema.model_validate(
+        other_user, from_attributes=True
+    ).model_dump(mode="json")
 
 
 @pytest.fixture()
