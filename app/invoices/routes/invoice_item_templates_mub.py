@@ -32,7 +32,7 @@ async def list_invoice_item_templates(
     summary="Retrieve invoice item template by id",
 )
 async def retrieve_invoice_item_template(
-    invoice_item_template_id: InvoiceItemTemplateByIDMUB,
+    invoice_item_template_id: Annotated[InvoiceItemTemplateByIDMUB, ...],
 ) -> InvoiceItemTemplate:
     return invoice_item_template_id
 
@@ -52,7 +52,7 @@ async def create_invoice_item_template(
         raise LimitedListResponses.QUANTITY_EXCEEDED
     return await InvoiceItemTemplate.create(
         **input_data.model_dump(),
-        creator_user_id=user_id,
+        tutor_id=user_id,
     )
 
 
@@ -62,8 +62,8 @@ async def create_invoice_item_template(
     summary="Update invoice item template by id",
 )
 async def patch_invoice_item_template(
-    invoice_item_template: InvoiceItemTemplateByIDMUB,
-    patch_data: InvoiceItemTemplate.PatchSchema,
+    invoice_item_template: Annotated[InvoiceItemTemplateByIDMUB, ...],
+    patch_data: Annotated[InvoiceItemTemplate.PatchSchema, Body()],
 ) -> InvoiceItemTemplate:
     invoice_item_template.update(
         **patch_data.model_dump(exclude_defaults=True),
@@ -78,6 +78,6 @@ async def patch_invoice_item_template(
     summary="Delete invoice item template by id",
 )
 async def delete_invoice_item_template(
-    invoice_item_template: InvoiceItemTemplateByIDMUB,
+    invoice_item_template: Annotated[InvoiceItemTemplateByIDMUB, ...],
 ) -> None:
     await invoice_item_template.delete()
