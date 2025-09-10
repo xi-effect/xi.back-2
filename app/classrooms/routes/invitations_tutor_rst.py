@@ -4,7 +4,10 @@ from fastapi import Response
 from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import MyTutorGroupClassroomByID
-from app.classrooms.dependencies.invitations_dep import MyIndividualInvitationByID
+from app.classrooms.dependencies.invitations_dep import (
+    MyGroupInvitationByGroupClassroomID,
+    MyIndividualInvitationByID,
+)
 from app.classrooms.models.invitations_db import GroupInvitation, IndividualInvitation
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
@@ -63,6 +66,20 @@ async def create_or_retrieve_group_invitation(
     return group_invitation
 
 
+@router.put(
+    "/roles/tutor/group-classrooms/{classroom_id}/invitation/",
+    response_model=GroupInvitation.ResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Reset a group tutor invitation for a group classroom by id",
+)
+async def reset_group_invitation(
+    group_classroom: MyTutorGroupClassroomByID,
+    group_invitation: MyGroupInvitationByGroupClassroomID,
+) -> GroupInvitation:
+    await group_invitation.delete()
+    return await GroupInvitation.create(group_classroom=group_classroom)
+
+
 @router.delete(
     "/roles/tutor/individual-invitations/{invitation_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -72,3 +89,14 @@ async def delete_individual_invitation(
     individual_invitation: MyIndividualInvitationByID,
 ) -> None:
     await individual_invitation.delete()
+
+
+@router.delete(
+    "/roles/tutor/group-classrooms/{classroom_id}/invitation/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a group tutor invitation for a group classroom by id",
+)
+async def delete_group_invitation(
+    group_invitation: MyGroupInvitationByGroupClassroomID,
+) -> None:
+    await group_invitation.delete()
