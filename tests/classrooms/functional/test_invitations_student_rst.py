@@ -137,10 +137,7 @@ async def test_individual_invitation_accepting(
             "status": ClassroomStatus.ACTIVE,
             "created_at": datetime_utc_now(),
             "tutor_id": tutor_user_id,
-            "name": (
-                user_profiles[tutor_user_id].display_name
-                or user_profiles[tutor_user_id].username
-            ),
+            "name": user_profiles[tutor_user_id].display_name,
             "description": None,
         },
     ).json()["id"]

@@ -134,9 +134,9 @@ async def accept_individual_invitation(
 
     return await IndividualClassroom.create(
         tutor_id=individual_invitation.tutor_id,
-        tutor_name=tutor_profile.display_name or tutor_profile.username,
+        tutor_name=tutor_profile.display_name,
         student_id=student_id,
-        student_name=student_profile.display_name or student_profile.username,
+        student_name=student_profile.display_name,
     )
 
 

@@ -39,7 +39,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(100))
     username: Mapped[str] = mapped_column(String(30))
     password: Mapped[str] = mapped_column(String(100))
-    display_name: Mapped[str | None] = mapped_column(String(30))
+    display_name: Mapped[str] = mapped_column(
+        String(30),
+        default=lambda context: context.get_current_parameters()["username"],
+    )
 
     default_layout: Mapped[str | None] = mapped_column(String(10), default=None)
     theme: Mapped[str] = mapped_column(String(10), default="system")
@@ -73,7 +76,7 @@ class User(Base):
         AfterValidator(generate_hash),
     ]
     DisplayNameType = Annotated[
-        str | None,
+        str,
         StringConstraints(strip_whitespace=True, min_length=2, max_length=30),
     ]
     UsernameType = Annotated[str, StringConstraints(pattern="^[a-z0-9_.]{4,30}$")]
