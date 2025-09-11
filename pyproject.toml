@@ -30,7 +30,7 @@ filetype = "^1.2.0"
 httpx = "^0.28.1"
 tmexio = "0.2.1"
 pydantic-settings = "^2.9.1"
-livekit-api = "^1.0.2"
+livekit-api = "1.0.5"
 passlib = "^1.7.4"
 cryptography = "^42.0.5"
 discord-webhook = {extras = ["async"], version = "^1.3.1"}
@@ -145,6 +145,7 @@ omit = [
   "tests/*",
   "app/common/aiogram_ext.py",
   "app/common/fastapi_ext.py",
+  "app/common/livekit_ext.py",
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
   "app/common/tmexio_ext.py",

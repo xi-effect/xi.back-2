@@ -28,7 +28,7 @@ from app import (
     supbot,
     users,
 )
-from app.common.config import Base, engine, sessionmaker, settings
+from app.common.config import Base, engine, livekit, sessionmaker, settings
 from app.common.config_bdg import (
     autocomplete_bridge,
     communities_bridge,
@@ -100,6 +100,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(users_internal_bridge.client)
         await stack.enter_async_context(users_public_bridge.client)
         await stack.enter_async_context(storage_bridge.client)
+
+        await stack.enter_async_context(livekit)
 
         yield
 
