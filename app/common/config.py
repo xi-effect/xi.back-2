@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.common.cyptography import CryptographyProvider
+from app.common.livekit_ext import LiveKit
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
 
@@ -156,6 +157,12 @@ class Base(AsyncAttrs, DeclarativeBase, MappingBase):
 
     metadata = db_meta
 
+
+livekit = LiveKit(
+    url=settings.livekit_url,
+    api_key=settings.livekit_api_key,
+    api_secret=settings.livekit_api_secret,
+)
 
 smtp_client: SMTP | None = (
     None
