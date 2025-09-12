@@ -9,6 +9,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.invoices.routes import (
     invoice_item_templates_rst,
     invoices_mub,
+    invoices_student_rst,
     invoices_tutor_rst,
 )
 
@@ -20,6 +21,7 @@ authorized_router = APIRouterExt(
 )
 authorized_router.include_router(invoice_item_templates_rst.router)
 authorized_router.include_router(invoices_tutor_rst.router)
+authorized_router.include_router(invoices_student_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

@@ -72,7 +72,7 @@ async def test_invoice_creation(
             recipient_invoices[0],
             {
                 "student_id": student_id,
-                "status": PaymentStatus.WF_PAYMENT,
+                "status": PaymentStatus.WF_SENDER_CONFIRMATION,
             },
         )
 

@@ -36,3 +36,7 @@ class InvoicePatchFactory(BasePatchModelFactory[Invoice.PatchSchema]):
 
 class RecipientInvoicePatchFactory(BasePatchModelFactory[RecipientInvoice.PatchSchema]):
     __model__ = RecipientInvoice.PatchSchema
+
+
+class RecipientInvoicePaymentFactory(BaseModelFactory[RecipientInvoice.PaymentSchema]):
+    __model__ = RecipientInvoice.PaymentSchema
