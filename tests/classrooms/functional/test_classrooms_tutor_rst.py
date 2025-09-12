@@ -22,6 +22,7 @@ from tests.classrooms.factories import (
 )
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 
@@ -30,9 +31,14 @@ pytestmark = pytest.mark.anyio
 
 @freeze_time()
 async def test_group_classroom_creation(
+    mock_stack: MockStack,
     active_session: ActiveSession,
     tutor_client: TestClient,
 ) -> None:
+    validate_subject_mock = mock_stack.enter_async_mock(
+        "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
+    )
+
     input_data: AnyJSON = GroupClassroomInputFactory.build_json()
 
     classroom_id = assert_response(
@@ -55,6 +61,10 @@ async def test_group_classroom_creation(
         assert classroom is not None
         await classroom.delete()
 
+    validate_subject_mock.assert_awaited_once_with(
+        new_subject_id=input_data["subject_id"]
+    )
+
 
 async def test_classroom_retrieving(
     tutor_client: TestClient,
@@ -70,10 +80,15 @@ async def test_classroom_retrieving(
 
 
 async def test_individual_classroom_updating(
+    mock_stack: MockStack,
     tutor_client: TestClient,
     individual_classroom: GroupClassroom,
     individual_classroom_tutor_data: AnyJSON,
 ) -> None:
+    validate_subject_mock = mock_stack.enter_async_mock(
+        "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
+    )
+
     patch_data: AnyJSON = IndividualClassroomPatchFactory.build_json()
 
     assert_response(
@@ -87,12 +102,22 @@ async def test_individual_classroom_updating(
         },
     )
 
+    validate_subject_mock.assert_awaited_once_with(
+        new_subject_id=patch_data.get("subject_id"),
+        old_subject_id=individual_classroom.subject_id,
+    )
+
 
 async def test_group_classroom_updating(
+    mock_stack: MockStack,
     tutor_client: TestClient,
     group_classroom: GroupClassroom,
     group_classroom_tutor_data: AnyJSON,
 ) -> None:
+    validate_subject_mock = mock_stack.enter_async_mock(
+        "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
+    )
+
     patch_data: AnyJSON = GroupClassroomPatchFactory.build_json()
 
     assert_response(
@@ -104,6 +129,11 @@ async def test_group_classroom_updating(
             **group_classroom_tutor_data,
             **patch_data,
         },
+    )
+
+    validate_subject_mock.assert_awaited_once_with(
+        new_subject_id=patch_data.get("subject_id"),
+        old_subject_id=group_classroom.subject_id,
     )
 
 

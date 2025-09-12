@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Self
 
 from pydantic import Field
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -36,3 +37,7 @@ class InvoiceItem(Base):
         ]
     )
     ResponseSchema = InputSchema.extend(columns=[id])
+
+    @classmethod
+    async def find_all_by_invoice_id(cls, invoice_id: int) -> Sequence[Self]:
+        return await cls.find_all_by_kwargs(cls.position, invoice_id=invoice_id)
