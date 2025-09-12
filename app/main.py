@@ -16,6 +16,7 @@ from app import (
     autocomplete,
     classrooms,
     communities,
+    conferences,
     invoices,
     messenger,
     notifications,
@@ -27,8 +28,9 @@ from app import (
     supbot,
     users,
 )
-from app.common.config import Base, engine, sessionmaker, settings
+from app.common.config import Base, engine, livekit, sessionmaker, settings
 from app.common.config_bdg import (
+    autocomplete_bridge,
     communities_bridge,
     messenger_bridge,
     posts_bridge,
@@ -91,12 +93,15 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
+        await stack.enter_async_context(autocomplete_bridge.client)
         await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(messenger_bridge.client)
         await stack.enter_async_context(posts_bridge.client)
         await stack.enter_async_context(users_internal_bridge.client)
         await stack.enter_async_context(users_public_bridge.client)
         await stack.enter_async_context(storage_bridge.client)
+
+        await stack.enter_async_context(livekit)
 
         yield
 
@@ -138,6 +143,7 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
+app.include_router(conferences.api_router)
 app.include_router(invoices.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
