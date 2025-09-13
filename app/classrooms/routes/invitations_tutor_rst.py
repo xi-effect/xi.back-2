@@ -60,7 +60,44 @@ async def create_or_retrieve_group_invitation(
     if group_invitation is None:
         response.status_code = status.HTTP_201_CREATED
         return await GroupInvitation.create(group_classroom=group_classroom)
+
     return group_invitation
+
+
+@router.put(
+    "/roles/tutor/group-classrooms/{classroom_id}/invitation/",
+    response_model=GroupInvitation.ResponseSchema,
+    summary="Update a group tutor invitation for a group classroom by id",
+)
+async def update_or_create_group_invitation(
+    group_classroom: MyTutorGroupClassroomByID,
+    response: Response,
+) -> GroupInvitation:
+    group_invitation = await GroupInvitation.find_first_by_group_classroom_id(
+        group_classroom_id=group_classroom.id,
+    )
+
+    if group_invitation:
+        await group_invitation.delete()
+    else:
+        response.status_code = status.HTTP_201_CREATED
+
+    return await GroupInvitation.create(group_classroom=group_classroom)
+
+
+@router.delete(
+    "/roles/tutor/group-classrooms/{classroom_id}/invitation/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a group tutor invitation for a group classroom by id",
+)
+async def delete_group_invitation(
+    group_classroom: MyTutorGroupClassroomByID,
+) -> None:
+    group_invitation = await GroupInvitation.find_first_by_group_classroom_id(
+        group_classroom_id=group_classroom.id,
+    )
+    if group_invitation:
+        await group_invitation.delete()
 
 
 @router.delete(
