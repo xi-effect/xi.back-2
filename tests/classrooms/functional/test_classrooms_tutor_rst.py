@@ -79,6 +79,18 @@ async def test_classroom_retrieving(
     )
 
 
+async def test_classroom_access_verification(
+    tutor_client: TestClient,
+    any_classroom: AnyClassroom,
+    any_classroom_tutor_data: AnyJSON,
+) -> None:
+    assert_nodata_response(
+        tutor_client.get(
+            f"/api/protected/classroom-service/roles/tutor/classrooms/{any_classroom.id}/access/",
+        ),
+    )
+
+
 async def test_individual_classroom_updating(
     mock_stack: MockStack,
     tutor_client: TestClient,
@@ -182,7 +194,7 @@ async def test_classroom_deleting(
         assert await Classroom.find_first_by_id(any_classroom.id) is None
 
 
-classroom_request_parametrization = pytest.mark.parametrize(
+tutor_classroom_request_parametrization = pytest.mark.parametrize(
     ("method", "collection", "path", "body_factory", "classroom"),
     [
         pytest.param(
@@ -192,6 +204,14 @@ classroom_request_parametrization = pytest.mark.parametrize(
             None,
             lf("any_classroom"),
             id="retrieve_classroom",
+        ),
+        pytest.param(
+            "GET",
+            "classrooms",
+            "access/",
+            None,
+            lf("any_classroom"),
+            id="verify_classroom_access",
         ),
         pytest.param(
             "PATCH",
@@ -229,7 +249,7 @@ classroom_request_parametrization = pytest.mark.parametrize(
 )
 
 
-@classroom_request_parametrization
+@tutor_classroom_request_parametrization
 async def test_classroom_requesting_access_denied(
     outsider_client: TestClient,
     method: str,
@@ -249,7 +269,7 @@ async def test_classroom_requesting_access_denied(
     )
 
 
-@classroom_request_parametrization
+@tutor_classroom_request_parametrization
 async def test_classroom_not_finding(
     active_session: ActiveSession,
     tutor_client: TestClient,

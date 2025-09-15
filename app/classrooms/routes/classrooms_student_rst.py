@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import AwareDatetime, Field
 from sqlalchemy import or_, select
+from starlette import status
 
 from app.classrooms.dependencies.classrooms_student_dep import MyStudentClassroomByID
 from app.classrooms.models.classrooms_db import (
@@ -51,3 +52,12 @@ async def list_classrooms(
 )
 async def retrieve_classroom(classroom: MyStudentClassroomByID) -> AnyClassroom:
     return classroom
+
+
+@router.get(
+    path="/roles/student/classrooms/{classroom_id}/access/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Verify access to student's classroom by id",
+)
+async def verify_classroom_access(_classroom: MyStudentClassroomByID) -> None:
+    pass

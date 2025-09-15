@@ -90,6 +90,15 @@ async def retrieve_classroom(classroom: MyTutorClassroomByID) -> AnyClassroom:
     return classroom
 
 
+@router.get(
+    path="/roles/tutor/classrooms/{classroom_id}/access/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Verify access to tutor's classroom by id",
+)
+async def verify_classroom_access(_classroom: MyTutorClassroomByID) -> None:
+    pass
+
+
 @router.patch(
     path="/roles/tutor/individual-classrooms/{classroom_id}/",
     response_model=IndividualClassroom.TutorResponseSchema,
