@@ -144,7 +144,10 @@ async def patch_group_classroom(
 )
 async def update_classroom_status(
     classroom: MyTutorClassroomByID,
-    new_status: Annotated[UserClassroomStatus, Body(alias="status", embed=True)],
+    new_status: Annotated[
+        UserClassroomStatus,
+        Body(alias="status", validation_alias="status", embed=True),
+    ],
 ) -> None:
     # TODO state-transition logic (subscription-based)
     classroom.status = new_status
