@@ -1,8 +1,15 @@
+from collections.abc import Iterator
 from types import TracebackType
 from typing import Self
 
 from livekit.api import AccessToken, LiveKitAPI, VideoGrants
 from livekit.api.room_service import RoomService
+from livekit.protocol.models import ParticipantInfo, Room
+from livekit.protocol.room import (
+    CreateRoomRequest,
+    ListParticipantsRequest,
+    ListRoomsRequest,
+)
 
 
 class LiveKit:
@@ -50,3 +57,16 @@ class LiveKit:
             .with_name(name=name)
             .with_grants(VideoGrants(room_join=True, room=room_name))
         ).to_jwt()
+
+    async def list_rooms(self, room_names: list[str]) -> Iterator[Room]:
+        response = await self.room.list_rooms(ListRoomsRequest(names=room_names))
+        return (room for room in response.rooms)
+
+    async def find_or_create_room(self, room_name: str) -> Room:
+        return await self.room.create_room(CreateRoomRequest(name=room_name))
+
+    async def list_room_participants(self, room_name: str) -> Iterator[ParticipantInfo]:
+        response = await self.room.list_participants(
+            ListParticipantsRequest(room=room_name)
+        )
+        return (participant for participant in response.participants)
