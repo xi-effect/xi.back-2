@@ -1,67 +1,65 @@
 from collections.abc import Sequence
+from typing import Annotated
 
+from fastapi import Path
 from starlette import status
 
-from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.responses import LimitedListResponses
 from app.common.utils.datetime import datetime_utc_now
-from app.invoices.dependencies.invoice_item_templates_dep import (
-    MyTutorInvoiceItemTemplateByID,
-)
+from app.invoices.dependencies.invoice_item_templates_dep import InvoiceItemTemplateByID
 from app.invoices.models.invoice_item_templates_db import InvoiceItemTemplate
 
-router = APIRouterExt(tags=["invoice item templates"])
+router = APIRouterExt(tags=["invoice item templates mub"])
 
 
 @router.get(
-    path="/roles/tutor/invoice-item-templates/",
+    path="/users/{user_id}/invoice-item-templates/",
     response_model=list[InvoiceItemTemplate.ResponseSchema],
-    summary="List all invoice item templates for the current user",
+    summary="List all invoice item templates for a user by id",
 )
 async def list_invoice_item_templates(
-    auth_data: AuthorizationData,
+    user_id: Annotated[int, Path()],
 ) -> Sequence[InvoiceItemTemplate]:
-    return await InvoiceItemTemplate.find_all_by_tutor(tutor_id=auth_data.user_id)
+    return await InvoiceItemTemplate.find_all_by_tutor(tutor_id=user_id)
 
 
 @router.post(
-    path="/roles/tutor/invoice-item-templates/",
+    path="/users/{user_id}/invoice-item-templates/",
     status_code=status.HTTP_201_CREATED,
     response_model=InvoiceItemTemplate.ResponseSchema,
     responses=LimitedListResponses.responses(),
-    summary="Create a new invoice item template for the current user",
+    summary="Create a new invoice item template for a user by id",
 )
 async def create_invoice_item_template(
-    input_data: InvoiceItemTemplate.InputSchema,
-    auth_data: AuthorizationData,
+    user_id: Annotated[int, Path()], input_data: InvoiceItemTemplate.InputSchema
 ) -> InvoiceItemTemplate:
-    if await InvoiceItemTemplate.is_limit_per_user_reached(user_id=auth_data.user_id):
+    if await InvoiceItemTemplate.is_limit_per_user_reached(user_id=user_id):
         raise LimitedListResponses.QUANTITY_EXCEEDED
     return await InvoiceItemTemplate.create(
         **input_data.model_dump(),
-        tutor_id=auth_data.user_id,
+        tutor_id=user_id,
     )
 
 
 @router.get(
-    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
+    path="/invoice-item-templates/{invoice_item_template_id}/",
     response_model=InvoiceItemTemplate.ResponseSchema,
-    summary="Retrieve invoice item template by id",
+    summary="Retrieve any invoice item template by id",
 )
 async def retrieve_invoice_item_template(
-    invoice_item_template: MyTutorInvoiceItemTemplateByID,
+    invoice_item_template_id: InvoiceItemTemplateByID,
 ) -> InvoiceItemTemplate:
-    return invoice_item_template
+    return invoice_item_template_id
 
 
 @router.patch(
-    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
+    path="/invoice-item-templates/{invoice_item_template_id}/",
     response_model=InvoiceItemTemplate.ResponseSchema,
-    summary="Update invoice item template by id",
+    summary="Update any invoice item template by id",
 )
 async def patch_invoice_item_template(
-    invoice_item_template: MyTutorInvoiceItemTemplateByID,
+    invoice_item_template: InvoiceItemTemplateByID,
     patch_data: InvoiceItemTemplate.PatchSchema,
 ) -> InvoiceItemTemplate:
     invoice_item_template.update(
@@ -72,11 +70,11 @@ async def patch_invoice_item_template(
 
 
 @router.delete(
-    path="/roles/tutor/invoice-item-templates/{invoice_item_template_id}/",
+    path="/invoice-item-templates/{invoice_item_template_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete invoice item template by id",
+    summary="Delete any invoice item template by id",
 )
 async def delete_invoice_item_template(
-    invoice_item_template: MyTutorInvoiceItemTemplateByID,
+    invoice_item_template: InvoiceItemTemplateByID,
 ) -> None:
     await invoice_item_template.delete()
