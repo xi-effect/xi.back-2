@@ -1,42 +1,11 @@
-from collections.abc import AsyncIterator, Sequence
-from typing import Final
-
 import pytest
-from faker import Faker
 from starlette.testclient import TestClient
 
 from app.autocomplete.models.subjects_db import Subject
-from tests.autocomplete.factories import SubjectInputFactory
-from tests.common.active_session import ActiveSession
+from tests.autocomplete.conftest import SUBJECT_LIST_SIZE
 from tests.common.assert_contains_ext import assert_response
 
 pytestmark = pytest.mark.anyio
-
-
-SUBJECT_LIST_SIZE: Final[int] = 6
-
-
-@pytest.fixture()
-async def subjects(
-    active_session: ActiveSession,
-    faker: Faker,
-    tutor_user_id: int,
-) -> AsyncIterator[Sequence[Subject]]:
-    subjects: list[Subject] = []
-    async with active_session():
-        for i in range(SUBJECT_LIST_SIZE):
-            subjects.append(
-                await Subject.create(
-                    **SubjectInputFactory.build_python(),
-                    tutor_id=None if i % 2 == 0 else tutor_user_id,
-                )
-            )
-
-    yield subjects
-
-    async with active_session():
-        for subject in subjects:
-            await subject.delete()
 
 
 @pytest.mark.parametrize(
@@ -54,7 +23,7 @@ async def subjects(
 async def test_subjects_by_tutor_listing(
     mub_client: TestClient,
     tutor_user_id: int,
-    subjects: Sequence[Subject],
+    subjects: list[Subject],
     offset: int,
     limit: int,
 ) -> None:
@@ -88,7 +57,7 @@ async def test_subjects_by_tutor_listing(
 )
 async def test_common_subjects_listing(
     mub_client: TestClient,
-    subjects: Sequence[Subject],
+    subjects: list[Subject],
     offset: int,
     limit: int,
 ) -> None:

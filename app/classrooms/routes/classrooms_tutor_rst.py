@@ -19,8 +19,9 @@ from app.classrooms.models.classrooms_db import (
     TutorClassroomResponseSchema,
     UserClassroomStatus,
 )
+from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.sqlalchemy_ext import db
 
 router = APIRouterExt(tags=["tutor classrooms"])
@@ -42,10 +43,30 @@ async def list_classrooms(
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
 
 
+class SubjectResponses(Responses):
+    SUBJECT_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Subject not found"
+
+
+async def validate_subject(
+    new_subject_id: int | None,
+    old_subject_id: int | None = None,
+) -> None:
+    if new_subject_id is None:
+        return
+
+    if new_subject_id == old_subject_id:
+        return
+
+    subject = await autocomplete_bridge.retrieve_subject(subject_id=new_subject_id)
+    if subject is None:
+        raise SubjectResponses.SUBJECT_NOT_FOUND
+
+
 @router.post(
     path="/roles/tutor/group-classrooms/",
     status_code=status.HTTP_201_CREATED,
     response_model=GroupClassroom.TutorResponseSchema,
+    responses=SubjectResponses.responses(),
     summary="Create a new tutor group classroom for the current user",
 )
 async def create_group_classroom(
@@ -53,6 +74,7 @@ async def create_group_classroom(
     data: GroupClassroom.InputSchema,
 ) -> GroupClassroom:
     # TODO amount limiting logic (subscription-based)
+    await validate_subject(new_subject_id=data.subject_id)
     return await GroupClassroom.create(
         tutor_id=auth_data.user_id,
         **data.model_dump(),
@@ -68,29 +90,50 @@ async def retrieve_classroom(classroom: MyTutorClassroomByID) -> AnyClassroom:
     return classroom
 
 
+@router.get(
+    path="/roles/tutor/classrooms/{classroom_id}/access/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Verify access to tutor's classroom by id",
+)
+async def verify_classroom_access(_classroom: MyTutorClassroomByID) -> None:
+    pass
+
+
 @router.patch(
     path="/roles/tutor/individual-classrooms/{classroom_id}/",
     response_model=IndividualClassroom.TutorResponseSchema,
+    responses=SubjectResponses.responses(),
     summary="Update tutor's individual classroom by id",
 )
 async def patch_individual_classroom(
     individual_classroom: MyTutorIndividualClassroomByID,
     data: IndividualClassroom.PatchSchema,
 ) -> IndividualClassroom:
-    individual_classroom.update(**data.model_dump(exclude_defaults=True))
+    data_to_update = data.model_dump(exclude_defaults=True)
+    await validate_subject(
+        new_subject_id=data_to_update.get("subject_id"),
+        old_subject_id=individual_classroom.subject_id,
+    )
+    individual_classroom.update(**data_to_update)
     return individual_classroom
 
 
 @router.patch(
     path="/roles/tutor/group-classrooms/{classroom_id}/",
     response_model=GroupClassroom.TutorResponseSchema,
+    responses=SubjectResponses.responses(),
     summary="Update tutor's group classroom by id",
 )
 async def patch_group_classroom(
     group_classroom: MyTutorGroupClassroomByID,
     data: GroupClassroom.PatchSchema,
 ) -> GroupClassroom:
-    group_classroom.update(**data.model_dump(exclude_defaults=True))
+    data_to_update = data.model_dump(exclude_defaults=True)
+    await validate_subject(
+        new_subject_id=data_to_update.get("subject_id"),
+        old_subject_id=group_classroom.subject_id,
+    )
+    group_classroom.update(**data_to_update)
     return group_classroom
 
 
@@ -101,7 +144,10 @@ async def patch_group_classroom(
 )
 async def update_classroom_status(
     classroom: MyTutorClassroomByID,
-    new_status: Annotated[UserClassroomStatus, Body(alias="status", embed=True)],
+    new_status: Annotated[
+        UserClassroomStatus,
+        Body(alias="status", validation_alias="status", embed=True),
+    ],
 ) -> None:
     # TODO state-transition logic (subscription-based)
     classroom.status = new_status

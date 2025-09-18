@@ -40,12 +40,12 @@ async def test_subject_creation(
 async def test_subject_creation_subject_already_exists(
     active_session: ActiveSession,
     mub_client: TestClient,
-    subject_data: AnyJSON,
+    subject_mub_data: AnyJSON,
 ) -> None:
     assert_response(
         mub_client.post(
             "/mub/autocomplete-service/subjects/",
-            json=subject_data,
+            json=subject_mub_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Subject already exists"},
@@ -54,17 +54,17 @@ async def test_subject_creation_subject_already_exists(
 
 async def test_subject_updating(
     mub_client: TestClient,
-    subject_data: AnyJSON,
+    subject_mub_data: AnyJSON,
 ) -> None:
     patch_subject_data = factories.SubjectPatchMUBFactory.build_json()
 
     assert_response(
         mub_client.patch(
-            f"/mub/autocomplete-service/subjects/{subject_data["id"]}/",
+            f"/mub/autocomplete-service/subjects/{subject_mub_data["id"]}/",
             json=patch_subject_data,
         ),
         expected_json={
-            **subject_data,
+            **subject_mub_data,
             **patch_subject_data,
         },
     )

@@ -25,6 +25,7 @@ pytest_plugins = (
     "tests.common.aiogram_testing",
     "tests.common.faker_ext",
     "tests.common.id_provider",
+    "tests.common.livekit_testing",
     "tests.common.mock_stack",
     "tests.common.respx_ext",
 )
@@ -35,7 +36,7 @@ def anyio_backend() -> str:
     return "asyncio"
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def client() -> Iterator[TestClient]:
     with TestClient(app, base_url=f"http://{settings.cookie_domain}") as client:
         yield client

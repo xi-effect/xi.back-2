@@ -6,7 +6,9 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.responses import LimitedListResponses
 from app.common.utils.datetime import datetime_utc_now
-from app.invoices.dependencies.invoice_item_templates_dep import InvoiceItemTemplateByID
+from app.invoices.dependencies.invoice_item_templates_dep import (
+    MyTutorInvoiceItemTemplateByID,
+)
 from app.invoices.models.invoice_item_templates_db import InvoiceItemTemplate
 
 router = APIRouterExt(tags=["invoice item templates"])
@@ -48,7 +50,7 @@ async def create_invoice_item_template(
     summary="Retrieve invoice item template by id",
 )
 async def retrieve_invoice_item_template(
-    invoice_item_template: InvoiceItemTemplateByID,
+    invoice_item_template: MyTutorInvoiceItemTemplateByID,
 ) -> InvoiceItemTemplate:
     return invoice_item_template
 
@@ -59,7 +61,7 @@ async def retrieve_invoice_item_template(
     summary="Update invoice item template by id",
 )
 async def patch_invoice_item_template(
-    invoice_item_template: InvoiceItemTemplateByID,
+    invoice_item_template: MyTutorInvoiceItemTemplateByID,
     patch_data: InvoiceItemTemplate.PatchSchema,
 ) -> InvoiceItemTemplate:
     invoice_item_template.update(
@@ -75,6 +77,6 @@ async def patch_invoice_item_template(
     summary="Delete invoice item template by id",
 )
 async def delete_invoice_item_template(
-    invoice_item_template: InvoiceItemTemplateByID,
+    invoice_item_template: MyTutorInvoiceItemTemplateByID,
 ) -> None:
     await invoice_item_template.delete()

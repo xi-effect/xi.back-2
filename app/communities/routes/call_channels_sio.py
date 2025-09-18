@@ -1,6 +1,4 @@
-from livekit.api import AccessToken, VideoGrants
-
-from app.common.config import settings
+from app.common.config import livekit
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.call_channels_sio_dep import CallChannelByIds
@@ -19,14 +17,8 @@ router = EventRouterExt(tags=["call-channels"])
 async def generate_livekit_token(
     call_channel: CallChannelByIds, user: AuthorizedUser
 ) -> str:
-    return (
-        AccessToken(settings.livekit_api_key, settings.livekit_api_secret)
-        .with_identity(str(user.user_id))
-        .with_name(user.username)
-        .with_grants(
-            VideoGrants(
-                room_join=True,
-                room=f"call-channel-room-{call_channel.id}",
-            )
-        )
-    ).to_jwt()
+    return livekit.generate_access_token(
+        identity=str(user.user_id),
+        name=user.username,
+        room_name=f"call-channel-room-{call_channel.id}",
+    )
