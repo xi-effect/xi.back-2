@@ -140,6 +140,138 @@ async def test_group_invitation_creating_or_retrieving_classroom_not_found(
     )
 
 
+@freeze_time()
+async def test_refresh_group_invitation_exists(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+    group_invitation: GroupInvitation,
+) -> None:
+
+    real_invitation_data: AnyJSON = assert_response(
+        tutor_client.put(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            "id": int,
+            "code": str,
+            "created_at": datetime_utc_now(),
+            "usage_count": 0,
+        },
+    ).json()
+
+    async with active_session():
+        old_invitation = await GroupInvitation.find_first_by_id(group_invitation.id)
+        assert old_invitation is None
+
+        new_invitation = await GroupInvitation.find_first_by_id(
+            real_invitation_data["id"]
+        )
+
+        assert new_invitation is not None
+        assert_contains(
+            new_invitation,
+            {
+                "code": real_invitation_data["code"],
+                "group_classroom_id": group_classroom.id,
+            },
+        )
+        await new_invitation.delete()
+
+
+@freeze_time()
+async def test_refresh_group_invitation_not_exists(
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+) -> None:
+    assert_response(
+        tutor_client.put(
+            f"/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Group invitation not found"},
+    )
+
+
+async def test_delete_group_invitation_success(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+    group_invitation: GroupInvitation,
+) -> None:
+    assert_nodata_response(
+        tutor_client.delete(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_204_NO_CONTENT,
+    )
+
+    async with active_session():
+        assert (
+            await GroupInvitation.find_first_by_group_classroom_id(group_classroom.id)
+        ) is None
+
+
+async def test_group_invitation_deleting(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+    group_invitation: GroupInvitation,
+) -> None:
+    assert_nodata_response(
+        tutor_client.delete(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_204_NO_CONTENT,
+    )
+
+    async with active_session():
+        assert (
+            await GroupInvitation.find_first_by_group_classroom_id(
+                group_classroom_id=group_classroom.id
+            )
+        ) is None
+
+
+async def test_group_invitation_deleting_not_found(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    group_classroom: GroupClassroom,
+) -> None:
+    async with active_session():
+        await GroupInvitation.find_first_by_group_classroom_id(
+            group_classroom_id=group_classroom.id
+        )
+
+    assert_response(
+        tutor_client.delete(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Group invitation not found"},
+    )
+
+
+async def test_group_invitation_deleting_access_denied(
+    outsider_client: TestClient,
+    group_classroom: GroupClassroom,
+) -> None:
+    assert_response(
+        outsider_client.delete(
+            "/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{group_classroom.id}/invitation/"
+        ),
+        expected_code=status.HTTP_403_FORBIDDEN,
+        expected_json={"detail": "Classroom tutor access denied"},
+    )
+
+
 async def test_invitation_deleting(
     tutor_client: TestClient,
     active_session: ActiveSession,
