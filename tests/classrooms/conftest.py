@@ -219,6 +219,7 @@ async def group_classroom(
     async with active_session():
         return await GroupClassroom.create(
             **factories.GroupClassroomInputFactory.build_python(),
+            enrollments_count=0,
             tutor_id=tutor_user_id,
         )
 

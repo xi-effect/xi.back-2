@@ -18,6 +18,7 @@ from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config_bdg import users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.responses import LimitedListResponses
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
 router = APIRouterExt(tags=["student invitations"])
@@ -151,6 +152,13 @@ async def accept_group_invitation(
         )
     ) is not None:
         raise InvitationAcceptanceResponses.ALREADY_JOINED
+
+    if group_invitation.group_classroom.is_full:
+        raise LimitedListResponses.QUANTITY_EXCEEDED
+
+    await GroupClassroom.update_enrollments_count_by_group_classroom_id(
+        group_classroom_id=group_invitation.group_classroom_id, delta=1
+    )
 
     await Enrollment.create(
         group_classroom_id=group_invitation.group_classroom_id,
