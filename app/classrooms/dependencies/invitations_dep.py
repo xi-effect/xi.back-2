@@ -3,8 +3,10 @@ from typing import Annotated
 from fastapi import Depends, Path
 from starlette import status
 
+from app.classrooms.dependencies.classrooms_tutor_dep import MyTutorGroupClassroomByID
 from app.classrooms.models.invitations_db import (
     AnyInvitation,
+    GroupInvitation,
     IndividualInvitation,
     Invitation,
 )
@@ -74,4 +76,21 @@ async def get_my_individual_invitation_by_id(
 
 MyIndividualInvitationByID = Annotated[
     Invitation, Depends(get_my_individual_invitation_by_id)
+]
+
+
+@with_responses(InvitationResponses)
+async def get_my_group_invitation_by_group_classroom_id(
+    group_classroom: MyTutorGroupClassroomByID,
+) -> GroupInvitation:
+    group_invitation = await GroupInvitation.find_first_by_group_classroom_id(
+        group_classroom_id=group_classroom.id,
+    )
+    if group_invitation is None:
+        raise InvitationResponses.INVITATION_NOT_FOUND
+    return group_invitation
+
+
+MyGroupInvitationByGroupClassroomID = Annotated[
+    GroupInvitation, Depends(get_my_group_invitation_by_group_classroom_id)
 ]
