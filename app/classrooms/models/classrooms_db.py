@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, String, Text, select
+from sqlalchemy import DateTime, Enum, Select, String, Text, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -29,6 +29,28 @@ UserClassroomStatus = Literal[
     ClassroomStatus.PAUSED,
     ClassroomStatus.FINISHED,
 ]
+
+
+class RecipientClassroomCursorSchema(BaseModel):
+    created_before: AwareDatetime | None = None
+    status: set[ClassroomStatus] | None = None
+    types: set[ClassroomKind] | None = None
+    subject_ids: set[int] | None = None
+
+
+class RecipientClassroomRequestSchema(BaseModel):
+    limit: Annotated[int, Field(gt=0, le=100)] = 50
+    cursor: RecipientClassroomCursorSchema | None = None
+
+
+class StudentClassroomSearchRequestSchema(RecipientClassroomRequestSchema):
+    # filters
+    pass
+
+
+class TutorClassroomSearchRequestSchema(RecipientClassroomRequestSchema):
+    # filters
+    pass
 
 
 class Classroom(Base):
@@ -69,6 +91,23 @@ class Classroom(Base):
             (created_at, AwareDatetime),
         ],
     )
+
+    @classmethod
+    def select_after_cursor(
+        cls, stmt: Select[Any], cursor: RecipientClassroomCursorSchema
+    ) -> Select[tuple[Any]]:
+        if cursor.created_before is not None:
+            stmt = stmt.filter(cls.created_at < cursor.created_before)
+
+        if cursor.status is not None:
+            stmt = stmt.filter(cls.status.in_(cursor.status))
+
+        if cursor.types is not None:
+            stmt = stmt.filter(cls.kind.in_(cursor.types))
+
+        if cursor.subject_ids is not None:
+            stmt = stmt.filter(cls.subject_id.in_(cursor.subject_ids))
+        return stmt
 
 
 class IndividualClassroom(Classroom):

@@ -11,8 +11,10 @@ from app.classrooms.models.classrooms_db import (
     Classroom,
     IndividualClassroom,
     StudentClassroomResponseSchema,
+    StudentClassroomSearchRequestSchema,
 )
 from app.classrooms.models.enrollments_db import Enrollment
+from app.classrooms.services import classrooms_svc
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.sqlalchemy_ext import db
@@ -24,6 +26,7 @@ router = APIRouterExt(tags=["student classrooms"])
     path="/roles/student/classrooms/",
     response_model=list[StudentClassroomResponseSchema],
     summary="List paginated student classrooms for the current user",
+    deprecated=True,
 )
 async def list_classrooms(
     auth_data: AuthorizationData,
@@ -43,6 +46,20 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.post(
+    path="/roles/student/classrooms/searches/",
+    response_model=list[StudentClassroomResponseSchema],
+    summary="List with filters and paginated student classrooms for the current user",
+)
+async def list_classrooms_by_filter(
+    auth_data: AuthorizationData,
+    data: StudentClassroomSearchRequestSchema,
+) -> Sequence[Classroom]:
+    return await classrooms_svc.find_classrooms_paginate_by_student_id(
+        student_id=auth_data.user_id, cursor=data.cursor, limit=data.limit
+    )
 
 
 @router.get(

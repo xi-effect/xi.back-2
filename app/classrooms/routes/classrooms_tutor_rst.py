@@ -17,8 +17,10 @@ from app.classrooms.models.classrooms_db import (
     GroupClassroom,
     IndividualClassroom,
     TutorClassroomResponseSchema,
+    TutorClassroomSearchRequestSchema,
     UserClassroomStatus,
 )
+from app.classrooms.services import classrooms_svc
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -31,6 +33,7 @@ router = APIRouterExt(tags=["tutor classrooms"])
     path="/roles/tutor/classrooms/",
     response_model=list[TutorClassroomResponseSchema],
     summary="List paginated tutor classrooms for the current user",
+    deprecated=True,
 )
 async def list_classrooms(
     auth_data: AuthorizationData,
@@ -41,6 +44,19 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.post(
+    path="/roles/tutor/classrooms/searches/",
+    response_model=list[TutorClassroomResponseSchema],
+    summary="List with filters and paginated tutor classrooms for the current user",
+)
+async def list_classrooms_by_filter(
+    auth_data: AuthorizationData, data: TutorClassroomSearchRequestSchema
+) -> Sequence[Classroom]:
+    return await classrooms_svc.find_classrooms_paginate_by_tutor_id(
+        tutor_id=auth_data.user_id, cursor=data.cursor, limit=data.limit
+    )
 
 
 class SubjectResponses(Responses):
