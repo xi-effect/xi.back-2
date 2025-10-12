@@ -87,11 +87,19 @@ async def test_adding_classroom_student(
             enrollment,
             {"created_at": datetime_utc_now()},
         )
+        await enrollment.delete()
+
+        assert_contains(
+            await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id, student_id=tutorship.student_id
+            ),
+            {"active_classroom_count": tutorship.active_classroom_count + 1},
+        )
+
         assert_contains(
             await GroupClassroom.find_first_by_id(group_classroom.id),
             {"enrollments_count": group_classroom.enrollments_count + 1},
         )
-        await enrollment.delete()
 
 
 async def test_adding_classroom_student_enrollment_already_exists(
@@ -148,6 +156,7 @@ async def test_removing_classroom_student(
     active_session: ActiveSession,
     tutor_client: TestClient,
     group_classroom: GroupClassroom,
+    tutorship: Tutorship,
     enrollment: Enrollment,
 ) -> None:
     assert_nodata_response(
@@ -164,6 +173,13 @@ async def test_removing_classroom_student(
                 student_id=enrollment.student_id,
             )
             is None
+        )
+
+        assert_contains(
+            await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id, student_id=tutorship.student_id
+            ),
+            {"active_classroom_count": tutorship.active_classroom_count - 1},
         )
 
         assert_contains(
