@@ -52,6 +52,7 @@ async def test_group_classroom_creation(
             "kind": ClassroomKind.GROUP,
             "status": ClassroomStatus.ACTIVE,
             "created_at": datetime_utc_now(),
+            "enrollments_count": 0,
             **input_data,
         },
     ).json()["id"]

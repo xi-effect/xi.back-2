@@ -77,6 +77,7 @@ async def create_group_classroom(
     await validate_subject(new_subject_id=data.subject_id)
     return await GroupClassroom.create(
         tutor_id=auth_data.user_id,
+        enrollments_count=0,
         **data.model_dump(),
     )
 
