@@ -19,6 +19,7 @@ from app.classrooms.models.classrooms_db import (
     TutorClassroomResponseSchema,
     UserClassroomStatus,
 )
+from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -160,4 +161,17 @@ async def update_classroom_status(
     summary="Delete tutor's classroom by id",
 )
 async def delete_classroom(classroom: MyTutorClassroomByID) -> None:
+    match classroom:
+        case IndividualClassroom():
+            await Tutorship.update_active_classroom_by_tutor_id_and_student_id(
+                tutor_id=classroom.tutor_id,
+                student_id=classroom.student_id,
+                delta=-1,
+            )
+        case GroupClassroom():
+            await Tutorship.update_active_classroom_by_tutor_id_and_group_classroom_id(
+                tutor_id=classroom.tutor_id,
+                group_classroom_id=classroom.id,
+                delta=-1,
+            )
     await classroom.delete()

@@ -198,5 +198,10 @@ async def accept_invitation(
         tutor_id=invitation.tutor_id,
         student_id=auth_data.user_id,
     )
+    await Tutorship.update_active_classroom_by_tutor_id_and_student_id(
+        tutor_id=invitation.tutor_id,
+        student_id=auth_data.user_id,
+        delta=1,
+    )
 
     return classroom

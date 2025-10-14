@@ -162,7 +162,11 @@ async def test_individual_invitation_accepting(
                     if existing_tutorship is None
                     else existing_tutorship.created_at
                 ),
-                "active_classroom_count": 0,
+                "active_classroom_count": (
+                    1
+                    if existing_tutorship is None
+                    else existing_tutorship.active_classroom_count + 1
+                ),
             },
         )
         await tutorship.delete()
@@ -308,7 +312,11 @@ async def test_group_invitation_accepting(
                     if existing_tutorship is None
                     else existing_tutorship.created_at
                 ),
-                "active_classroom_count": 0,
+                "active_classroom_count": (
+                    1
+                    if existing_tutorship is None
+                    else existing_tutorship.active_classroom_count + 1
+                ),
             },
         )
         await tutorship.delete()
