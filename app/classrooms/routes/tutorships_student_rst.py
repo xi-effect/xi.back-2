@@ -5,9 +5,10 @@ from pydantic_marshals.base import CompositeMarshalModel
 
 from app.classrooms.dependencies.tutorships_dep import MyStudentTutorshipByIDs
 from app.classrooms.models.tutorships_db import Tutorship
-from app.common.config_bdg import users_internal_bridge
+from app.common.config_bdg import notifications_bridge, users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.user_contacts_sch import UserContactSchema
 from app.common.schemas.users_sch import UserProfileSchema
 
 router = APIRouterExt(tags=["student tutors"])
@@ -55,3 +56,16 @@ async def list_students(
 )
 async def retrieve_tutor(tutorship: MyStudentTutorshipByIDs) -> UserProfileSchema:
     return await users_internal_bridge.retrieve_user(user_id=tutorship.tutor_id)
+
+
+@router.get(
+    path="/roles/student/tutors/{tutor_id}/contacts/",
+    summary="List public contacts for a student tutor for the current user by id",
+)
+async def list_public_tutor_contacts(
+    tutorship: MyStudentTutorshipByIDs,
+) -> list[UserContactSchema]:
+    return await notifications_bridge.list_user_contacts(
+        user_id=tutorship.tutor_id,
+        public_only=True,
+    )

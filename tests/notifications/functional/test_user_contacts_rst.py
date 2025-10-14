@@ -5,7 +5,8 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.common.schemas.user_contacts_sch import UserContactKind
+from app.notifications.models.user_contacts_db import UserContact
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
@@ -25,7 +26,7 @@ async def test_user_contact_listing(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     authorized_client: TestClient,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
     is_public: bool,
 ) -> None:
     async with active_session():
@@ -80,7 +81,7 @@ async def test_updating_user_contact_visibility(
 
 async def test_updating_user_contact_visibility_user_contact_not_found(
     authorized_client: TestClient,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
 ) -> None:
     assert_response(
         authorized_client.put(

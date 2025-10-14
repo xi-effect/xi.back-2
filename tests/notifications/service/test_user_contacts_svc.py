@@ -3,7 +3,8 @@ from faker import Faker
 from pydantic_marshals.contains import assert_contains
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.common.schemas.user_contacts_sch import UserContactKind
+from app.notifications.models.user_contacts_db import UserContact
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
@@ -28,7 +29,7 @@ async def test_personal_telegram_contact_removing(
         async with active_session():
             await UserContact.create(
                 user_id=proxy_auth_data.user_id,
-                kind=ContactKind.PERSONAL_TELEGRAM,
+                kind=UserContactKind.PERSONAL_TELEGRAM,
                 **UserContactInputFactory.build_python(),
             )
 
@@ -41,7 +42,7 @@ async def test_personal_telegram_contact_removing(
         assert (
             await UserContact.find_first_by_primary_key(
                 user_id=proxy_auth_data.user_id,
-                kind=ContactKind.PERSONAL_TELEGRAM,
+                kind=UserContactKind.PERSONAL_TELEGRAM,
             )
         ) is None
 
@@ -84,7 +85,7 @@ async def test_personal_telegram_contact_syncing(
         async with active_session():
             await UserContact.create(
                 user_id=proxy_auth_data.user_id,
-                kind=ContactKind.PERSONAL_TELEGRAM,
+                kind=UserContactKind.PERSONAL_TELEGRAM,
                 **UserContactInputFactory.build_python(
                     is_public=is_existing_contact_public
                 ),
@@ -102,7 +103,7 @@ async def test_personal_telegram_contact_syncing(
             user_contact,
             {
                 "user_id": proxy_auth_data.user_id,
-                "kind": ContactKind.PERSONAL_TELEGRAM,
+                "kind": UserContactKind.PERSONAL_TELEGRAM,
                 "title": f"@{new_username}",
                 "link": f"https://t.me/{new_username}",
                 "is_public": expected_is_public,

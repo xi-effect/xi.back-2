@@ -2,8 +2,9 @@ from pydantic import BaseModel, ConfigDict
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.models.telegram_connections_db import TelegramConnection
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.notifications.models.user_contacts_db import UserContact
 
 router = APIRouterExt(tags=["notification settings"])
 
@@ -52,7 +53,7 @@ async def retrieve_notification_settings(
                 connection=telegram_connection,
                 contact=await UserContact.find_first_by_primary_key(
                     user_id=auth_data.user_id,
-                    kind=ContactKind.PERSONAL_TELEGRAM,
+                    kind=UserContactKind.PERSONAL_TELEGRAM,
                 ),
             )
         ),

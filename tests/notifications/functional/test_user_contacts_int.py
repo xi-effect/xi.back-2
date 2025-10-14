@@ -3,7 +3,8 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.common.schemas.user_contacts_sch import UserContactKind
+from app.notifications.models.user_contacts_db import UserContact
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.notifications.factories import UserContactInputFactory
@@ -24,7 +25,7 @@ async def test_user_contact_listing(
     active_session: ActiveSession,
     internal_client: TestClient,
     proxy_auth_data: ProxyAuthData,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
     public_only: bool,
     is_public: bool,
     is_listed: bool,
@@ -58,7 +59,7 @@ async def test_user_contact_creation(
     active_session: ActiveSession,
     internal_client: TestClient,
     proxy_auth_data: ProxyAuthData,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
 ) -> None:
     user_contact_input_data = UserContactInputFactory.build_json()
 
@@ -123,7 +124,7 @@ async def test_user_contact_deleting(
 async def test_user_contact_deleting_user_contact_not_found(
     internal_client: TestClient,
     proxy_auth_data: ProxyAuthData,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
 ) -> None:
     assert_response(
         internal_client.delete(

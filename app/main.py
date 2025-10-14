@@ -33,6 +33,7 @@ from app.common.config_bdg import (
     autocomplete_bridge,
     communities_bridge,
     messenger_bridge,
+    notifications_bridge,
     posts_bridge,
     storage_bridge,
     users_internal_bridge,
@@ -96,6 +97,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(autocomplete_bridge.client)
         await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(messenger_bridge.client)
+        await stack.enter_async_context(notifications_bridge.client)
         await stack.enter_async_context(posts_bridge.client)
         await stack.enter_async_context(users_internal_bridge.client)
         await stack.enter_async_context(users_public_bridge.client)

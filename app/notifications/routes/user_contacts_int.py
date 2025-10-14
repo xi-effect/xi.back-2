@@ -3,15 +3,16 @@ from collections.abc import Sequence
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.user_contacts_sch import UserContactKind, UserContactSchema
 from app.notifications.dependencies.user_contacts_dep import UserContactByPrimaryKey
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.notifications.models.user_contacts_db import UserContact
 
 router = APIRouterExt(tags=["user contacts internal"])
 
 
 @router.get(
     path="/users/{user_id}/contacts/",
-    response_model=list[UserContact.FullSchema],
+    response_model=list[UserContactSchema],
     summary="List all user contacts by user id",
 )
 async def list_user_contacts(
@@ -22,12 +23,12 @@ async def list_user_contacts(
 
 @router.put(
     path="/users/{user_id}/contacts/{contact_kind}/",
-    response_model=UserContact.FullSchema,
+    response_model=UserContactSchema,
     summary="Update user contact by user id & contact kind",
 )
 async def update_user_contact(
     user_id: int,
-    contact_kind: ContactKind,
+    contact_kind: UserContactKind,
     data: UserContact.InputSchema,
 ) -> UserContact:
     user_contact = await UserContact.find_first_by_primary_key(
