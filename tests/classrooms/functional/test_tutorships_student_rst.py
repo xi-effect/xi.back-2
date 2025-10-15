@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from random import randint
 
 import pytest
 from respx import MockRouter
@@ -12,7 +13,7 @@ from tests.common.assert_contains_ext import assert_response
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
 from tests.common.utils import remove_none_values
-from tests.factories import UserProfileFactory
+from tests.factories import UserContactFactory, UserProfileFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -112,6 +113,32 @@ async def test_tutorship_retrieving(
 
     assert_last_httpx_request(
         users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+
+async def test_tutorship_public_contacts_listing(
+    notifications_respx_mock: MockRouter,
+    student_client: TestClient,
+    tutorship: Tutorship,
+) -> None:
+    tutor_contacts_data: list[AnyJSON] = [
+        UserContactFactory.build_json() for _ in range(randint(1, 3))
+    ]
+    notifications_bridge_mock = notifications_respx_mock.get(
+        path=f"/users/{tutorship.tutor_id}/contacts/",
+        params={"public_only": True},
+    ).respond(json=tutor_contacts_data)
+
+    assert_response(
+        student_client.get(
+            f"/api/protected/classroom-service/roles/student/tutors/{tutorship.tutor_id}/contacts/",
+        ),
+        expected_json=tutor_contacts_data,
+    )
+
+    assert_last_httpx_request(
+        notifications_bridge_mock,
         expected_headers={"X-Api-Key": settings.api_key},
     )
 

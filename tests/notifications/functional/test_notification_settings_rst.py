@@ -2,11 +2,12 @@ import pytest
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
 )
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.notifications.models.user_contacts_db import UserContact
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
@@ -47,7 +48,7 @@ async def test_retrieving_notification_settings(
             personal_telegram_contact_data = UserContactInputFactory.build_json()
             await UserContact.create(
                 user_id=proxy_auth_data.user_id,
-                kind=ContactKind.PERSONAL_TELEGRAM,
+                kind=UserContactKind.PERSONAL_TELEGRAM,
                 **personal_telegram_contact_data,
             )
         else:
@@ -75,5 +76,5 @@ async def test_retrieving_notification_settings(
         await TelegramConnection.delete_by_kwargs(user_id=proxy_auth_data.user_id)
         await UserContact.delete_by_kwargs(
             user_id=proxy_auth_data.user_id,
-            kind=ContactKind.PERSONAL_TELEGRAM,
+            kind=UserContactKind.PERSONAL_TELEGRAM,
         )
