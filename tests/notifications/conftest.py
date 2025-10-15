@@ -10,12 +10,13 @@ from app.common.aiogram_ext import TelegramApp
 from app.common.config import TelegramBotSettings, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
+from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import telegram_app
 from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
 )
-from app.notifications.models.user_contacts_db import ContactKind, UserContact
+from app.notifications.models.user_contacts_db import UserContact
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_testing import (
     TelegramAppInitializer,
@@ -109,16 +110,16 @@ def telegram_connection_data(telegram_connection: TelegramConnection) -> AnyJSON
 
 
 @pytest.fixture()
-def random_contact_kind() -> ContactKind:
-    # mypy gets confused, the real type is ContactKind
-    return cast(ContactKind, random.choice(list(ContactKind)))
+def random_contact_kind() -> UserContactKind:
+    # mypy gets confused, the real type is UserContactKind
+    return cast(UserContactKind, random.choice(list(UserContactKind)))
 
 
 @pytest.fixture()
 async def user_contact(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
-    random_contact_kind: ContactKind,
+    random_contact_kind: UserContactKind,
 ) -> AsyncIterator[UserContact]:
     async with active_session():
         user_contact = await UserContact.create(

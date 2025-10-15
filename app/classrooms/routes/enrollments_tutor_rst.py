@@ -4,9 +4,12 @@ from app.classrooms.dependencies.classrooms_tutor_dep import (
     MyTutorGroupClassroomByID,
 )
 from app.classrooms.dependencies.tutorships_dep import MyTutorTutorshipByIDs
+from app.classrooms.models.classrooms_db import GroupClassroom
 from app.classrooms.models.enrollments_db import Enrollment
+from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config_bdg import users_internal_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.responses import LimitedListResponses
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
 router = APIRouterExt(tags=["classroom enrollments"])
@@ -44,7 +47,7 @@ class ExistingEnrollmentResponses(Responses):
 @router.post(
     path="/roles/tutor/group-classrooms/{classroom_id}/students/{student_id}/",
     status_code=status.HTTP_201_CREATED,
-    responses=ExistingEnrollmentResponses.responses(),
+    responses=Responses.chain(ExistingEnrollmentResponses, LimitedListResponses),
     summary="Add a tutor student to a group classroom by ids",
 )
 async def add_classroom_student(
@@ -60,9 +63,20 @@ async def add_classroom_student(
     ):
         raise ExistingEnrollmentResponses.ENROLLMENT_ALREADY_EXISTS
 
+    if group_classroom.is_full:
+        raise LimitedListResponses.QUANTITY_EXCEEDED
+
+    await GroupClassroom.update_enrollments_count_by_group_classroom_id(
+        group_classroom_id=group_classroom.id, delta=1
+    )
     await Enrollment.create(
         group_classroom_id=group_classroom.id,
         student_id=tutorship.student_id,
+    )
+    await Tutorship.update_active_classroom_by_tutor_id_and_student_id(
+        tutor_id=tutorship.tutor_id,
+        student_id=tutorship.student_id,
+        delta=1,
     )
 
 
@@ -86,4 +100,14 @@ async def remove_classroom_student(
     )
     if enrollment is None:
         raise EnrollmentResponses.ENROLLMENT_NOT_FOUND
+
+    await GroupClassroom.update_enrollments_count_by_group_classroom_id(
+        group_classroom_id=group_classroom.id,
+        delta=-1,
+    )
     await enrollment.delete()
+    await Tutorship.update_active_classroom_by_tutor_id_and_student_id(
+        tutor_id=group_classroom.tutor_id,
+        student_id=student_id,
+        delta=-1,
+    )

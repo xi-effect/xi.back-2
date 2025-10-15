@@ -4,9 +4,10 @@ from typing import Self
 
 from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CheckConstraint, DateTime, select
+from sqlalchemy import CheckConstraint, DateTime, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.classrooms.models.enrollments_db import Enrollment
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
@@ -68,3 +69,29 @@ class Tutorship(Base):
         if created_before is not None:
             stmt = stmt.filter(cls.created_at < created_before)
         return await db.get_all(stmt.order_by(cls.created_at.desc()).limit(limit))
+
+    @classmethod
+    async def update_active_classroom_by_tutor_id_and_group_classroom_id(
+        cls, tutor_id: int, group_classroom_id: int, delta: int
+    ) -> None:
+        stmt = (
+            update(cls)
+            .filter(
+                cls.tutor_id == tutor_id,
+                Enrollment.student_id == cls.student_id,
+                Enrollment.group_classroom_id == group_classroom_id,
+            )
+            .values(active_classroom_count=cls.active_classroom_count + delta)
+        )
+        await db.session.execute(stmt)
+
+    @classmethod
+    async def update_active_classroom_by_tutor_id_and_student_id(
+        cls, tutor_id: int, student_id: int, delta: int
+    ) -> None:
+        stmt = (
+            update(cls)
+            .filter_by(tutor_id=tutor_id, student_id=student_id)
+            .values(active_classroom_count=cls.active_classroom_count + delta)
+        )
+        await db.session.execute(stmt)

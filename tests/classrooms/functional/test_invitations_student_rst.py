@@ -9,6 +9,7 @@ from starlette.testclient import TestClient
 from app.classrooms.models.classrooms_db import (
     ClassroomKind,
     ClassroomStatus,
+    GroupClassroom,
     IndividualClassroom,
 )
 from app.classrooms.models.enrollments_db import Enrollment
@@ -23,6 +24,7 @@ from app.common.schemas.users_sch import UserProfileSchema
 from app.common.utils.datetime import datetime_utc_now
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
 from tests.factories import UserProfileFactory
@@ -160,7 +162,11 @@ async def test_individual_invitation_accepting(
                     if existing_tutorship is None
                     else existing_tutorship.created_at
                 ),
-                "active_classroom_count": 0,
+                "active_classroom_count": (
+                    1
+                    if existing_tutorship is None
+                    else existing_tutorship.active_classroom_count + 1
+                ),
             },
         )
         await tutorship.delete()
@@ -270,6 +276,7 @@ async def test_group_invitation_accepting(
     tutor_user_id: int,
     student_user_id: int,
     student_client: TestClient,
+    group_classroom: GroupClassroom,
     group_classroom_student_data: AnyJSON,
     group_invitation: GroupInvitation,
     existing_tutorship: Tutorship | None,
@@ -281,7 +288,10 @@ async def test_group_invitation_accepting(
             f"/api/protected/classroom-service/roles/student"
             f"/invitations/{group_invitation.code}/usages/",
         ),
-        expected_json=group_classroom_student_data,
+        expected_json={
+            **group_classroom_student_data,
+            "enrollments_count": group_classroom.enrollments_count + 1,
+        },
     )
 
     async with active_session() as session:
@@ -302,7 +312,11 @@ async def test_group_invitation_accepting(
                     if existing_tutorship is None
                     else existing_tutorship.created_at
                 ),
-                "active_classroom_count": 0,
+                "active_classroom_count": (
+                    1
+                    if existing_tutorship is None
+                    else existing_tutorship.active_classroom_count + 1
+                ),
             },
         )
         await tutorship.delete()
@@ -313,6 +327,25 @@ async def test_group_invitation_accepting(
         )
         assert enrollment is not None
         await enrollment.delete()
+
+
+async def test_group_invitation_accepting_enrollments_count_quantity_exceeded(
+    mock_stack: MockStack,
+    student_client: TestClient,
+    group_invitation: GroupInvitation,
+) -> None:
+    mock_stack.enter_mock(
+        GroupClassroom, "max_enrollments_count_per_group", property_value=0
+    )
+
+    assert_response(
+        student_client.post(
+            "/api/protected/classroom-service/roles/student"
+            f"/invitations/{group_invitation.code}/usages/",
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Quantity exceeded"},
+    )
 
 
 async def test_group_invitation_accepting_has_already_joined(

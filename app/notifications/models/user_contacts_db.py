@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from enum import StrEnum
 from typing import Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -7,17 +6,16 @@ from sqlalchemy import Enum, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
-
-
-class ContactKind(StrEnum):
-    PERSONAL_TELEGRAM = "personal-telegram"
+from app.common.schemas.user_contacts_sch import UserContactKind
 
 
 class UserContact(Base):
     __tablename__ = "user_contacts"
 
     user_id: Mapped[int] = mapped_column(primary_key=True)
-    kind: Mapped[ContactKind] = mapped_column(Enum(ContactKind), primary_key=True)
+    kind: Mapped[UserContactKind] = mapped_column(
+        Enum(UserContactKind, name="contactkind"), primary_key=True
+    )
 
     link: Mapped[str] = mapped_column(Text)
     title: Mapped[str] = mapped_column(String(100))
@@ -31,7 +29,7 @@ class UserContact(Base):
 
     @classmethod
     async def find_first_by_primary_key(
-        cls, user_id: int, kind: ContactKind
+        cls, user_id: int, kind: UserContactKind
     ) -> Self | None:
         return await cls.find_first_by_kwargs(user_id=user_id, kind=kind)
 

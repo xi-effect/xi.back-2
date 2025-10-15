@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from freezegun import freeze_time
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
@@ -12,7 +13,10 @@ from app.classrooms.models.classrooms_db import (
     ClassroomKind,
     ClassroomStatus,
     GroupClassroom,
+    IndividualClassroom,
 )
+from app.classrooms.models.enrollments_db import Enrollment
+from app.classrooms.models.tutorships_db import Tutorship
 from app.common.utils.datetime import datetime_utc_now
 from tests.classrooms.factories import (
     ClassroomStatusUpdateFactory,
@@ -52,6 +56,7 @@ async def test_group_classroom_creation(
             "kind": ClassroomKind.GROUP,
             "status": ClassroomStatus.ACTIVE,
             "created_at": datetime_utc_now(),
+            "enrollments_count": 0,
             **input_data,
         },
     ).json()["id"]
@@ -178,20 +183,51 @@ async def test_classroom_status_updating(
         assert any_classroom.status is new_status
 
 
-async def test_classroom_deleting(
+async def test_individual_classroom_deleting(
     active_session: ActiveSession,
     tutor_client: TestClient,
-    any_classroom: AnyClassroom,
-    any_classroom_tutor_data: AnyJSON,
+    tutorship: Tutorship,
+    individual_classroom: IndividualClassroom,
 ) -> None:
     assert_nodata_response(
         tutor_client.delete(
-            f"/api/protected/classroom-service/roles/tutor/classrooms/{any_classroom.id}/",
+            f"/api/protected/classroom-service/roles/tutor/classrooms/{individual_classroom.id}/",
         )
     )
 
     async with active_session():
-        assert await Classroom.find_first_by_id(any_classroom.id) is None
+        assert_contains(
+            await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id, student_id=tutorship.student_id
+            ),
+            {"active_classroom_count": tutorship.active_classroom_count - 1},
+        )
+
+        assert await Classroom.find_first_by_id(individual_classroom.id) is None
+
+
+async def test_group_classroom_deleting(
+    active_session: ActiveSession,
+    tutor_client: TestClient,
+    tutorship: Tutorship,
+    group_classroom: GroupClassroom,
+    enrollment: Enrollment,
+) -> None:
+    assert_nodata_response(
+        tutor_client.delete(
+            f"/api/protected/classroom-service/roles/tutor/classrooms/{group_classroom.id}/",
+        )
+    )
+
+    async with active_session():
+        assert_contains(
+            await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id, student_id=tutorship.student_id
+            ),
+            {"active_classroom_count": tutorship.active_classroom_count - 1},
+        )
+
+        assert await Classroom.find_first_by_id(group_classroom.id) is None
 
 
 tutor_classroom_request_parametrization = pytest.mark.parametrize(

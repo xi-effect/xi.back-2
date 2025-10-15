@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, Literal
+from typing import Annotated, ClassVar, Literal
 
 from pydantic import AwareDatetime, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, String, Text, select
+from sqlalchemy import DateTime, Enum, String, Text, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -121,7 +121,10 @@ class GroupClassroom(Classroom):
         "polymorphic_load": "inline",
     }
 
+    max_enrollments_count_per_group: ClassVar[int] = 15
+
     group_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    enrollments_count: Mapped[int] = mapped_column(nullable=True)
     # TODO avatar?
 
     NameSchema = MappedModel.create(
@@ -130,14 +133,30 @@ class GroupClassroom(Classroom):
     InputSchema = NameSchema.extend(bases=[Classroom.BaseInputSchema])
     PatchSchema = InputSchema.as_patch().extend(bases=[Classroom.BasePatchSchema])
     BaseResponseSchema = NameSchema.extend(
+        columns=[enrollments_count],
         bases=[Classroom.BaseResponseSchema],
         extra_fields={"kind": (Literal[ClassroomKind.GROUP], ClassroomKind.GROUP)},
     )
     TutorResponseSchema = BaseResponseSchema.extend()
-    StudentPreviewSchema = NameSchema.extend()
+    StudentPreviewSchema = NameSchema.extend(columns=[enrollments_count])
     StudentResponseSchema = BaseResponseSchema.extend(
         bases=[Classroom.TutorIDSchema],
     )
+
+    @property
+    def is_full(self) -> bool:
+        return self.enrollments_count >= self.max_enrollments_count_per_group
+
+    @classmethod
+    async def update_enrollments_count_by_group_classroom_id(
+        cls, group_classroom_id: int, delta: int
+    ) -> None:
+        stmt = (
+            update(cls)
+            .filter_by(id=group_classroom_id)
+            .values(enrollments_count=cls.enrollments_count + delta)
+        )
+        await db.session.execute(stmt)
 
 
 AnyClassroom = IndividualClassroom | GroupClassroom
