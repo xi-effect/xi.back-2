@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, String, Text, select, update
+from sqlalchemy import DateTime, Enum, Select, String, Text, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -29,6 +29,22 @@ UserClassroomStatus = Literal[
     ClassroomStatus.PAUSED,
     ClassroomStatus.FINISHED,
 ]
+
+
+class ClassroomCursorSchema(BaseModel):
+    created_at: AwareDatetime
+
+
+class ClassroomFiltersSchema(BaseModel):
+    statuses: Annotated[set[ClassroomStatus], Field(min_length=1)] | None = None
+    kinds: Annotated[set[ClassroomKind], Field(min_length=1)] | None = None
+    subject_ids: Annotated[set[int], Field(min_length=1, max_length=10)] | None = None
+
+
+class ClassroomSearchRequestSchema(BaseModel):
+    cursor: ClassroomCursorSchema | None = None
+    limit: Annotated[int, Field(gt=0, le=100)] = 50
+    filters: ClassroomFiltersSchema = ClassroomFiltersSchema()
 
 
 class Classroom(Base):
@@ -70,6 +86,26 @@ class Classroom(Base):
             (created_at, AwareDatetime),
         ],
     )
+
+    @classmethod
+    def select_by_search_params(
+        cls,
+        stmt: Select[Any],
+        search_params: ClassroomSearchRequestSchema,
+    ) -> Select[tuple[Any]]:
+        if search_params.filters.statuses is not None:
+            stmt = stmt.filter(cls.status.in_(search_params.filters.statuses))
+
+        if search_params.filters.kinds is not None:
+            stmt = stmt.filter(cls.kind.in_(search_params.filters.kinds))
+
+        if search_params.filters.subject_ids is not None:
+            stmt = stmt.filter(cls.subject_id.in_(search_params.filters.subject_ids))
+
+        if search_params.cursor is not None:
+            stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
+
+        return stmt.order_by(cls.created_at.desc()).limit(search_params.limit)
 
 
 class IndividualClassroom(Classroom):
