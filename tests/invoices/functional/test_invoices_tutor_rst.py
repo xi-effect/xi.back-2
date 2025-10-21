@@ -31,7 +31,8 @@ async def test_tutor_recipient_invoice_retrieving(
 ) -> None:
     assert_response(
         tutor_client.get(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/"
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/"
         ),
         expected_json={
             "invoice": invoice_data_base_schema,
@@ -51,7 +52,8 @@ async def test_tutor_recipient_invoice_updating(
 
     assert_response(
         tutor_client.patch(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/",
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/",
             json=recipient_invoice_patch_data,
         ),
         expected_json={**recipient_invoice_tutor_data, **recipient_invoice_patch_data},
@@ -67,7 +69,8 @@ async def test_tutor_recipient_invoice_unilateral_confirmation(
 
     assert_nodata_response(
         tutor_client.post(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/payment-confirmations/unilateral/",
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/unilateral/",
             json=payment_data,
         )
     )
@@ -102,7 +105,8 @@ async def test_tutor_recipient_invoice_unilaterally_invalid_confirmation_unilate
 
     assert_response(
         tutor_client.post(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/payment-confirmations/unilateral/",
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/unilateral/",
             json=payment_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -123,7 +127,8 @@ async def test_tutor_recipient_invoice_receiver_confirmation(
 
     assert_nodata_response(
         tutor_client.post(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/payment-confirmations/receiver/"
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/receiver/"
         )
     )
 
@@ -152,7 +157,8 @@ async def test_tutor_recipient_invoice_invalid_confirmation_receiver(
 
     assert_response(
         tutor_client.post(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/payment-confirmations/receiver/",
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/receiver/",
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={
@@ -168,7 +174,8 @@ async def test_tutor_recipient_invoice_deleting(
 ) -> None:
     assert_nodata_response(
         tutor_client.delete(
-            f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/"
+            "/api/protected/invoice-service/roles/tutor"
+            f"/recipient-invoices/{recipient_invoice.id}/"
         )
     )
 
@@ -206,7 +213,10 @@ async def test_tutor_recipient_invoice_not_finding(
     assert_response(
         tutor_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{deleted_recipient_invoice_id}/{path}",
+            url=(
+                f"/api/protected/invoice-service/roles/tutor"
+                f"/recipient-invoices/{deleted_recipient_invoice_id}/{path}"
+            ),
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
@@ -225,7 +235,10 @@ async def test_tutor_recipient_invoice_requesting_access_denied(
     assert_response(
         outsider_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/roles/tutor/recipient-invoices/{recipient_invoice.id}/{path}",
+            url=(
+                f"/api/protected/invoice-service/roles/tutor"
+                f"/recipient-invoices/{recipient_invoice.id}/{path}"
+            ),
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,

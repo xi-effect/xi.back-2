@@ -10,7 +10,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
-from tests.invoices.factories import InvoiceInputFactory, InvoicePatchFactory
+from tests.invoices.factories import InvoiceInputMUBFactory, InvoicePatchMUBFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -24,7 +24,7 @@ async def invoices(
     async with active_session():
         invoices: list[Invoice] = [
             await Invoice.create(
-                **InvoiceInputFactory.build_python(),
+                **InvoiceInputMUBFactory.build_python(),
                 tutor_id=tutor_id,
             )
             for _ in range(INVOICES_LIST_SIZE)
@@ -67,7 +67,7 @@ async def test_invoices_listing(
 async def test_invoice_updating(
     mub_client: TestClient, invoice: Invoice, invoice_data: AnyJSON
 ) -> None:
-    invoice_patch_data = InvoicePatchFactory.build_json()
+    invoice_patch_data = InvoicePatchMUBFactory.build_json()
     assert_response(
         mub_client.patch(
             f"/mub/invoice-service/invoices/{invoice.id}/", json=invoice_patch_data
@@ -89,7 +89,7 @@ async def test_invoice_deleting(
 @pytest.mark.parametrize(
     ("method", "body_factory"),
     [
-        pytest.param("PATCH", InvoicePatchFactory, id="patch"),
+        pytest.param("PATCH", InvoicePatchMUBFactory, id="patch"),
         pytest.param("DELETE", None, id="delete"),
     ],
 )

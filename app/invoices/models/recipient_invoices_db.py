@@ -73,6 +73,10 @@ class RecipientInvoice(Base):
     def tutor_id(self) -> int:
         return self.invoice.tutor_id
 
+    @property
+    def classroom_id(self) -> int:
+        return self.invoice.classroom_id
+
     TotalType = Annotated[Decimal, Field(ge=0, decimal_places=2)]
 
     PatchSchema = MappedModel.create(
@@ -84,7 +88,7 @@ class RecipientInvoice(Base):
     )
     BaseFullResponseSchema = MappedModel.create(
         columns=[id, (total, TotalType), status, payment_type],
-        properties=[created_at],
+        properties=[created_at, classroom_id],
     )
     TutorResponseSchema = BaseFullResponseSchema.extend(columns=[student_id])
     StudentResponseSchema = BaseFullResponseSchema.extend(properties=[tutor_id])
@@ -107,32 +111,42 @@ class RecipientInvoice(Base):
     async def find_paginated_by_tutor_id(
         cls,
         tutor_id: int,
-        cursor: RecipientInvoiceCursorSchema | None,
-        limit: int,
+        search_params: TutorInvoiceSearchRequestSchema,
+        classroom_id: int | None = None,
     ) -> Sequence[Self]:
         stmt = select(cls).join(cls.invoice).filter_by(tutor_id=tutor_id)
 
-        if cursor is not None:
-            stmt = cls.select_after_cursor(stmt=stmt, cursor=cursor)
+        if classroom_id is not None:
+            stmt = stmt.filter_by(classroom_id=classroom_id)
+
+        if search_params.cursor is not None:
+            stmt = cls.select_after_cursor(stmt=stmt, cursor=search_params.cursor)
 
         return await db.get_all(
-            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(limit=limit)
+            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(
+                limit=search_params.limit
+            )
         )
 
     @classmethod
     async def find_paginated_by_student_id(
         cls,
         student_id: int,
-        cursor: RecipientInvoiceCursorSchema | None,
-        limit: int,
+        search_params: StudentInvoiceSearchRequestSchema,
+        classroom_id: int | None = None,
     ) -> Sequence[Self]:
         stmt = select(cls).filter_by(student_id=student_id).join(cls.invoice)
 
-        if cursor is not None:
-            stmt = cls.select_after_cursor(stmt=stmt, cursor=cursor)
+        if classroom_id is not None:
+            stmt = stmt.filter_by(classroom_id=classroom_id)
+
+        if search_params.cursor is not None:
+            stmt = cls.select_after_cursor(stmt=stmt, cursor=search_params.cursor)
 
         return await db.get_all(
-            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(limit=limit)
+            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(
+                limit=search_params.limit
+            )
         )
 
 

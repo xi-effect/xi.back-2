@@ -22,6 +22,10 @@ class InvoiceInputFactory(BaseModelFactory[Invoice.InputSchema]):
     __model__ = Invoice.InputSchema
 
 
+class InvoiceInputMUBFactory(BaseModelFactory[Invoice.InputMUBSchema]):
+    __model__ = Invoice.InputMUBSchema
+
+
 class InvoiceItemInputFactory(BaseModelFactory[InvoiceItem.InputSchema]):
     __model__ = InvoiceItem.InputSchema
 
@@ -30,8 +34,8 @@ class InvoiceFormFactory(BaseModelFactory[InvoiceFormSchema]):
     __model__ = InvoiceFormSchema
 
 
-class InvoicePatchFactory(BasePatchModelFactory[Invoice.PatchSchema]):
-    __model__ = Invoice.PatchSchema
+class InvoicePatchMUBFactory(BasePatchModelFactory[Invoice.PatchMUBSchema]):
+    __model__ = Invoice.PatchMUBSchema
 
 
 class RecipientInvoicePatchFactory(BasePatchModelFactory[RecipientInvoice.PatchSchema]):

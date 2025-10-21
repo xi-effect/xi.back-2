@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from decimal import Decimal
 
 import pytest
+from pytest_lazy_fixtures import lf
 from starlette.testclient import TestClient
 
 from app.invoices.models.invoices_db import Invoice
@@ -13,7 +14,6 @@ from tests.invoices import factories
 
 pytestmark = pytest.mark.anyio
 
-
 TUTOR_INVOICE_LIST_SIZE = 5
 
 
@@ -22,6 +22,7 @@ async def recipient_invoices(
     active_session: ActiveSession,
     tutor_id: int,
     student_id: int,
+    classroom_id: int,
     total: Decimal,
 ) -> AsyncIterator[list[RecipientInvoice]]:
     recipient_invoices: list[RecipientInvoice] = []
@@ -31,6 +32,7 @@ async def recipient_invoices(
             invoice: Invoice = await Invoice.create(
                 **factories.InvoiceInputFactory.build_python(),
                 tutor_id=tutor_id,
+                classroom_id=classroom_id,
             )
             recipient_invoices.append(
                 await RecipientInvoice.create(
@@ -52,7 +54,7 @@ async def recipient_invoices(
             await recipient_invoice.invoice.delete()
 
 
-recipient_invoice_requests_parametrization = pytest.mark.parametrize(
+recipient_invoice_pagination_parametrization = pytest.mark.parametrize(
     ("offset", "limit"),
     [
         pytest.param(0, TUTOR_INVOICE_LIST_SIZE, id="start_to_end"),
@@ -65,17 +67,30 @@ recipient_invoice_requests_parametrization = pytest.mark.parametrize(
     ],
 )
 
+recipient_invoice_classroom_parametrization = pytest.mark.parametrize(
+    "classroom_id_filter",
+    [
+        pytest.param(None, id="any_classroom"),
+        pytest.param(lf("classroom_id"), id="specific_classroom"),
+    ],
+)
 
-@recipient_invoice_requests_parametrization
+
+@recipient_invoice_pagination_parametrization
+@recipient_invoice_classroom_parametrization
 async def test_tutor_invoices_listing(
     tutor_client: TestClient,
     recipient_invoices: list[RecipientInvoice],
     offset: int,
     limit: int,
+    classroom_id_filter: int | None,
 ) -> None:
+    prefix = "" if classroom_id_filter is None else f"/classrooms/{classroom_id_filter}"
+
     assert_response(
         tutor_client.post(
-            "/api/protected/invoice-service/roles/tutor/recipient-invoices/searches/",
+            "/api/protected/invoice-service/roles/tutor"
+            f"{prefix}/recipient-invoices/searches/",
             json=remove_none_values(
                 {
                     "cursor": (
@@ -101,16 +116,21 @@ async def test_tutor_invoices_listing(
     )
 
 
-@recipient_invoice_requests_parametrization
+@recipient_invoice_pagination_parametrization
+@recipient_invoice_classroom_parametrization
 async def test_student_invoices_listing(
     student_client: TestClient,
     recipient_invoices: list[RecipientInvoice],
     offset: int,
     limit: int,
+    classroom_id_filter: int | None,
 ) -> None:
+    prefix = "" if classroom_id_filter is None else f"/classrooms/{classroom_id_filter}"
+
     assert_response(
         student_client.post(
-            "/api/protected/invoice-service/roles/student/recipient-invoices/searches/",
+            "/api/protected/invoice-service/roles/student"
+            f"{prefix}/recipient-invoices/searches/",
             json=remove_none_values(
                 {
                     "cursor": (

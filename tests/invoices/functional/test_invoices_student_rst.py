@@ -28,7 +28,8 @@ async def test_student_recipient_invoice_retrieving(
 ) -> None:
     assert_response(
         student_client.get(
-            f"/api/protected/invoice-service/roles/student/recipient-invoices/{recipient_invoice.id}/"
+            "/api/protected/invoice-service/roles/student"
+            f"/recipient-invoices/{recipient_invoice.id}/"
         ),
         expected_json={
             "invoice": invoice_data_base_schema,
@@ -48,7 +49,8 @@ async def test_student_recipient_invoice_payment_confirmation(
 
     assert_nodata_response(
         student_client.post(
-            f"/api/protected/invoice-service/roles/student/recipient-invoices/{recipient_invoice.id}/payment-confirmations/sender/",
+            "/api/protected/invoice-service/roles/student"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/sender/",
             json=payment_data,
         )
     )
@@ -84,7 +86,8 @@ async def test_student_recipient_invoice_invalid_confirmation(
 
     assert_response(
         student_client.post(
-            f"/api/protected/invoice-service/roles/student/recipient-invoices/{recipient_invoice.id}/payment-confirmations/sender/",
+            "/api/protected/invoice-service/roles/student"
+            f"/recipient-invoices/{recipient_invoice.id}/payment-confirmations/sender/",
             json=payment_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
@@ -119,7 +122,10 @@ async def test_student_recipient_invoice_not_finding(
     assert_response(
         student_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/roles/student/recipient-invoices/{deleted_recipient_invoice_id}/{path}",
+            url=(
+                "/api/protected/invoice-service/roles/student"
+                f"/recipient-invoices/{deleted_recipient_invoice_id}/{path}"
+            ),
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
@@ -138,7 +144,10 @@ async def test_student_recipient_invoice_requesting_access_denied(
     assert_response(
         outsider_client.request(
             method=method,
-            url=f"/api/protected/invoice-service/roles/student/recipient-invoices/{recipient_invoice.id}/{path}",
+            url=(
+                f"/api/protected/invoice-service/roles/student"
+                f"/recipient-invoices/{recipient_invoice.id}/{path}"
+            ),
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
