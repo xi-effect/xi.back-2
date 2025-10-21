@@ -62,6 +62,7 @@ class Classroom(Base):
     )
     BasePatchSchema = BaseInputSchema.as_patch()
     TutorIDSchema = MappedModel.create(columns=[tutor_id])
+    ClassroomIDSchema = MappedModel.create(columns=[id])
     BaseResponseSchema = BaseInputSchema.extend(
         columns=[
             id,
@@ -138,7 +139,10 @@ class GroupClassroom(Classroom):
         extra_fields={"kind": (Literal[ClassroomKind.GROUP], ClassroomKind.GROUP)},
     )
     TutorResponseSchema = BaseResponseSchema.extend()
-    StudentPreviewSchema = NameSchema.extend(columns=[enrollments_count])
+    StudentPreviewSchema = NameSchema.extend(
+        columns=[enrollments_count],
+        bases=[Classroom.ClassroomIDSchema],
+    )
     StudentResponseSchema = BaseResponseSchema.extend(
         bases=[Classroom.TutorIDSchema],
     )
