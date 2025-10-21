@@ -1,4 +1,5 @@
 from app.common.bridges.autocomplete_bdg import AutocompleteBridge
+from app.common.bridges.classrooms_bdg import ClassroomsBridge
 from app.common.bridges.communities_bdg import CommunitiesBridge
 from app.common.bridges.messenger_bdg import MessengerBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
@@ -8,6 +9,7 @@ from app.common.bridges.users_internal_bdg import UsersInternalBridge
 from app.common.bridges.users_public_bdg import UsersPublicBridge
 
 autocomplete_bridge = AutocompleteBridge()
+classrooms_bridge = ClassroomsBridge()
 communities_bridge = CommunitiesBridge()
 messenger_bridge = MessengerBridge()
 notifications_bridge = NotificationsBridge()

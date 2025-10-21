@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from app.classrooms.routes import (
+    classrooms_int,
     classrooms_student_rst,
     classrooms_tutor_rst,
     enrollments_tutor_rst,
@@ -43,6 +44,7 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/classroom-service",
 )
+internal_router.include_router(classrooms_int.router)
 
 
 @asynccontextmanager

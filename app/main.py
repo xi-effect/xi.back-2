@@ -31,6 +31,7 @@ from app import (
 from app.common.config import Base, engine, livekit, sessionmaker, settings
 from app.common.config_bdg import (
     autocomplete_bridge,
+    classrooms_bridge,
     communities_bridge,
     messenger_bridge,
     notifications_bridge,
@@ -95,6 +96,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
     async with AsyncExitStack() as stack:
         await stack.enter_async_context(autocomplete_bridge.client)
+        await stack.enter_async_context(classrooms_bridge.client)
         await stack.enter_async_context(communities_bridge.client)
         await stack.enter_async_context(messenger_bridge.client)
         await stack.enter_async_context(notifications_bridge.client)
