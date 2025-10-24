@@ -31,7 +31,7 @@ async def list_invoices(
     response_model=Invoice.ResponseSchema,
     summary="Update invoice by id",
 )
-async def patch_invoice(invoice: InvoiceById, data: Invoice.PatchSchema) -> Invoice:
+async def patch_invoice(invoice: InvoiceById, data: Invoice.PatchMUBSchema) -> Invoice:
     invoice.update(**data.model_dump(exclude_defaults=True))
     return invoice
 

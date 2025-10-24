@@ -15,6 +15,7 @@ class Invoice(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tutor_id: Mapped[int] = mapped_column(index=True)
+    classroom_id: Mapped[int] = mapped_column(index=True)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
@@ -25,9 +26,10 @@ class Invoice(Base):
     CommentType = Annotated[str | None, Field(min_length=1, max_length=1000)]
 
     InputSchema = MappedModel.create(columns=[(comment, CommentType)])
+    InputMUBSchema = InputSchema.extend(columns=[classroom_id])
     IDSchema = MappedModel.create(columns=[id])
-    PatchSchema = InputSchema.as_patch()
+    PatchMUBSchema = InputMUBSchema.as_patch()
     BaseResponseSchema = MappedModel.create(
-        columns=[created_at, (comment, CommentType)]
+        columns=[classroom_id, created_at, (comment, CommentType)]
     )
     ResponseSchema = BaseResponseSchema.extend(columns=[id])
