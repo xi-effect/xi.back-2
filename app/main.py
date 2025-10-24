@@ -9,7 +9,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
-from tmexio import TMEXIO, AsyncSocket, EventException, EventName, PydanticPackager
+from tmexio import AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
 from app import (
@@ -28,7 +28,7 @@ from app import (
     supbot,
     users,
 )
-from app.common.config import Base, engine, livekit, sessionmaker, settings
+from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
 from app.common.config_bdg import (
     autocomplete_bridge,
     classrooms_bridge,
@@ -47,13 +47,6 @@ from app.common.tmexio_ext import remove_ping_pong_logs
 from app.communities.rooms import user_room
 from app.communities.store import user_id_to_sids
 
-tmex = TMEXIO(
-    async_mode="asgi",
-    transports=["websocket"],
-    cors_allowed_origins="*",
-    logger=True,
-    engineio_logger=True,
-)
 tmex.include_router(communities.event_router)
 tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
