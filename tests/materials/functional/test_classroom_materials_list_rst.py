@@ -85,7 +85,7 @@ classroom_material_list_role_parametrization = pytest.mark.parametrize(
     ],
 )
 async def test_tutor_classroom_materials_listing(
-    tutor_client: TestClient,
+    authorized_client: TestClient,
     classroom_id: int,
     classroom_materials: Sequence[ClassroomMaterial],
     role: Literal["student", "tutor"],
@@ -105,7 +105,7 @@ async def test_tutor_classroom_materials_listing(
     cursor = None if offset is None else filtered_classroom_materials[offset]
 
     assert_response(
-        tutor_client.post(
+        authorized_client.post(
             f"/api/protected/material-service/roles/{role}"
             f"/classrooms/{classroom_id}/materials/searches/",
             json={
@@ -139,7 +139,7 @@ async def test_tutor_classroom_materials_listing(
     ],
 )
 async def test_tutor_classroom_materials_listing_any_kind(
-    tutor_client: TestClient,
+    authorized_client: TestClient,
     classroom_id: int,
     classroom_materials: Sequence[ClassroomMaterial],
     role: Literal["student", "tutor"],
@@ -158,7 +158,7 @@ async def test_tutor_classroom_materials_listing_any_kind(
     cursor = None if offset is None else filtered_classroom_materials[offset]
 
     assert_response(
-        tutor_client.post(
+        authorized_client.post(
             f"/api/protected/material-service/roles/{role}"
             f"/classrooms/{classroom_id}/materials/searches/",
             json={
