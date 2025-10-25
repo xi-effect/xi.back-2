@@ -5,6 +5,7 @@ from app.common.bridges.messenger_bdg import MessengerBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.bridges.posts_bdg import PostsBridge
 from app.common.bridges.storage_bdg import StorageBridge
+from app.common.bridges.storage_v2_bdg import StorageV2Bridge
 from app.common.bridges.users_internal_bdg import UsersInternalBridge
 from app.common.bridges.users_public_bdg import UsersPublicBridge
 
@@ -17,3 +18,4 @@ posts_bridge = PostsBridge()
 users_internal_bridge = UsersInternalBridge()
 users_public_bridge = UsersPublicBridge()
 storage_bridge = StorageBridge()
+storage_v2_bridge = StorageV2Bridge()

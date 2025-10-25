@@ -38,6 +38,7 @@ from app.common.config_bdg import (
     notifications_bridge,
     posts_bridge,
     storage_bridge,
+    storage_v2_bridge,
     users_internal_bridge,
     users_public_bridge,
 )
@@ -98,6 +99,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(users_internal_bridge.client)
         await stack.enter_async_context(users_public_bridge.client)
         await stack.enter_async_context(storage_bridge.client)
+        await stack.enter_async_context(storage_v2_bridge.client)
 
         await stack.enter_async_context(livekit)
 
