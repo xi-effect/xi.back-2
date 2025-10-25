@@ -9,7 +9,7 @@ from app.storage.models.access_groups_db import AccessGroup
 
 
 class YDoc(Base):
-    __tablename__ = "ydocs"
+    __tablename__ = "ydocs_old"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     access_group_id: Mapped[UUID] = mapped_column(

@@ -25,6 +25,7 @@ from app import (
     posts,
     scheduler,
     storage,
+    storage_v2,
     supbot,
     users,
 )
@@ -149,6 +150,7 @@ app.include_router(pochta.api_router)
 app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage.api_router)
+app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)
 app.include_router(classrooms.api_router)
 app.include_router(users.api_router)
