@@ -1,0 +1,246 @@
+from random import randint
+from typing import Any
+from uuid import uuid4
+
+import pytest
+from freezegun import freeze_time
+from pydantic_marshals.contains import assert_contains
+from respx import MockRouter
+from starlette import status
+from starlette.testclient import TestClient
+
+from app.common.config import settings, storage_token_provider
+from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.storage_sch import (
+    StorageItemKind,
+    StorageTokenPayloadSchema,
+    YDocAccessLevel,
+)
+from app.common.utils.datetime import datetime_utc_now
+from app.materials.models.materials_db import ClassroomMaterial
+from tests.common.active_session import ActiveSession
+from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.polyfactory_ext import BaseModelFactory
+from tests.common.respx_ext import assert_last_httpx_request
+from tests.common.types import AnyJSON
+from tests.materials import factories
+
+pytestmark = pytest.mark.anyio
+
+
+@freeze_time()
+async def test_material_creation(
+    active_session: ActiveSession,
+    storage_v2_respx_mock: MockRouter,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+) -> None:
+    access_group_id = uuid4()
+    ydoc_id = uuid4()
+
+    create_access_group_mock = storage_v2_respx_mock.post("/access-groups/").respond(
+        status_code=status.HTTP_201_CREATED, json={"id": str(access_group_id)}
+    )
+    create_ydoc_mock = storage_v2_respx_mock.post(
+        f"/access-groups/{access_group_id}/ydocs/"
+    ).respond(status_code=status.HTTP_201_CREATED, json={"id": str(ydoc_id)})
+
+    input_data = factories.ClassroomMaterialInputFactory.build_json()
+    material_id: int = assert_response(
+        tutor_client.post(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_id}/materials/",
+            json=input_data,
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            **input_data,
+            "id": int,
+            "created_at": datetime_utc_now(),
+            "updated_at": datetime_utc_now(),
+        },
+    ).json()["id"]
+
+    assert_last_httpx_request(
+        create_access_group_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+    assert_last_httpx_request(
+        create_ydoc_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+    async with active_session():
+        classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
+        assert classroom_material is not None
+        assert_contains(
+            classroom_material,
+            {
+                "classroom_id": classroom_id,
+                "access_group_id": access_group_id,
+                "content_id": ydoc_id,
+            },
+        )
+        await classroom_material.delete()
+
+
+async def test_material_retrieving(
+    tutor_client: TestClient,
+    classroom_material: ClassroomMaterial,
+    classroom_material_data: AnyJSON,
+) -> None:
+    assert_response(
+        tutor_client.get(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_material.classroom_id}"
+            f"/materials/{classroom_material.id}/"
+        ),
+        expected_json=classroom_material_data,
+    )
+
+
+@freeze_time()
+async def test_material_storage_item_retrieving(
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_material: ClassroomMaterial,
+) -> None:
+    storage_token_payload = StorageTokenPayloadSchema(
+        access_group_id=classroom_material.access_group_id,
+        user_id=tutor_user_id,
+        can_upload_files=True,
+        can_read_files=True,
+        ydoc_access_level=YDocAccessLevel.READ_WRITE,
+    )
+    storage_token: str = storage_token_provider.serialize_and_sign(
+        storage_token_payload
+    )
+
+    assert_response(
+        tutor_client.get(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_material.classroom_id}"
+            f"/materials/{classroom_material.id}/storage-item/"
+        ),
+        expected_json={
+            "kind": StorageItemKind.YDOC,
+            "access_group_id": classroom_material.access_group_id,
+            "ydoc_id": classroom_material.content_id,
+            "storage_token": storage_token,
+        },
+    )
+
+
+@freeze_time()
+async def test_material_updating(
+    tutor_client: TestClient,
+    classroom_material: ClassroomMaterial,
+    classroom_material_data: AnyJSON,
+) -> None:
+    patch_data = factories.ClassroomMaterialPatchFactory.build_json()
+
+    assert_response(
+        tutor_client.patch(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_material.classroom_id}"
+            f"/materials/{classroom_material.id}/",
+            json=patch_data,
+        ),
+        expected_json={
+            **classroom_material_data,
+            **patch_data,
+            "updated_at": datetime_utc_now(),
+        },
+    )
+
+
+async def test_material_deleting(
+    active_session: ActiveSession,
+    storage_v2_respx_mock: MockRouter,
+    tutor_auth_data: ProxyAuthData,
+    tutor_client: TestClient,
+    classroom_material: ClassroomMaterial,
+) -> None:
+    delete_access_group_mock = storage_v2_respx_mock.delete(
+        f"/access-groups/{classroom_material.access_group_id}/"
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
+
+    assert_nodata_response(
+        tutor_client.delete(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_material.classroom_id}"
+            f"/materials/{classroom_material.id}/"
+        )
+    )
+
+    assert_last_httpx_request(
+        delete_access_group_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+    async with active_session():
+        assert await ClassroomMaterial.find_first_by_id(classroom_material.id) is None
+
+
+classroom_material_tutor_request_parametrization = pytest.mark.parametrize(
+    ("method", "postfix", "body_factory"),
+    [
+        pytest.param("GET", "/", None, id="retrieve"),
+        pytest.param("GET", "/storage-item/", None, id="retrieve-storage-item"),
+        pytest.param(
+            "PATCH", "/", factories.ClassroomMaterialPatchFactory, id="update"
+        ),
+        pytest.param("DELETE", "/", None, id="delete"),
+    ],
+)
+
+
+@classroom_material_tutor_request_parametrization
+async def test_material_access_denied(
+    tutor_client: TestClient,
+    classroom_material: ClassroomMaterial,
+    method: str,
+    postfix: str,
+    body_factory: type[BaseModelFactory[Any]] | None,
+) -> None:
+    other_classroom_id: int = randint(
+        classroom_material.classroom_id + 1, classroom_material.classroom_id + 1000
+    )
+
+    assert_response(
+        tutor_client.request(
+            method=method,
+            url=(
+                "/api/protected/material-service/roles/tutor"
+                f"/classrooms/{other_classroom_id}"
+                f"/materials/{classroom_material.id}{postfix}"
+            ),
+            json=body_factory and body_factory.build_json(),
+        ),
+        expected_code=status.HTTP_403_FORBIDDEN,
+        expected_json={"detail": "Material access denied"},
+    )
+
+
+@classroom_material_tutor_request_parametrization
+async def test_material_not_finding(
+    tutor_client: TestClient,
+    classroom_id: int,
+    deleted_classroom_material_id: int,
+    method: str,
+    postfix: str,
+    body_factory: type[BaseModelFactory[Any]] | None,
+) -> None:
+    assert_response(
+        tutor_client.request(
+            method=method,
+            url=(
+                "/api/protected/material-service/roles/tutor"
+                f"/classrooms/{classroom_id}"
+                f"/materials/{deleted_classroom_material_id}{postfix}"
+            ),
+            json=body_factory and body_factory.build_json(),
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Material not found"},
+    )

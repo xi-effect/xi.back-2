@@ -24,6 +24,10 @@ class StorageV2Bridge:
     async def create_access_group(self) -> Response:
         return await self.client.post("/access-groups/")
 
+    async def delete_access_group(self, access_group_id: str) -> None:
+        response = await self.client.delete(f"/access-groups/{access_group_id}/")
+        response.raise_for_status()
+
     @validate_json_response(TypeAdapter(YDocMetaSchema))
     async def create_ydoc(self, access_group_id: str) -> Response:
         return await self.client.post(f"/access-groups/{access_group_id}/ydocs/")

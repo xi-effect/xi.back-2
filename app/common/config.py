@@ -158,7 +158,7 @@ sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(AsyncAttrs, DeclarativeBase, MappingBase):
-    __tablename__: str
+    __tablename__: str | None
     __abstract__: bool
 
     metadata = db_meta
