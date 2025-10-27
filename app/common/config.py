@@ -3,7 +3,7 @@ from pathlib import Path
 
 from aiosmtplib import SMTP
 from cryptography.fernet import Fernet
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, PostgresDsn, RedisDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
@@ -110,7 +110,8 @@ class Settings(BaseSettings):
     def storage_path(self) -> Path:
         return self.base_path / self.storage_folder
 
-    postgres_host: str = "localhost:5432"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
     postgres_username: str = "test"
     postgres_password: str = "test"
     postgres_database: str = "test"
@@ -118,18 +119,31 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def postgres_dsn(self) -> str:
-        return (
-            "postgresql+psycopg://"
-            f"{self.postgres_username}"
-            f":{self.postgres_password}"
-            f"@{self.postgres_host}"
-            f"/{self.postgres_database}"
-        )
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.postgres_username,
+            password=self.postgres_password,
+            host=self.postgres_host,
+            port=self.postgres_port,
+            path=self.postgres_database,
+        ).unicode_string()
 
     postgres_schema: str | None = None
     postgres_automigrate: bool = True
     postgres_echo: bool = True
     postgres_pool_recycle: int = 280
+
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+
+    @computed_field
+    @property
+    def redis_faststream_dsn(self) -> str:
+        return RedisDsn.build(
+            scheme="redis",
+            host=self.redis_host,
+            port=self.redis_port,
+        ).unicode_string()
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
