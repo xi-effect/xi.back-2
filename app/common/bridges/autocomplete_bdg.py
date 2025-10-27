@@ -1,14 +1,14 @@
-from httpx import AsyncClient
 from pydantic import TypeAdapter
 from starlette import status
 
+from app.common.bridges.base_bdg import BaseBridge
 from app.common.config import settings
 from app.common.schemas.autocomplete_sch import SubjectSchema
 
 
-class AutocompleteBridge:
+class AutocompleteBridge(BaseBridge):
     def __init__(self) -> None:
-        self.client = AsyncClient(
+        super().__init__(
             base_url=f"{settings.bridge_base_url}/internal/autocomplete-service",
             headers={"X-Api-Key": settings.api_key},
         )

@@ -33,18 +33,7 @@ from app import (
     users,
 )
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
-from app.common.config_bdg import (
-    autocomplete_bridge,
-    classrooms_bridge,
-    communities_bridge,
-    messenger_bridge,
-    notifications_bridge,
-    posts_bridge,
-    storage_bridge,
-    storage_v2_bridge,
-    users_internal_bridge,
-    users_public_bridge,
-)
+from app.common.config_bdg import all_bridges
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
@@ -111,16 +100,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
-        await stack.enter_async_context(autocomplete_bridge.client)
-        await stack.enter_async_context(classrooms_bridge.client)
-        await stack.enter_async_context(communities_bridge.client)
-        await stack.enter_async_context(messenger_bridge.client)
-        await stack.enter_async_context(notifications_bridge.client)
-        await stack.enter_async_context(posts_bridge.client)
-        await stack.enter_async_context(users_internal_bridge.client)
-        await stack.enter_async_context(users_public_bridge.client)
-        await stack.enter_async_context(storage_bridge.client)
-        await stack.enter_async_context(storage_v2_bridge.client)
+        for bridge in all_bridges:
+            await bridge.setup(exit_stack=stack, broker=faststream.broker)
 
         await stack.enter_async_context(livekit)
 

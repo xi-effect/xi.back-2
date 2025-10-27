@@ -1,14 +1,15 @@
-from httpx import AsyncClient, Response
+from httpx import Response
 from pydantic import TypeAdapter
 
+from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import validate_json_response
 from app.common.config import settings
 from app.common.schemas.user_contacts_sch import UserContactSchema
 
 
-class NotificationsBridge:
+class NotificationsBridge(BaseBridge):
     def __init__(self) -> None:
-        self.client = AsyncClient(
+        super().__init__(
             base_url=f"{settings.bridge_base_url}/internal/notification-service",
             headers={"X-Api-Key": settings.api_key},
         )

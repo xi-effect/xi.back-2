@@ -1,6 +1,7 @@
-from httpx import AsyncClient, Response
+from httpx import Response
 from pydantic import BaseModel, TypeAdapter
 
+from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import validate_json_response
 from app.common.config import settings
 from app.common.schemas.messenger_sch import ChatAccessKind
@@ -12,9 +13,9 @@ class ChatMetaSchema(BaseModel):
     related_id: str
 
 
-class MessengerBridge:
+class MessengerBridge(BaseBridge):
     def __init__(self) -> None:
-        self.client = AsyncClient(
+        super().__init__(
             base_url=f"{settings.bridge_base_url}/internal/messenger-service",
             headers={"X-Api-Key": settings.api_key},
         )
