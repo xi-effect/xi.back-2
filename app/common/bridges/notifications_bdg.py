@@ -4,6 +4,7 @@ from pydantic import TypeAdapter
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import validate_json_response
 from app.common.config import settings
+from app.common.schemas.notifications_sch import NotificationInputSchema
 from app.common.schemas.user_contacts_sch import UserContactSchema
 
 
@@ -21,4 +22,10 @@ class NotificationsBridge(BaseBridge):
         return await self.client.get(
             f"/users/{user_id}/contacts/",
             params={"public_only": public_only},
+        )
+
+    async def send_notification(self, data: NotificationInputSchema) -> None:
+        await self.broker.publish(
+            message=data.model_dump(mode="json"),
+            stream=settings.notifications_send_stream_name,
         )
