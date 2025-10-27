@@ -135,6 +135,7 @@ class Settings(BaseSettings):
 
     redis_host: str = "localhost"
     redis_port: int = 6379
+    redis_faststream_db: int = 0
 
     @computed_field
     @property
@@ -143,7 +144,10 @@ class Settings(BaseSettings):
             scheme="redis",
             host=self.redis_host,
             port=self.redis_port,
+            path=str(self.redis_faststream_db),
         ).unicode_string()
+
+    redis_consumer_name: str = "local"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"

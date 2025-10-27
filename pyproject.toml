@@ -37,6 +37,7 @@ discord-webhook = {extras = ["async"], version = "^1.3.1"}
 aiogram = "^3.4.1"
 aiosmtplib = "^3.0.2"
 itsdangerous = "^2.2.0"
+faststream = {extras = ["redis"], version = "^0.6.2"}
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"

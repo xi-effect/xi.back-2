@@ -24,6 +24,7 @@ pytest_plugins = (
     "tests.common.active_session",
     "tests.common.aiogram_testing",
     "tests.common.faker_ext",
+    "tests.common.faststream_ext",
     "tests.common.id_provider",
     "tests.common.livekit_testing",
     "tests.common.mock_stack",
