@@ -8,9 +8,9 @@ from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ig
 )
 from fastapi.testclient import TestClient
 
-from app.common.config import settings
+from app.common.config import settings, tmex
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.main import app, tmex
+from app.main import app
 from tests import factories
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
@@ -59,6 +59,11 @@ def internal_client(client: TestClient) -> TestClient:
 @pytest.fixture()
 def proxy_auth_data() -> ProxyAuthData:
     return factories.ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def authorized_user_id(proxy_auth_data: ProxyAuthData) -> int:
+    return proxy_auth_data.user_id
 
 
 @pytest.fixture()

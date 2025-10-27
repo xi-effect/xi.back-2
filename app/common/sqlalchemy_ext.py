@@ -6,7 +6,8 @@ from collections.abc import Sequence
 from contextvars import ContextVar
 from typing import Any, Self
 
-from sqlalchemy import Row, Select, delete, func, select
+from pydantic import TypeAdapter
+from sqlalchemy import JSON, Dialect, Row, Select, TypeDecorator, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 if sys.platform == "win32":
@@ -115,3 +116,21 @@ sqlalchemy_naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",  # noqa: WPS323
     "pk": "pk_%(table_name)s",  # noqa: WPS323
 }
+
+
+class PydanticJSONType[T](TypeDecorator[T]):
+    impl = JSON
+
+    def __init__(self, type_adapter: TypeAdapter[T]) -> None:
+        super().__init__()
+        self.type_adapter = type_adapter
+
+    def process_bind_param(self, value: T | None, dialect: Dialect) -> Any:
+        if value is None:
+            return None
+        return self.type_adapter.dump_python(value, mode="json")
+
+    def process_result_value(self, value: Any, dialect: Dialect) -> T | None:
+        if value is None:
+            return None
+        return self.type_adapter.validate_python(value)

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.common.cyptography import CryptographyProvider
+from app.common.fastapi_tmexio_ext import TMEXIOExt
 from app.common.livekit_ext import LiveKit
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
@@ -184,4 +185,12 @@ password_reset_cryptography = CryptographyProvider(
 email_confirmation_cryptography = CryptographyProvider(
     settings.email_confirmation_keys.keys,
     encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
+)
+
+tmex = TMEXIOExt(
+    async_mode="asgi",
+    transports=["websocket"],
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=True,
 )
