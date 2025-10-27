@@ -96,6 +96,7 @@ faststream = RedisRouter(
     settings.redis_faststream_dsn,
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
+faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
 
 
 async def reinit_database() -> None:  # pragma: no cover

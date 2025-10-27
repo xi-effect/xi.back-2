@@ -149,6 +149,8 @@ class Settings(BaseSettings):
 
     redis_consumer_name: str = "local"
 
+    notifications_send_stream_name: str = "notifications.send"
+
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
     livekit_api_secret: str = "secret"

@@ -1,3 +1,3 @@
-from app.notifications.main import api_router
+from app.notifications.main import api_router, stream_router
 
-__all__ = ["api_router"]
+__all__ = ["api_router", "stream_router"]

@@ -127,7 +127,11 @@ class TMEXIOTestClient:
     def reset_event_iteration(self) -> None:
         self.event_iterator = iter(self.events)
 
-    def assert_next_event(self, expected_name: str, expected_data: TypeChecker) -> None:
+    def assert_next_event(
+        self,
+        expected_name: str,
+        expected_data: TypeChecker,
+    ) -> TMEXIOEvent:
         event = next(self.event_iterator, None)
         if event is None:
             raise AssertionError("Next event not found")
@@ -136,6 +140,8 @@ class TMEXIOTestClient:
             {"name": event.name, "data": event.data},
             {"name": expected_name, "data": expected_data},
         )
+
+        return event
 
     def assert_no_more_events(self) -> None:
         assert list(self.event_iterator) == []
