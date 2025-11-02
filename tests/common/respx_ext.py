@@ -73,6 +73,15 @@ def storage_respx_mock() -> Iterator[MockRouter]:
 
 
 @pytest.fixture()
+def storage_v2_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(
+        base_url=f"{settings.bridge_base_url}/internal/storage-service/v2"
+    )
+    with mock_router:
+        yield mock_router
+
+
+@pytest.fixture()
 def users_internal_respx_mock() -> Iterator[MockRouter]:
     mock_router: MockRouter = mock(
         base_url=f"{settings.bridge_base_url}/internal/user-service"

@@ -11,7 +11,9 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.common.cyptography import CryptographyProvider
 from app.common.fastapi_tmexio_ext import TMEXIOExt
+from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
+from app.common.schemas.storage_sch import StorageTokenPayloadSchema
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
 
@@ -78,6 +80,9 @@ class Settings(BaseSettings):
     )
     telegram_connection_token_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 5
+    )
+    storage_token_keys: FernetSettings = FernetSettings(
+        encryption_ttl=60 * 60 * 24,
     )
 
     demo_webhook_url: str | None = None
@@ -153,7 +158,7 @@ sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(AsyncAttrs, DeclarativeBase, MappingBase):
-    __tablename__: str
+    __tablename__: str | None
     __abstract__: bool
 
     metadata = db_meta
@@ -185,6 +190,11 @@ password_reset_cryptography = CryptographyProvider(
 email_confirmation_cryptography = CryptographyProvider(
     settings.email_confirmation_keys.keys,
     encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
+)
+storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
+    secret_keys=settings.storage_token_keys.keys,
+    encryption_ttl=settings.storage_token_keys.encryption_ttl,
+    payload_schema=StorageTokenPayloadSchema,
 )
 
 tmex = TMEXIOExt(

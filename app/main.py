@@ -18,6 +18,7 @@ from app import (
     communities,
     conferences,
     invoices,
+    materials,
     messenger,
     notifications,
     payments,
@@ -25,6 +26,7 @@ from app import (
     posts,
     scheduler,
     storage,
+    storage_v2,
     supbot,
     users,
 )
@@ -37,6 +39,7 @@ from app.common.config_bdg import (
     notifications_bridge,
     posts_bridge,
     storage_bridge,
+    storage_v2_bridge,
     users_internal_bridge,
     users_public_bridge,
 )
@@ -97,6 +100,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await stack.enter_async_context(users_internal_bridge.client)
         await stack.enter_async_context(users_public_bridge.client)
         await stack.enter_async_context(storage_bridge.client)
+        await stack.enter_async_context(storage_v2_bridge.client)
 
         await stack.enter_async_context(livekit)
 
@@ -142,6 +146,7 @@ app.include_router(autocomplete.api_router)
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(conferences.api_router)
 app.include_router(invoices.api_router)
+app.include_router(materials.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
 app.include_router(payments.api_router)
@@ -149,6 +154,7 @@ app.include_router(pochta.api_router)
 app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage.api_router)
+app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)
 app.include_router(classrooms.api_router)
 app.include_router(users.api_router)
