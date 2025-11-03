@@ -1,6 +1,7 @@
 import random
 from collections.abc import AsyncIterator
 from typing import cast
+from uuid import UUID
 
 import pytest
 from faker import Faker
@@ -12,6 +13,8 @@ from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
 from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import telegram_app
+from app.notifications.models.notifications_db import Notification
+from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.models.telegram_connections_db import (
     TelegramConnection,
     TelegramConnectionStatus,
@@ -74,6 +77,61 @@ def initialized_telegram_app(
     return initialize_telegram_app(
         telegram_app=telegram_app,
     )
+
+
+@pytest.fixture()
+async def notification(active_session: ActiveSession) -> Notification:
+    async with active_session():
+        return await Notification.create(
+            payload=factories.NotificationSimpleInputFactory.build().payload
+        )
+
+
+@pytest.fixture()
+async def notification_data(notification: Notification) -> AnyJSON:
+    return Notification.ResponseSchema.model_validate(
+        notification, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_notification_id(
+    active_session: ActiveSession, notification: Notification
+) -> UUID:
+    async with active_session():
+        await notification.delete()
+    return notification.id
+
+
+@pytest.fixture()
+async def recipient_notification(
+    active_session: ActiveSession,
+    authorized_user_id: int,
+    notification: Notification,
+) -> RecipientNotification:
+    async with active_session():
+        return await RecipientNotification.create(
+            notification=notification,
+            recipient_user_id=authorized_user_id,
+        )
+
+
+@pytest.fixture()
+async def recipient_notification_data(
+    recipient_notification: RecipientNotification,
+) -> AnyJSON:
+    return RecipientNotification.ResponseSchema.model_validate(
+        recipient_notification, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_recipient_notification_id(
+    active_session: ActiveSession, recipient_notification: RecipientNotification
+) -> UUID:
+    async with active_session():
+        await recipient_notification.delete()
+    return recipient_notification.notification_id
 
 
 @pytest.fixture()

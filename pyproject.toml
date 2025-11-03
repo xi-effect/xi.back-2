@@ -37,6 +37,7 @@ discord-webhook = {extras = ["async"], version = "^1.3.1"}
 aiogram = "^3.4.1"
 aiosmtplib = "^3.0.2"
 itsdangerous = "^2.2.0"
+faststream = {extras = ["redis"], version = "^0.6.2"}
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
@@ -149,6 +150,7 @@ omit = [
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
   "app/common/tmexio_ext.py",
-  "app/setup_ci.py",
+  "app/common/bridges/base_bdg.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
+  "app/setup_ci.py",
 ]

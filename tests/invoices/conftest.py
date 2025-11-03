@@ -1,4 +1,5 @@
 from decimal import Decimal
+from random import randint
 
 import pytest
 from faker import Faker
@@ -93,10 +94,16 @@ async def deleted_invoice_item_template_id(
 
 
 @pytest.fixture()
+def classroom_id() -> int:
+    return randint(1, 10000)
+
+
+@pytest.fixture()
 async def invoice(active_session: ActiveSession, tutor_id: int) -> Invoice:
     async with active_session():
         return await Invoice.create(
-            **factories.InvoiceInputFactory.build_python(), tutor_id=tutor_id
+            **factories.InvoiceInputMUBFactory.build_python(),
+            tutor_id=tutor_id,
         )
 
 
@@ -108,17 +115,17 @@ async def invoice_data(invoice: Invoice) -> AnyJSON:
 
 
 @pytest.fixture()
-async def deleted_invoice_id(active_session: ActiveSession, invoice: Invoice) -> int:
-    async with active_session():
-        await invoice.delete()
-    return invoice.id
-
-
-@pytest.fixture()
 def invoice_data_base_schema(invoice: Invoice) -> AnyJSON:
     return Invoice.BaseResponseSchema.model_validate(
         invoice, from_attributes=True
     ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_invoice_id(active_session: ActiveSession, invoice: Invoice) -> int:
+    async with active_session():
+        await invoice.delete()
+    return invoice.id
 
 
 @pytest.fixture()

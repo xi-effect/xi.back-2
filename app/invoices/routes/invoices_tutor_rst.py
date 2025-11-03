@@ -4,6 +4,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from starlette import status
 
+from app.common.config_bdg import classrooms_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.invoices.dependencies.recipient_invoices_dep import (
@@ -32,34 +33,60 @@ async def list_tutor_recipient_invoices(
     data: TutorInvoiceSearchRequestSchema,
 ) -> Sequence[RecipientInvoice]:
     return await RecipientInvoice.find_paginated_by_tutor_id(
-        tutor_id=auth_data.user_id, cursor=data.cursor, limit=data.limit
+        tutor_id=auth_data.user_id,
+        search_params=data,
+    )
+
+
+@router.post(
+    path="/roles/tutor/classrooms/{classroom_id}/recipient-invoices/searches/",
+    response_model=list[RecipientInvoice.TutorResponseSchema],
+    summary="List paginated tutor recipient invoices in a classroom by id",
+)
+async def list_tutor_classroom_recipient_invoices(
+    auth_data: AuthorizationData,
+    data: TutorInvoiceSearchRequestSchema,
+    classroom_id: int,
+) -> Sequence[RecipientInvoice]:
+    return await RecipientInvoice.find_paginated_by_tutor_id(
+        tutor_id=auth_data.user_id,
+        search_params=data,
+        classroom_id=classroom_id,
     )
 
 
 class InvoiceFormSchema(BaseModel):
     invoice: Invoice.InputSchema
     items: Annotated[list[InvoiceItem.InputSchema], Field(min_length=1, max_length=10)]
-    student_ids: Annotated[list[int], Field(min_length=1, max_length=20)]
+    student_ids: Annotated[list[int] | None, Field(min_length=1, max_length=20)] = None
 
 
 class InvoiceFormResponses(Responses):
-    TARGET_IS_THE_SOURCE = status.HTTP_409_CONFLICT, "Target is the source"
+    STUDENT_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Student not found"
 
 
 @router.post(
-    path="/roles/tutor/invoices/",
+    path="/roles/tutor/classrooms/{classroom_id}/invoices/",
     status_code=status.HTTP_201_CREATED,
     response_model=Invoice.IDSchema,
     responses=InvoiceFormResponses.responses(),
-    summary="Create a new invoice",
+    summary="Create a new invoice in a classroom by id",
 )
 async def create_invoice(
     data: InvoiceFormSchema,
     auth_data: AuthorizationData,
+    classroom_id: int,
 ) -> Invoice:
-    if auth_data.user_id in data.student_ids:
-        raise InvoiceFormResponses.TARGET_IS_THE_SOURCE
-    # TODO check if creator is allowed to send invoices to recipients (51967762)
+    classroom_student_ids = await classrooms_bridge.list_classroom_student_ids(
+        classroom_id=classroom_id
+    )
+    included_student_ids: list[int]
+    if data.student_ids is None:
+        included_student_ids = classroom_student_ids
+    elif set(data.student_ids).issubset(set(classroom_student_ids)):
+        included_student_ids = data.student_ids
+    else:
+        raise InvoiceFormResponses.STUDENT_NOT_FOUND
 
     total = sum(
         invoice_item_data.price * invoice_item_data.quantity
@@ -69,6 +96,7 @@ async def create_invoice(
     invoice = await Invoice.create(
         **data.invoice.model_dump(),
         tutor_id=auth_data.user_id,
+        classroom_id=classroom_id,
     )
 
     for position, invoice_item_data in enumerate(data.items):
@@ -78,7 +106,7 @@ async def create_invoice(
             position=position,
         )
 
-    for student_id in data.student_ids:
+    for student_id in included_student_ids:
         await RecipientInvoice.create(
             invoice_id=invoice.id,
             student_id=student_id,

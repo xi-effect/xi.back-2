@@ -32,7 +32,7 @@ UserClassroomStatus = Literal[
 
 
 class Classroom(Base):
-    __tablename__ = "classrooms"
+    __tablename__: str | None = "classrooms"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tutor_id: Mapped[int] = mapped_column(index=True)
@@ -62,6 +62,7 @@ class Classroom(Base):
     )
     BasePatchSchema = BaseInputSchema.as_patch()
     TutorIDSchema = MappedModel.create(columns=[tutor_id])
+    ClassroomIDSchema = MappedModel.create(columns=[id])
     BaseResponseSchema = BaseInputSchema.extend(
         columns=[
             id,
@@ -72,7 +73,7 @@ class Classroom(Base):
 
 
 class IndividualClassroom(Classroom):
-    __tablename__ = None  # type: ignore[assignment]  # sqlalchemy magic
+    __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": ClassroomKind.INDIVIDUAL,
         "polymorphic_load": "inline",
@@ -115,7 +116,7 @@ class IndividualClassroom(Classroom):
 
 
 class GroupClassroom(Classroom):
-    __tablename__ = None  # type: ignore[assignment]  # sqlalchemy magic
+    __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": ClassroomKind.GROUP,
         "polymorphic_load": "inline",
@@ -138,7 +139,10 @@ class GroupClassroom(Classroom):
         extra_fields={"kind": (Literal[ClassroomKind.GROUP], ClassroomKind.GROUP)},
     )
     TutorResponseSchema = BaseResponseSchema.extend()
-    StudentPreviewSchema = NameSchema.extend(columns=[enrollments_count])
+    StudentPreviewSchema = NameSchema.extend(
+        columns=[enrollments_count],
+        bases=[Classroom.ClassroomIDSchema],
+    )
     StudentResponseSchema = BaseResponseSchema.extend(
         bases=[Classroom.TutorIDSchema],
     )

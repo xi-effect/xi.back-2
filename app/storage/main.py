@@ -39,7 +39,7 @@ async def lifespan(_: Any) -> AsyncIterator[None]:
     yield
 
 
-api_router = APIRouterExt(lifespan=lifespan)
+api_router = APIRouterExt(lifespan=lifespan, deprecated=True)
 api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(internal_router)

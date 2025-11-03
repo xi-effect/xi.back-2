@@ -1,7 +1,18 @@
+from pydantic import BaseModel
+
+from app.common.schemas.notifications_sch import AnyNotificationPayloadSchema
 from app.notifications.models.telegram_connections_db import TelegramConnection
 from app.notifications.models.user_contacts_db import UserContact
 from app.notifications.routes.telegram_connections_mub import TelegramMessageSchema
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
+
+
+class NotificationSimpleInputSchema(BaseModel):
+    payload: AnyNotificationPayloadSchema
+
+
+class NotificationSimpleInputFactory(BaseModelFactory[NotificationSimpleInputSchema]):
+    __model__ = NotificationSimpleInputSchema
 
 
 class TelegramConnectionInputMUBFactory(

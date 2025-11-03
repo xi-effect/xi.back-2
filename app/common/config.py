@@ -3,14 +3,17 @@ from pathlib import Path
 
 from aiosmtplib import SMTP
 from cryptography.fernet import Fernet
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field, PostgresDsn, RedisDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
 from app.common.cyptography import CryptographyProvider
+from app.common.fastapi_tmexio_ext import TMEXIOExt
+from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
+from app.common.schemas.storage_sch import StorageTokenPayloadSchema
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
 
@@ -78,6 +81,9 @@ class Settings(BaseSettings):
     telegram_connection_token_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 5
     )
+    storage_token_keys: FernetSettings = FernetSettings(
+        encryption_ttl=60 * 60 * 24,
+    )
 
     demo_webhook_url: str | None = None
     vacancy_webhook_url: str | None = None
@@ -104,7 +110,8 @@ class Settings(BaseSettings):
     def storage_path(self) -> Path:
         return self.base_path / self.storage_folder
 
-    postgres_host: str = "localhost:5432"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
     postgres_username: str = "test"
     postgres_password: str = "test"
     postgres_database: str = "test"
@@ -112,18 +119,37 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def postgres_dsn(self) -> str:
-        return (
-            "postgresql+psycopg://"
-            f"{self.postgres_username}"
-            f":{self.postgres_password}"
-            f"@{self.postgres_host}"
-            f"/{self.postgres_database}"
-        )
+        return PostgresDsn.build(
+            scheme="postgresql+psycopg",
+            username=self.postgres_username,
+            password=self.postgres_password,
+            host=self.postgres_host,
+            port=self.postgres_port,
+            path=self.postgres_database,
+        ).unicode_string()
 
     postgres_schema: str | None = None
     postgres_automigrate: bool = True
     postgres_echo: bool = True
     postgres_pool_recycle: int = 280
+
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_faststream_db: int = 0
+
+    @computed_field
+    @property
+    def redis_faststream_dsn(self) -> str:
+        return RedisDsn.build(
+            scheme="redis",
+            host=self.redis_host,
+            port=self.redis_port,
+            path=str(self.redis_faststream_db),
+        ).unicode_string()
+
+    redis_consumer_name: str = "local"
+
+    notifications_send_stream_name: str = "notifications.send"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
@@ -152,7 +178,7 @@ sessionmaker = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 class Base(AsyncAttrs, DeclarativeBase, MappingBase):
-    __tablename__: str
+    __tablename__: str | None
     __abstract__: bool
 
     metadata = db_meta
@@ -184,4 +210,17 @@ password_reset_cryptography = CryptographyProvider(
 email_confirmation_cryptography = CryptographyProvider(
     settings.email_confirmation_keys.keys,
     encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
+)
+storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
+    secret_keys=settings.storage_token_keys.keys,
+    encryption_ttl=settings.storage_token_keys.encryption_ttl,
+    payload_schema=StorageTokenPayloadSchema,
+)
+
+tmex = TMEXIOExt(
+    async_mode="asgi",
+    transports=["websocket"],
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=True,
 )

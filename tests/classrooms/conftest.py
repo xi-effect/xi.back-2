@@ -7,6 +7,7 @@ import pytest
 from faker import Faker
 from starlette.testclient import TestClient
 
+from app.classrooms.models.classroom_notes_db import ClassroomNote
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     ClassroomKind,
@@ -376,3 +377,26 @@ async def any_invitation(
             return group_invitation
         case _:
             assert_never(parametrized_classroom_kind)
+
+
+@pytest.fixture()
+async def classroom_note(
+    active_session: ActiveSession,
+    any_classroom: AnyClassroom,
+) -> ClassroomNote:
+    async with active_session():
+        return await ClassroomNote.create(
+            classroom_id=any_classroom.id,
+            access_group_id=uuid4(),
+            ydoc_id=uuid4(),
+        )
+
+
+@pytest.fixture()
+async def deleted_classroom_note_id(
+    active_session: ActiveSession,
+    classroom_note: ClassroomNote,
+) -> int:
+    async with active_session():
+        await classroom_note.delete()
+    return classroom_note.classroom_id

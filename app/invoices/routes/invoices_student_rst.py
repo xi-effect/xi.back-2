@@ -29,7 +29,25 @@ async def list_student_recipient_invoices(
     data: StudentInvoiceSearchRequestSchema,
 ) -> Sequence[RecipientInvoice]:
     return await RecipientInvoice.find_paginated_by_student_id(
-        student_id=auth_data.user_id, cursor=data.cursor, limit=data.limit
+        student_id=auth_data.user_id,
+        search_params=data,
+    )
+
+
+@router.post(
+    path="/roles/student/classrooms/{classroom_id}/recipient-invoices/searches/",
+    response_model=list[RecipientInvoice.StudentResponseSchema],
+    summary="List paginated student recipient invoices in a classroom by id",
+)
+async def list_student_classroom_recipient_invoices(
+    auth_data: AuthorizationData,
+    data: StudentInvoiceSearchRequestSchema,
+    classroom_id: int,
+) -> Sequence[RecipientInvoice]:
+    return await RecipientInvoice.find_paginated_by_student_id(
+        student_id=auth_data.user_id,
+        search_params=data,
+        classroom_id=classroom_id,
     )
 
 

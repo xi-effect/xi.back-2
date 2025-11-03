@@ -10,7 +10,7 @@ from app.common.schemas.storage_sch import StorageAccessGroupKind
 
 
 class AccessGroup(Base):
-    __tablename__ = "access_groups"
+    __tablename__ = "access_groups_old"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 

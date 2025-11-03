@@ -12,13 +12,13 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.datetime import datetime_utc_now
 
-router = APIRouterExt(tags=["tutor materials"])
+router = APIRouterExt(tags=["tutor materials"], deprecated=True)
 
 
 @router.get(
     path="/roles/tutor/materials/",
     response_model=list[Material.ResponseSchema],
-    summary="List paginated tutor materials for the current user",
+    summary="Use materials service instead",
 )
 async def list_materials(
     auth_data: AuthorizationData,
@@ -38,7 +38,7 @@ async def list_materials(
     path="/roles/tutor/materials/",
     status_code=status.HTTP_201_CREATED,
     response_model=Material.ResponseSchema,
-    summary="Create a new tutor material for the current user",
+    summary="Use materials service instead",
 )
 async def create_material(
     auth_data: AuthorizationData, input_data: Material.InputSchema
@@ -51,7 +51,7 @@ async def create_material(
 @router.get(
     path="/roles/tutor/materials/{material_id}/",
     response_model=Material.ResponseSchema,
-    summary="Retrieve tutor material by id",
+    summary="Use materials service instead",
 )
 async def retrieve_material(material: MaterialByID) -> Material:
     material.update(last_opened_at=datetime_utc_now())
@@ -61,7 +61,7 @@ async def retrieve_material(material: MaterialByID) -> Material:
 @router.patch(
     path="/roles/tutor/materials/{material_id}/",
     response_model=Material.ResponseSchema,
-    summary="Update tutor material by id",
+    summary="Use materials service instead",
 )
 async def patch_material(
     material: MaterialByID,
@@ -76,7 +76,7 @@ async def patch_material(
 @router.delete(
     path="/roles/tutor/materials/{material_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete tutor material by id",
+    summary="Use materials service instead",
 )
 async def delete_material(material: MaterialByID) -> None:
     await materials_svc.delete_material(material=material)
