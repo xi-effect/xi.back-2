@@ -24,11 +24,29 @@ services:
       timeout: 60s
       retries: 5
 
+  redis:
+    image: redis:8.2.2-alpine
+    volumes:
+      - type: tmpfs
+        target: /data
+    ports:
+      - target: 6379
+        host_ip: 127.0.0.1
+        published: 6379
+    healthcheck:
+      test: "redis-cli ping | grep PONG"
+      start_period: 60s
+      interval: 10s
+      timeout: 60s
+      retries: 5
+
   alembic:
     profiles:
       - migration
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     build:
       context: .
@@ -41,11 +59,12 @@ services:
         source: ./alembic.ini
         target: /backend/alembic.ini
     environment:
-      postgres_host: db:5432
+      postgres_host: db
       postgres_username: test
       postgres_password: test
       postgres_database: test
       postgres_schema: xi_back_2
+      redis_host: redis
     entrypoint: sh
 
   api:
@@ -80,8 +99,10 @@ services:
     environment:
       WATCHFILES_FORCE_POLLING: true
       bridge_base_url: http://localhost:8000
+      postgres_host: db
       postgres_username: test
       postgres_password: test
       postgres_database: test
       postgres_schema: xi_back_2
       # postgres_automigrate: false
+      redis_host: redis

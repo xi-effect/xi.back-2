@@ -4,6 +4,8 @@ from typing import Annotated, Any
 
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
+from faststream import BaseMiddleware, StreamMessage
+from faststream.redis.fastapi import RedisRouter
 from pydantic import ValidationError
 from starlette import status
 from starlette.requests import Request
@@ -31,18 +33,7 @@ from app import (
     users,
 )
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
-from app.common.config_bdg import (
-    autocomplete_bridge,
-    classrooms_bridge,
-    communities_bridge,
-    messenger_bridge,
-    notifications_bridge,
-    posts_bridge,
-    storage_bridge,
-    storage_v2_bridge,
-    users_internal_bridge,
-    users_public_bridge,
-)
+from app.common.config_bdg import all_bridges
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
@@ -79,6 +70,24 @@ async def handle_other_events(  # TODO (38980978) pragma: no cover
     return f"Unknown event: '{event_name}'"
 
 
+class FastStreamDatabaseSessionMiddleware(BaseMiddleware):
+    async def consume_scope(
+        self,
+        call_next: Callable[[Any], Awaitable[Any]],
+        msg: StreamMessage[Any],
+    ) -> Any:
+        async with sessionmaker.begin() as session:
+            session_context.set(session)
+            return await call_next(msg)
+
+
+faststream = RedisRouter(
+    settings.redis_faststream_dsn,
+    middlewares=[FastStreamDatabaseSessionMiddleware],
+)
+faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
+
+
 async def reinit_database() -> None:  # pragma: no cover
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -91,16 +100,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await reinit_database()
 
     async with AsyncExitStack() as stack:
-        await stack.enter_async_context(autocomplete_bridge.client)
-        await stack.enter_async_context(classrooms_bridge.client)
-        await stack.enter_async_context(communities_bridge.client)
-        await stack.enter_async_context(messenger_bridge.client)
-        await stack.enter_async_context(notifications_bridge.client)
-        await stack.enter_async_context(posts_bridge.client)
-        await stack.enter_async_context(users_internal_bridge.client)
-        await stack.enter_async_context(users_public_bridge.client)
-        await stack.enter_async_context(storage_bridge.client)
-        await stack.enter_async_context(storage_v2_bridge.client)
+        for bridge in all_bridges:
+            await bridge.setup(exit_stack=stack, broker=faststream.broker)
 
         await stack.enter_async_context(livekit)
 
@@ -139,6 +140,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(faststream)
 app.mount("/socket.io/", tmex.build_asgi_app())
 
 include_unused_services = not settings.production_mode

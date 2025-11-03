@@ -2,6 +2,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from faststream.redis import RedisRouter
+
 from app.common.config import settings
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
@@ -12,6 +14,7 @@ from app.notifications.routes import (
     notification_settings_rst,
     notifications_mub,
     notifications_rst,
+    notifications_sub,
     telegram_connections_mub,
     telegram_connections_rst,
     telegram_connections_tgm,
@@ -22,6 +25,9 @@ from app.notifications.routes import (
 )
 
 telegram_app.include_router(telegram_connections_tgm.router)
+
+stream_router = RedisRouter()
+stream_router.include_router(notifications_sub.router)
 
 outside_router = APIRouterExt(prefix="/api/public/notification-service")
 outside_router.include_router(telegram_webhook_rst.router)

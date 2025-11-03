@@ -11,9 +11,7 @@ class NotificationSimpleInputSchema(BaseModel):
     payload: AnyNotificationPayloadSchema
 
 
-class NotificationSimpleInputFactory(
-    BasePatchModelFactory[NotificationSimpleInputSchema]
-):
+class NotificationSimpleInputFactory(BaseModelFactory[NotificationSimpleInputSchema]):
     __model__ = NotificationSimpleInputSchema
 
 

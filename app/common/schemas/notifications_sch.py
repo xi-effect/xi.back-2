@@ -30,14 +30,14 @@ class InvitationAcceptanceNotificationPayloadSchema(BaseModel):
 
 
 class EnrollmentNotificationPayloadSchema(BaseModel):
-    kind: Literal[NotificationKind.ENROLLMENT_CREATED_V1,]
+    kind: Literal[NotificationKind.ENROLLMENT_CREATED_V1]
 
     classroom_id: int
     student_id: int
 
 
 class ClassroomNotificationPayloadSchema(BaseModel):
-    kind: Literal[NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1,]
+    kind: Literal[NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1]
 
     classroom_id: int
 
