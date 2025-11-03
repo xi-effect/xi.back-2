@@ -22,17 +22,6 @@ pytestmark = pytest.mark.anyio
             )
             for onboarding_stage in OnboardingStage
         ],
-        # users_rst
-        pytest.param(
-            "GET",
-            "/users/by-id/1/profile/",
-            id="get-profile-by-id",
-        ),
-        pytest.param(
-            "GET",
-            "/users/by-username/1/profile/",
-            id="get-profile-by-username",
-        ),
         # current_users_rst
         pytest.param(
             "GET",

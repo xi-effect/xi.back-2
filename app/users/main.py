@@ -20,7 +20,6 @@ from app.users.routes import (
     sessions_rst,
     users_int,
     users_mub,
-    users_rst,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/user-service")
@@ -34,7 +33,6 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/user-service",
 )
 authorized_router.include_router(onboarding_rst.router)
-authorized_router.include_router(users_rst.router)
 authorized_router.include_router(current_user_rst.router)
 authorized_router.include_router(avatar_rst.router)
 authorized_router.include_router(sessions_rst.router)

@@ -31,13 +31,6 @@ async def get_user_data(user: AuthorizedUser) -> User:
 
 
 @router.patch(
-    "/users/current/profile/",
-    deprecated=True,
-    response_model=User.FullSchema,
-    responses=UsernameResponses.responses(),
-    summary="Use PATCH /users/current/ instead",
-)
-@router.patch(
     "/users/current/",
     response_model=User.FullSchema,
     responses=UsernameResponses.responses(),
