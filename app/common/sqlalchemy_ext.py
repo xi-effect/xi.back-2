@@ -9,6 +9,7 @@ from typing import Any, Self
 from pydantic import TypeAdapter
 from sqlalchemy import JSON, Dialect, Row, Select, TypeDecorator, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.dml import ReturningInsert
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -40,7 +41,7 @@ class DBController:
     async def get_count(self, stmt: Select[tuple[int]]) -> int:
         return (await self.session.execute(stmt)).scalar_one()
 
-    async def get_all(self, stmt: Select[Any]) -> Sequence[Any]:
+    async def get_all(self, stmt: Select[Any] | ReturningInsert[Any]) -> Sequence[Any]:
         return (await self.session.execute(stmt)).scalars().all()
 
     async def get_paginated(
