@@ -9,7 +9,6 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from app.common.cyptography import CryptographyProvider
 from app.common.fastapi_tmexio_ext import TMEXIOExt
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
@@ -203,14 +202,6 @@ smtp_client: SMTP | None = (
     )
 )
 
-password_reset_cryptography = CryptographyProvider(
-    settings.password_reset_keys.keys,
-    encryption_ttl=settings.password_reset_keys.encryption_ttl,
-)
-email_confirmation_cryptography = CryptographyProvider(
-    settings.email_confirmation_keys.keys,
-    encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
-)
 storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
     secret_keys=settings.storage_token_keys.keys,
     encryption_ttl=settings.storage_token_keys.encryption_ttl,
