@@ -17,7 +17,7 @@ from app.common.schemas.storage_sch import (
     YDocAccessLevel,
 )
 from app.common.utils.datetime import datetime_utc_now
-from app.materials.models.materials_db import ClassroomMaterial
+from app.materials.models.materials_db import ClassroomMaterial, TutorMaterial
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.polyfactory_ext import BaseModelFactory
@@ -57,6 +57,7 @@ async def test_material_creation(
         expected_json={
             **input_data,
             "id": int,
+            "access_kind": "classroom",
             "created_at": datetime_utc_now(),
             "updated_at": datetime_utc_now(),
         },
@@ -83,6 +84,102 @@ async def test_material_creation(
             },
         )
         await classroom_material.delete()
+
+
+@freeze_time()
+async def test_tutor_material_to_classroom_duplication(
+    active_session: ActiveSession,
+    storage_v2_respx_mock: MockRouter,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    tutor_material: TutorMaterial,
+    classroom_id: int,
+) -> None:
+    duplicate_access_group_id = uuid4()
+
+    duplicate_access_group_mock = storage_v2_respx_mock.post(
+        f"/access-groups/{tutor_material.access_group_id}/duplicates/"
+    ).respond(
+        status_code=status.HTTP_201_CREATED,
+        json={"id": str(duplicate_access_group_id)},
+    )
+
+    input_data: AnyJSON = factories.ClassroomMaterialDuplicateInputFactory.build_json()
+    material_id: int = assert_response(
+        tutor_client.post(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_id}/material-duplicates/",
+            json={
+                **input_data,
+                "source_id": tutor_material.id,
+            },
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            **input_data,
+            "id": int,
+            "access_kind": "classroom",
+            "created_at": datetime_utc_now(),
+            "updated_at": datetime_utc_now(),
+            "content_kind": tutor_material.content_kind,
+        },
+    ).json()["id"]
+
+    assert_last_httpx_request(
+        duplicate_access_group_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+    async with active_session():
+        classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
+        assert classroom_material is not None
+        assert_contains(
+            classroom_material,
+            {
+                "access_group_id": duplicate_access_group_id,
+                "content_id": tutor_material.content_id,
+                "classroom_id": classroom_id,
+            },
+        )
+        await classroom_material.delete()
+
+
+async def test_tutor_material_to_classroom_duplication_material_not_found(
+    tutor_client: TestClient,
+    deleted_tutor_material_id: int,
+    classroom_id: int,
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_id}/material-duplicates/",
+            json={
+                **factories.ClassroomMaterialDuplicateInputFactory.build_json(),
+                "source_id": deleted_tutor_material_id,
+            },
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Material not found"},
+    )
+
+
+async def test_tutor_material_to_classroom_duplication_material_access_denied(
+    outsider_client: TestClient,
+    tutor_material: TutorMaterial,
+    classroom_id: int,
+) -> None:
+    assert_response(
+        outsider_client.post(
+            "/api/protected/material-service/roles/tutor"
+            f"/classrooms/{classroom_id}/material-duplicates/",
+            json={
+                **factories.ClassroomMaterialDuplicateInputFactory.build_json(),
+                "source_id": tutor_material.id,
+            },
+        ),
+        expected_code=status.HTTP_403_FORBIDDEN,
+        expected_json={"detail": "Material access denied"},
+    )
 
 
 async def test_material_retrieving(
