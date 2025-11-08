@@ -8,6 +8,7 @@ from app.common.config import settings
 
 class AccessGroupMetaSchema(BaseModel):
     id: str
+    main_ydoc_id: str
 
 
 class YDocMetaSchema(BaseModel):
@@ -34,7 +35,3 @@ class StorageV2Bridge(BaseBridge):
     async def delete_access_group(self, access_group_id: str) -> None:
         response = await self.client.delete(f"/access-groups/{access_group_id}/")
         response.raise_for_status()
-
-    @validate_json_response(TypeAdapter(YDocMetaSchema))
-    async def create_ydoc(self, access_group_id: str) -> Response:
-        return await self.client.post(f"/access-groups/{access_group_id}/ydocs/")

@@ -35,14 +35,12 @@ async def test_material_creation(
     tutor_client: TestClient,
 ) -> None:
     access_group_id = uuid4()
-    ydoc_id = uuid4()
+    main_ydoc_id = uuid4()
 
     create_access_group_mock = storage_v2_respx_mock.post("/access-groups/").respond(
-        status_code=status.HTTP_201_CREATED, json={"id": str(access_group_id)}
+        status_code=status.HTTP_201_CREATED,
+        json={"id": str(access_group_id), "main_ydoc_id": str(main_ydoc_id)},
     )
-    create_ydoc_mock = storage_v2_respx_mock.post(
-        f"/access-groups/{access_group_id}/ydocs/"
-    ).respond(status_code=status.HTTP_201_CREATED, json={"id": str(ydoc_id)})
 
     input_data = factories.TutorMaterialInputFactory.build_json()
     material_id: int = assert_response(
@@ -63,10 +61,6 @@ async def test_material_creation(
         create_access_group_mock,
         expected_headers={"X-Api-Key": settings.api_key},
     )
-    assert_last_httpx_request(
-        create_ydoc_mock,
-        expected_headers={"X-Api-Key": settings.api_key},
-    )
 
     async with active_session():
         tutor_material = await TutorMaterial.find_first_by_id(material_id)
@@ -76,7 +70,7 @@ async def test_material_creation(
             {
                 "tutor_id": tutor_user_id,
                 "access_group_id": access_group_id,
-                "content_id": ydoc_id,
+                "content_id": main_ydoc_id,
             },
         )
         await tutor_material.delete()
