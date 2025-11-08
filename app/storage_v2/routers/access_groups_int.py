@@ -2,11 +2,8 @@ from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.storage_v2.dependencies.access_groups_dep import AccessGroupByID
-from app.storage_v2.models.access_groups_db import (
-    AccessGroup,
-    AccessGroupFile,
-    AccessGroupYDoc,
-)
+from app.storage_v2.models.access_groups_db import AccessGroup, AccessGroupFile
+from app.storage_v2.models.ydocs_db import YDoc
 
 router = APIRouterExt(tags=["access groups internal"])
 
@@ -18,7 +15,8 @@ router = APIRouterExt(tags=["access groups internal"])
     summary="Create a new access group",
 )
 async def create_access_group() -> AccessGroup:
-    return await AccessGroup.create()
+    main_ydoc = await YDoc.create()
+    return await AccessGroup.create(main_ydoc_id=main_ydoc.id)
 
 
 @router.post(
@@ -28,12 +26,9 @@ async def create_access_group() -> AccessGroup:
     summary="Duplicate an access group by id",
 )
 async def duplicate_access_group(source_access_group: AccessGroupByID) -> AccessGroup:
-    new_access_group = await AccessGroup.create()
+    new_main_ydoc_id = await YDoc.duplicate_by_id(source_access_group.main_ydoc_id)
 
-    await AccessGroupYDoc.duplicate_all_ydocs_by_access_group(
-        source_access_group_id=source_access_group.id,
-        target_access_group_id=new_access_group.id,
-    )
+    new_access_group = await AccessGroup.create(main_ydoc_id=new_main_ydoc_id)
 
     await AccessGroupFile.duplicate_all_links_by_access_group(
         source_access_group_id=source_access_group.id,

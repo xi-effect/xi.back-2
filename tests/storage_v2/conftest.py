@@ -11,15 +11,8 @@ from starlette.testclient import TestClient
 
 from app.common.config import settings, storage_token_provider
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.storage_v2.models.access_groups_db import (
-    AccessGroup,
-    AccessGroupFile,
-    AccessGroupYDoc,
-)
-from app.storage_v2.models.files_db import (
-    File,
-    FileKind,
-)
+from app.storage_v2.models.access_groups_db import AccessGroup, AccessGroupFile
+from app.storage_v2.models.files_db import File, FileKind
 from app.storage_v2.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
@@ -79,18 +72,13 @@ def outsider_internal_client(
 
 
 @pytest.fixture()
-async def access_group(active_session: ActiveSession) -> AccessGroup:
-    async with active_session():
-        return await AccessGroup.create()
-
-
-@pytest.fixture()
-def missing_access_group_id() -> UUID:
-    return uuid4()
-
-
-@pytest.fixture()
 async def ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
+    async with active_session():
+        return await YDoc.create(content=faker.binary(length=64))
+
+
+@pytest.fixture()
+async def other_ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
     async with active_session():
         return await YDoc.create(content=faker.binary(length=64))
 
@@ -101,16 +89,14 @@ def missing_ydoc_id() -> UUID:
 
 
 @pytest.fixture()
-async def access_group_ydoc(
-    active_session: ActiveSession,
-    access_group: AccessGroup,
-    ydoc: YDoc,
-) -> AccessGroupYDoc:
+async def access_group(active_session: ActiveSession, ydoc: YDoc) -> AccessGroup:
     async with active_session():
-        return await AccessGroupYDoc.create(
-            access_group_id=access_group.id,
-            ydoc_id=ydoc.id,
-        )
+        return await AccessGroup.create(main_ydoc_id=ydoc.id)
+
+
+@pytest.fixture()
+def missing_access_group_id() -> UUID:
+    return uuid4()
 
 
 @pytest.fixture()

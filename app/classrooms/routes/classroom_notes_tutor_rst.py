@@ -57,14 +57,11 @@ async def create_classroom_note(
         raise ExistingClassroomNoteResponses.CLASSROOM_NOTE_ALREADY_EXISTS
 
     access_group_data = await storage_v2_bridge.create_access_group()
-    ydoc_data = await storage_v2_bridge.create_ydoc(
-        access_group_id=access_group_data.id
-    )
 
     classroom_note = await ClassroomNote.create(
         classroom_id=classroom.id,
         access_group_id=access_group_data.id,
-        ydoc_id=ydoc_data.id,
+        ydoc_id=access_group_data.main_ydoc_id,
     )
     return generate_storage_item_data_from_classroom_note(
         classroom_note=classroom_note,

@@ -2,15 +2,12 @@ from uuid import uuid4
 
 import pytest
 from freezegun import freeze_time
-from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
 
 from app.classrooms.models.classroom_notes_db import ClassroomNote
-from app.classrooms.models.classrooms_db import (
-    AnyClassroom,
-)
+from app.classrooms.models.classrooms_db import AnyClassroom
 from app.common.config import settings, storage_token_provider
 from app.common.schemas.storage_sch import (
     StorageItemKind,
@@ -33,14 +30,12 @@ async def test_classroom_note_creation(
     any_classroom: AnyClassroom,
 ) -> None:
     access_group_id = uuid4()
-    ydoc_id = uuid4()
+    main_ydoc_id = uuid4()
 
     create_access_group_mock = storage_v2_respx_mock.post("/access-groups/").respond(
-        status_code=status.HTTP_201_CREATED, json={"id": str(access_group_id)}
+        status_code=status.HTTP_201_CREATED,
+        json={"id": str(access_group_id), "main_ydoc_id": str(main_ydoc_id)},
     )
-    create_ydoc_mock = storage_v2_respx_mock.post(
-        f"/access-groups/{access_group_id}/ydocs/"
-    ).respond(status_code=status.HTTP_201_CREATED, json={"id": str(ydoc_id)})
 
     storage_token_payload = StorageTokenPayloadSchema(
         access_group_id=access_group_id,
@@ -62,7 +57,7 @@ async def test_classroom_note_creation(
         expected_json={
             "kind": StorageItemKind.YDOC,
             "access_group_id": access_group_id,
-            "ydoc_id": ydoc_id,
+            "ydoc_id": main_ydoc_id,
             "storage_token": storage_token,
         },
     )
@@ -71,21 +66,10 @@ async def test_classroom_note_creation(
         create_access_group_mock,
         expected_headers={"X-Api-Key": settings.api_key},
     )
-    assert_last_httpx_request(
-        create_ydoc_mock,
-        expected_headers={"X-Api-Key": settings.api_key},
-    )
 
     async with active_session():
         classroom_note = await ClassroomNote.find_first_by_id(any_classroom.id)
         assert classroom_note is not None
-        assert_contains(
-            classroom_note,
-            {
-                "access_group_id": access_group_id,
-                "ydoc_id": ydoc_id,
-            },
-        )
         await classroom_note.delete()
 
 

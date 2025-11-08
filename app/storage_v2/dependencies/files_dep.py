@@ -33,7 +33,7 @@ async def get_my_file_by_id(
     file: FileByID,
     storage_token_payload: StorageTokenPayload,
 ) -> File:
-    access_group_file = await AccessGroupFile.find_by_ids(
+    access_group_file = await AccessGroupFile.find_first_by_ids(
         access_group_id=storage_token_payload.access_group_id,
         file_id=file.id,
     )
