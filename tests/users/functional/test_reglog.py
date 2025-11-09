@@ -1,9 +1,14 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.common.bridges.pochta_bdg import PochtaBridge
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.users.config import (
     EmailConfirmationTokenPayloadSchema,
     email_confirmation_token_provider,
@@ -12,7 +17,6 @@ from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
-from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session_from_cookie
 
@@ -26,15 +30,11 @@ def is_cross_site(request: PytestRequest[bool]) -> bool:
 
 async def test_signing_up(
     active_session: ActiveSession,
-    mock_stack: MockStack,
     client: TestClient,
+    send_email_message_mock: AsyncMock,
     user_data: AnyJSON,
     is_cross_site: bool,
 ) -> None:
-    send_email_message_mock = mock_stack.enter_async_mock(
-        PochtaBridge, "send_email_message"
-    )
-
     response = assert_response(
         client.post(
             "/api/public/user-service/signup/",
@@ -50,10 +50,12 @@ async def test_signing_up(
         EmailConfirmationTokenPayloadSchema(user_id=user_id)
     )
     send_email_message_mock.assert_awaited_once_with(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
-            recipient_email=user_data["email"],
-            token=expected_token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=expected_token,
+            ),
+            recipient_emails=[user_data["email"]],
         )
     )
 

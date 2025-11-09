@@ -1,5 +1,6 @@
 import random
 from datetime import timedelta, timezone
+from unittest.mock import AsyncMock
 
 import pytest
 from faker import Faker
@@ -7,8 +8,11 @@ from freezegun import freeze_time
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.common.bridges.pochta_bdg import PochtaBridge
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.common.utils.datetime import datetime_utc_now
 from app.users.config import (
     EmailConfirmationTokenPayloadSchema,
@@ -17,7 +21,6 @@ from app.users.config import (
 from app.users.models.users_db import OnboardingStage, User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.common.mock_stack import MockStack
 
 pytestmark = pytest.mark.anyio
 
@@ -26,17 +29,13 @@ pytestmark = pytest.mark.anyio
 async def test_requesting_confirmation_resend(
     faker: Faker,
     active_session: ActiveSession,
-    mock_stack: MockStack,
+    send_email_message_mock: AsyncMock,
     user: User,
     authorized_client: TestClient,
 ) -> None:
     async with active_session() as session:
         session.add(user)
         user.email_confirmation_resend_allowed_at = faker.past_datetime()
-
-    send_email_message_mock = mock_stack.enter_async_mock(
-        PochtaBridge, "send_email_message"
-    )
 
     assert_nodata_response(
         authorized_client.post(
@@ -49,10 +48,12 @@ async def test_requesting_confirmation_resend(
         EmailConfirmationTokenPayloadSchema(user_id=user.id)
     )
     send_email_message_mock.assert_awaited_once_with(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
-            recipient_email=user.email,
-            token=expected_token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=expected_token,
+            ),
+            recipient_emails=[user.email],
         )
     )
 

@@ -5,7 +5,11 @@ from starlette import status
 
 from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.users.config import (
     EmailConfirmationTokenPayloadSchema,
     email_confirmation_token_provider,
@@ -56,10 +60,12 @@ async def signup(
         EmailConfirmationTokenPayloadSchema(user_id=user.id)
     )
     await pochta_bridge.send_email_message(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
-            recipient_email=user.email,
-            token=token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=token,
+            ),
+            recipient_emails=[user.email],
         )
     )
 
