@@ -5,7 +5,11 @@ from starlette import status
 
 from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.users.config import (
     EmailChangeTokenPayloadSchema,
     email_change_token_provider,
@@ -44,17 +48,19 @@ async def request_email_change(
     if not user.is_email_confirmation_resend_allowed():
         raise EmailRateLimitResponses.TOO_MANY_EMAILS
 
-    token: str = email_change_token_provider.serialize_and_sign(
+    token = email_change_token_provider.serialize_and_sign(
         EmailChangeTokenPayloadSchema(
             user_id=user.id,
             new_email=new_email,
         )
     )
     await pochta_bridge.send_email_message(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.EMAIL_CHANGE_V1,
-            recipient_email=user.email,
-            token=token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CHANGE_V2,
+                token=token,
+            ),
+            recipient_emails=[new_email],
         )
     )
 

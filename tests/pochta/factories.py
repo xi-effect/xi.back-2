@@ -23,8 +23,6 @@ class EmailFormDataFactory(BaseModelFactory[EmailFormDataSchema]):
 class EmailMessageInputFactory(BaseModelFactory[EmailMessageInputSchema]):
     __model__ = EmailMessageInputSchema
 
-    recipient_email = Use(BaseModelFactory.__faker__.email)
-
 
 class UnisenderGoSendEmailSuccessfulResponseFactory(
     BaseModelFactory[UnisenderGoSendEmailSuccessfulResponseSchema]

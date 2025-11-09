@@ -14,18 +14,14 @@ from app.pochta.schemas.unisender_go_sch import (
 
 router = RedisRouter()
 
-KIND_TO_TEMPLATE_ID: dict[EmailMessageKind, str] = {
-    EmailMessageKind.EMAIL_CONFIRMATION_V1: "368ff086-85d7-11f0-8191-4619d70c5ec9",
-    EmailMessageKind.EMAIL_CHANGE_V1: "166d9d92-b991-11f0-b704-1ecf01eb9d7d",
-    EmailMessageKind.PASSWORD_RESET_V1: "659ee4dc-8365-11f0-bc22-3ea2c8a38738",
+GLOBAL_TEMPLATE_VARIABLES: dict[str, str] = {
+    "base_frontend_app_url": settings.frontend_app_base_url,
 }
 
-BASE_FRONTEND_URL: str = "https://app.sovlium.ru"
-
-KIND_TO_PATH: dict[EmailMessageKind, str] = {
-    EmailMessageKind.EMAIL_CONFIRMATION_V1: "/welcome/email/",
-    EmailMessageKind.EMAIL_CHANGE_V1: "/confirm-email/",
-    EmailMessageKind.PASSWORD_RESET_V1: "/reset-password/",
+KIND_TO_TEMPLATE_ID: dict[EmailMessageKind, str] = {
+    EmailMessageKind.EMAIL_CONFIRMATION_V2: "05b83984-bd89-11f0-81f1-122da0a24080",
+    EmailMessageKind.EMAIL_CHANGE_V2: "a25aced8-bd88-11f0-b8e4-122da0a24080",
+    EmailMessageKind.PASSWORD_RESET_V2: "3b5242e2-bd89-11f0-8132-025779db5bd3",
 }
 
 
@@ -39,16 +35,25 @@ async def send_email_message(
     unisender_go_client: UnisenderGoClientDep,
     data: EmailMessageInputSchema,
 ) -> None:
-    button_link = BASE_FRONTEND_URL + KIND_TO_PATH[data.kind] + data.token
     message_data = UnisenderGoMessageSchema(
-        recipients=[UnisenderGoRecipientSchema(email=data.recipient_email)],
-        template_id=KIND_TO_TEMPLATE_ID[data.kind],
-        global_substitutions={"button": {"link": button_link}},
+        recipients=[
+            UnisenderGoRecipientSchema(email=recipient_email)
+            for recipient_email in data.recipient_emails
+        ],
+        template_id=KIND_TO_TEMPLATE_ID[data.payload.kind],
+        global_substitutions={
+            "global": GLOBAL_TEMPLATE_VARIABLES,
+            "data": data.payload.model_dump(mode="json"),
+        },
     )
 
     response_data = await unisender_go_client.send_email(
         UnisenderGoSendEmailRequestSchema(message=message_data)
     )
     # TODO better error handling
-    if data.recipient_email not in response_data.emails:
-        logging.error("Sending email failed", extra={"full_error": response_data})
+    for recipient_email in data.recipient_emails:
+        if recipient_email not in response_data.emails:
+            logging.error(
+                f"Sending email to {recipient_email} failed",
+                extra={"full_error": response_data},
+            )
