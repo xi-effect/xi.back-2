@@ -7,6 +7,8 @@ from pydantic_marshals.contains import assert_contains
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.bridges.pochta_bdg import PochtaBridge
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
 from app.common.utils.datetime import datetime_utc_now
 from app.users.config import EmailChangeTokenPayloadSchema, email_change_token_provider
 from app.users.models.users_db import User
@@ -37,6 +39,10 @@ async def test_requesting_email_change(
         session.add(user)
         user.email_confirmation_resend_allowed_at = faker.past_datetime()
 
+    send_email_message_mock = mock_stack.enter_async_mock(
+        PochtaBridge, "send_email_message"
+    )
+
     assert_nodata_response(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-change/requests/",
@@ -45,7 +51,20 @@ async def test_requesting_email_change(
         expected_code=status.HTTP_202_ACCEPTED,
     )
 
-    # TODO: assert email sent
+    expected_token: str = email_change_token_provider.serialize_and_sign(
+        EmailChangeTokenPayloadSchema(
+            user_id=user.id,
+            new_email=new_email,
+        )
+    )
+    send_email_message_mock.assert_awaited_once_with(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.EMAIL_CHANGE_V1,
+            recipient_email=user.email,
+            token=expected_token,
+        )
+    )
+
     async with active_session() as session:
         session.add(user)
         await session.refresh(user)

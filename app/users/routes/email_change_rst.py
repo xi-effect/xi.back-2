@@ -1,10 +1,11 @@
-import logging
 from typing import Annotated
 
 from fastapi import Body
 from starlette import status
 
+from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
 from app.users.config import (
     EmailChangeTokenPayloadSchema,
     email_change_token_provider,
@@ -49,14 +50,12 @@ async def request_email_change(
             new_email=new_email,
         )
     )
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Your email has been changed to {token},"
-            + f"confirm new email: {token}",
-            "new_email": new_email,
-            "token": token,
-        },
+    await pochta_bridge.send_email_message(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.EMAIL_CHANGE_V1,
+            recipient_email=user.email,
+            token=token,
+        )
     )
 
     user.timeout_email_confirmation_resend()

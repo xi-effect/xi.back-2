@@ -1,10 +1,11 @@
-import logging
 from typing import Annotated
 
 from fastapi import Body
 from starlette import status
 
+from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
 from app.users.config import (
     PasswordResetTokenPayloadSchema,
     password_reset_token_provider,
@@ -36,13 +37,12 @@ async def request_password_reset(data: User.EmailSchema) -> None:
             password_last_changed_at=user.password_last_changed_at,
         )
     )
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Hi {data.email}! reset_token: {token}",
-            "email": data.email,
-            "token": token,
-        },
+    await pochta_bridge.send_email_message(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.PASSWORD_RESET_V1,
+            recipient_email=user.email,
+            token=token,
+        )
     )
 
 

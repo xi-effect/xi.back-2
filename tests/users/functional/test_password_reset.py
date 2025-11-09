@@ -6,6 +6,8 @@ from freezegun import freeze_time
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.bridges.pochta_bdg import PochtaBridge
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
 from app.common.utils.datetime import datetime_utc_now
 from app.users.config import (
     PasswordResetTokenPayloadSchema,
@@ -14,6 +16,7 @@ from app.users.config import (
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
@@ -26,9 +29,14 @@ def new_password(faker: Faker) -> str:
 
 async def test_requesting_password_reset(
     client: TestClient,
+    mock_stack: MockStack,
     user: User,
     new_password: str,
 ) -> None:
+    send_email_message_mock = mock_stack.enter_async_mock(
+        PochtaBridge, "send_email_message"
+    )
+
     assert_nodata_response(
         client.post(
             "/api/public/user-service/password-reset/requests/",
@@ -37,7 +45,19 @@ async def test_requesting_password_reset(
         expected_code=status.HTTP_202_ACCEPTED,
     )
 
-    # TODO: assert email sent
+    expected_token: str = password_reset_token_provider.serialize_and_sign(
+        PasswordResetTokenPayloadSchema(
+            user_id=user.id,
+            password_last_changed_at=user.password_last_changed_at,
+        )
+    )
+    send_email_message_mock.assert_awaited_once_with(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.PASSWORD_RESET_V1,
+            recipient_email=user.email,
+            token=expected_token,
+        )
+    )
 
 
 async def test_requesting_password_reset_user_not_found(

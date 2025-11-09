@@ -2,6 +2,12 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.bridges.pochta_bdg import PochtaBridge
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.users.config import (
+    EmailConfirmationTokenPayloadSchema,
+    email_confirmation_token_provider,
+)
 from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
@@ -19,12 +25,16 @@ def is_cross_site(request: PytestRequest[bool]) -> bool:
 
 
 async def test_signing_up(
+    active_session: ActiveSession,
     mock_stack: MockStack,
     client: TestClient,
-    active_session: ActiveSession,
     user_data: AnyJSON,
     is_cross_site: bool,
 ) -> None:
+    send_email_message_mock = mock_stack.enter_async_mock(
+        PochtaBridge, "send_email_message"
+    )
+
     response = assert_response(
         client.post(
             "/api/public/user-service/signup/",
@@ -34,8 +44,18 @@ async def test_signing_up(
         expected_json={**user_data, "id": int, "password": None},
         expected_cookies={AUTH_COOKIE_NAME: str},
     )
+    user_id = response.json()["id"]
 
-    # TODO: assert email sent
+    expected_token: str = email_confirmation_token_provider.serialize_and_sign(
+        EmailConfirmationTokenPayloadSchema(user_id=user_id)
+    )
+    send_email_message_mock.assert_awaited_once_with(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
+            recipient_email=user_data["email"],
+            token=expected_token,
+        )
+    )
 
     async with active_session():
         await assert_session_from_cookie(response, is_cross_site=is_cross_site)
