@@ -1,7 +1,12 @@
 from polyfactory import Use
 from pydantic import BaseModel
 
-from app.common.schemas.pochta_sch import EmailMessageInputSchema
+from app.common.schemas.pochta_sch import (
+    ClassroomNotificationEmailMessagePayloadSchema,
+    EmailMessageInputSchema,
+    RecipientInvoiceNotificationEmailMessagePayloadSchema,
+    TokenEmailMessagePayloadSchema,
+)
 from app.pochta.schemas.unisender_go_sch import (
     UnisenderGoSendEmailSuccessfulResponseSchema,
 )
@@ -18,6 +23,22 @@ class EmailFormDataFactory(BaseModelFactory[EmailFormDataSchema]):
 
     receiver = Use(BaseModelFactory.__faker__.email)
     subject = Use(BaseModelFactory.__faker__.sentence)
+
+
+class TokenEmailMessagePayloadFactory(BaseModelFactory[TokenEmailMessagePayloadSchema]):
+    __model__ = TokenEmailMessagePayloadSchema
+
+
+class ClassroomNotificationEmailMessagePayloadFactory(
+    BaseModelFactory[ClassroomNotificationEmailMessagePayloadSchema]
+):
+    __model__ = ClassroomNotificationEmailMessagePayloadSchema
+
+
+class RecipientInvoiceNotificationEmailMessagePayloadFactory(
+    BaseModelFactory[RecipientInvoiceNotificationEmailMessagePayloadSchema]
+):
+    __model__ = RecipientInvoiceNotificationEmailMessagePayloadSchema
 
 
 class EmailMessageInputFactory(BaseModelFactory[EmailMessageInputSchema]):
