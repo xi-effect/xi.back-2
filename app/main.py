@@ -85,6 +85,7 @@ faststream = RedisRouter(
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
+faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
 
 
 async def reinit_database() -> None:  # pragma: no cover
