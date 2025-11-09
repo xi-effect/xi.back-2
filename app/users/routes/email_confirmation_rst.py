@@ -1,8 +1,8 @@
-import logging
-
 from starlette import status
 
+from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
 from app.users.config import (
     EmailConfirmationTokenPayloadSchema,
     email_confirmation_token_provider,
@@ -39,13 +39,12 @@ async def request_email_confirmation_resend(user: AuthorizedUser) -> None:
     token = email_confirmation_token_provider.serialize_and_sign(
         EmailConfirmationTokenPayloadSchema(user_id=user.id)
     )
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Hi {user.email}, verify email: {token}",
-            "email": user.email,
-            "token": token,
-        },
+    await pochta_bridge.send_email_message(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
+            recipient_email=user.email,
+            token=token,
+        )
     )
 
     user.timeout_email_confirmation_resend()
