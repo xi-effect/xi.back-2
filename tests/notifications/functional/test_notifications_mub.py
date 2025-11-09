@@ -10,7 +10,7 @@ from tests.notifications import factories
 pytestmark = pytest.mark.anyio
 
 
-async def test_notification_sending(
+async def test_queueing_notification_sending(
     mock_stack: MockStack,
     mub_client: TestClient,
     authorized_user_id: int,
