@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator, Iterator
 from contextlib import AsyncExitStack
+from unittest.mock import AsyncMock
 
 import pytest
 from faker import Faker
@@ -8,10 +9,12 @@ from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ig
 )
 from fastapi.testclient import TestClient
 
+from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.config import settings, tmex
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app
 from tests import factories
+from tests.common.mock_stack import MockStack
 from tests.common.tmexio_testing import (
     TMEXIOListenerFactory,
     TMEXIOTestClient,
@@ -124,3 +127,8 @@ async def pdf_data(faker: Faker) -> tuple[str, bytes, str]:
 @pytest.fixture()
 def vacancy_form_data() -> AnyJSON:
     return factories.VacancyFormWithMessageFactory.build_json()
+
+
+@pytest.fixture()
+def send_notification_mock(mock_stack: MockStack) -> AsyncMock:
+    return mock_stack.enter_async_mock(NotificationsBridge, "send_notification")
