@@ -18,6 +18,9 @@ from app.communities.rooms import user_room
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sub import send_notification
+from app.notifications.services.senders.email_notification_sender import (
+    EmailNotificationSender,
+)
 from app.notifications.services.senders.telegram_notification_sender import (
     TelegramNotificationSender,
 )
@@ -52,6 +55,9 @@ async def test_notification_send(
         for recipient_user_id in recipient_user_ids
     ]
 
+    email_notification_sender_mock = mock_stack.enter_async_mock(
+        EmailNotificationSender, "send_notification"
+    )
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
         TelegramNotificationSender, "send_notification"
     )
@@ -77,13 +83,12 @@ async def test_notification_send(
     for user_room_listener in user_room_listeners:
         user_room_listener.assert_no_more_events()
 
-    telegram_notification_sender_mock.assert_has_calls(
-        [
-            call(recipient_user_id=recipient_user_id)
-            for recipient_user_id in recipient_user_ids
-        ],
-        any_order=True,
-    )
+    sender_calls = [
+        call(recipient_user_id=recipient_user_id)
+        for recipient_user_id in recipient_user_ids
+    ]
+    email_notification_sender_mock.assert_has_calls(sender_calls, any_order=True)
+    telegram_notification_sender_mock.assert_has_calls(sender_calls, any_order=True)
 
     send_notification.mock.assert_called_once_with(input_data.model_dump(mode="json"))
 
