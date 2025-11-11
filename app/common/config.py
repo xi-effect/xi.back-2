@@ -135,6 +135,7 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_faststream_db: int = 0
+    redis_supbot_db: int = 1
 
     @computed_field
     @property
@@ -144,6 +145,16 @@ class Settings(BaseSettings):
             host=self.redis_host,
             port=self.redis_port,
             path=str(self.redis_faststream_db),
+        ).unicode_string()
+
+    @computed_field
+    @property
+    def redis_supbot_dsn(self) -> str:
+        return RedisDsn.build(
+            scheme="redis",
+            host=self.redis_host,
+            port=self.redis_port,
+            path=str(self.redis_supbot_db),
         ).unicode_string()
 
     redis_consumer_name: str = "local"
