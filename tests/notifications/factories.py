@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 from app.common.schemas import notifications_sch
+from app.notifications.models.email_connections_db import EmailConnection
 from app.notifications.models.telegram_connections_db import TelegramConnection
 from app.notifications.models.user_contacts_db import UserContact
 from app.notifications.routes.telegram_connections_mub import TelegramMessageSchema
@@ -37,6 +38,10 @@ class NotificationSimpleInputSchema(BaseModel):
 
 class NotificationSimpleInputFactory(BaseModelFactory[NotificationSimpleInputSchema]):
     __model__ = NotificationSimpleInputSchema
+
+
+class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):
+    __model__ = EmailConnection.InputSchema
 
 
 class TelegramConnectionInputMUBFactory(

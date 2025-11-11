@@ -24,6 +24,13 @@ class NotificationsBridge(BaseBridge):
             params={"public_only": public_only},
         )
 
+    async def create_or_update_email_connection(self, user_id: int, email: str) -> None:
+        response = await self.client.put(
+            f"/users/{user_id}/email-connection/",
+            json={"email": email},
+        )
+        response.raise_for_status()
+
     async def send_notification(self, data: NotificationInputSchema) -> None:
         await self.broker.publish(
             message=data.model_dump(mode="json"),

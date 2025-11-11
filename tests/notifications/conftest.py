@@ -13,6 +13,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
 from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import telegram_app
+from app.notifications.models.email_connections_db import EmailConnection
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.models.telegram_connections_db import (
@@ -132,6 +133,23 @@ async def deleted_recipient_notification_id(
     async with active_session():
         await recipient_notification.delete()
     return recipient_notification.notification_id
+
+
+@pytest.fixture()
+async def email_connection(
+    active_session: ActiveSession,
+    authorized_user_id: int,
+) -> AsyncIterator[EmailConnection]:
+    async with active_session():
+        email_connection = await EmailConnection.create(
+            user_id=authorized_user_id,
+            **factories.EmailConnectionInputFactory.build_python(),
+        )
+
+    yield email_connection
+
+    async with active_session():
+        await email_connection.delete()
 
 
 @pytest.fixture()
