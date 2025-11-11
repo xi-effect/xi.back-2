@@ -8,7 +8,10 @@ from app.common.schemas.notifications_sch import NotificationInputSchema
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sio import NewNotificationEmitter
-from app.notifications.services.senders import platform_notification_sender
+from app.notifications.services.senders import (
+    platform_notification_sender,
+    telegram_notification_sender,
+)
 
 router = RedisRouter()
 
@@ -40,6 +43,9 @@ async def send_notification(
         *platform_notification_sender.PlatformNotificationSender(
             notification=notification,
             emitter=emitter,
+        ).generate_tasks(recipient_user_ids=recipient_user_ids),
+        *telegram_notification_sender.TelegramNotificationSender(
+            notification=notification,
         ).generate_tasks(recipient_user_ids=recipient_user_ids),
         # TODO handle partial failure with `return_exceptions=True`
     )

@@ -1,4 +1,5 @@
 import random
+from unittest.mock import call
 from uuid import UUID
 
 import pytest
@@ -17,7 +18,11 @@ from app.communities.rooms import user_room
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sub import send_notification
+from app.notifications.services.senders.telegram_notification_sender import (
+    TelegramNotificationSender,
+)
 from tests.common.active_session import ActiveSession
+from tests.common.mock_stack import MockStack
 from tests.common.tmexio_testing import TMEXIOListenerFactory
 from tests.notifications import factories
 
@@ -28,6 +33,7 @@ pytestmark = pytest.mark.anyio
 async def test_notification_send(
     faker: Faker,
     active_session: ActiveSession,
+    mock_stack: MockStack,
     faststream_broker: RedisBroker,
     tmexio_listener_factory: TMEXIOListenerFactory,
 ) -> None:
@@ -45,6 +51,10 @@ async def test_notification_send(
         await tmexio_listener_factory(room_name=user_room(recipient_user_id))
         for recipient_user_id in recipient_user_ids
     ]
+
+    telegram_notification_sender_mock = mock_stack.enter_async_mock(
+        TelegramNotificationSender, "send_notification"
+    )
 
     send_notification.mock.reset_mock()
 
@@ -66,6 +76,14 @@ async def test_notification_send(
 
     for user_room_listener in user_room_listeners:
         user_room_listener.assert_no_more_events()
+
+    telegram_notification_sender_mock.assert_has_calls(
+        [
+            call(recipient_user_id=recipient_user_id)
+            for recipient_user_id in recipient_user_ids
+        ],
+        any_order=True,
+    )
 
     send_notification.mock.assert_called_once_with(input_data.model_dump(mode="json"))
 
