@@ -1,3 +1,5 @@
+import asyncio
+
 from faststream.redis import RedisRouter
 
 from app.common.config import settings
@@ -21,16 +23,24 @@ async def send_notification(
     emitter: NewNotificationEmitter,
     data: NotificationInputSchema,
 ) -> None:
+    recipient_user_ids = list(set(data.recipient_user_ids))
+
     notification = await Notification.create(payload=data.payload)
 
-    for recipient_user_id in data.recipient_user_ids:
-        await RecipientNotification.create(
-            notification_id=notification.id,
-            recipient_user_id=recipient_user_id,
-        )
+    await RecipientNotification.create_batch(
+        {
+            "notification_id": notification.id,
+            "recipient_user_id": recipient_user_id,
+        }
+        for recipient_user_id in recipient_user_ids
+    )
 
-    for recipient_user_id in data.recipient_user_ids:
-        await emitter.emit(
-            notification,
-            target=user_room(recipient_user_id),
+    await asyncio.gather(
+        *(
+            emitter.emit(
+                notification,
+                target=user_room(recipient_user_id),
+            )
+            for recipient_user_id in recipient_user_ids
         )
+    )
