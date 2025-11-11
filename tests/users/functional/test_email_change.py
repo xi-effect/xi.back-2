@@ -5,9 +5,11 @@ import pytest
 from faker import Faker
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
+from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.config import settings
 from app.common.schemas.pochta_sch import (
     EmailMessageInputSchema,
     EmailMessageKind,
@@ -18,6 +20,7 @@ from app.users.config import EmailChangeTokenPayloadSchema, email_change_token_p
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
@@ -133,11 +136,16 @@ async def test_requesting_email_change_wrong_password(
 
 
 async def test_email_change_confirmation(
+    notifications_respx_mock: MockRouter,
     client: TestClient,
     active_session: ActiveSession,
     user: User,
     new_email: str,
 ) -> None:
+    notifications_bridge_mock = notifications_respx_mock.put(
+        path=f"/users/{user.id}/email-connection/",
+    ).respond(status_code=status.HTTP_204_NO_CONTENT)
+
     assert_nodata_response(
         client.post(
             "/api/public/user-service/email-change/confirmations/",
@@ -147,6 +155,12 @@ async def test_email_change_confirmation(
                 )
             },
         ),
+    )
+
+    assert_last_httpx_request(
+        notifications_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+        expected_json={"email": new_email},
     )
 
     async with active_session() as session:

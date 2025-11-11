@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Body
 from starlette import status
 
-from app.common.config_bdg import pochta_bridge
+from app.common.config_bdg import notifications_bridge, pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.pochta_sch import (
     EmailMessageInputSchema,
@@ -82,3 +82,8 @@ async def confirm_email_change(token_payload: EmailChangeTokenPayload) -> None:
         raise UserEmailResponses.EMAIL_IN_USE
 
     user.email = token_payload.new_email
+
+    await notifications_bridge.create_or_update_email_connection(
+        user_id=user.id,
+        email=user.email,
+    )

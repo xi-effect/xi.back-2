@@ -3,7 +3,7 @@ from typing import Annotated, Final
 from fastapi import Depends, Header, Response
 from starlette import status
 
-from app.common.config_bdg import pochta_bridge
+from app.common.config_bdg import notifications_bridge, pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.pochta_sch import (
     EmailMessageInputSchema,
@@ -55,6 +55,11 @@ async def signup(
         raise UsernameResponses.USERNAME_IN_USE
 
     user = await User.create(**data.model_dump())
+
+    await notifications_bridge.create_or_update_email_connection(
+        user_id=user.id,
+        email=user.email,
+    )
 
     token = email_confirmation_token_provider.serialize_and_sign(
         EmailConfirmationTokenPayloadSchema(user_id=user.id)
