@@ -1,7 +1,16 @@
+from typing import Annotated
+
+from fastapi import Path
 from starlette import status
 
+from app.common.config_bdg import classrooms_bridge, notifications_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.notifications_sch import (
+    ClassroomNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from app.conferences.dependencies.conferences_dep import (
     LivekitRoomByClassroomID,
     LivekitRoomNameByClassroomID,
@@ -18,9 +27,23 @@ router = APIRouterExt(tags=["classroom conferences"])
     summary="Reactivate a conference in a classroom by id",
 )
 async def reactivate_classroom_conference(
+    classroom_id: Annotated[int, Path()],
     livekit_room_name: LivekitRoomNameByClassroomID,
 ) -> None:
     await conferences_svc.reactivate_room(livekit_room_name=livekit_room_name)
+
+    await notifications_bridge.send_notification(
+        NotificationInputSchema(
+            payload=ClassroomNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1,
+                classroom_id=classroom_id,
+            ),
+            # TODO: make notifications service know classrooms instead
+            recipient_user_ids=await classrooms_bridge.list_classroom_student_ids(
+                classroom_id=classroom_id
+            ),
+        )
+    )
 
 
 @router.post(

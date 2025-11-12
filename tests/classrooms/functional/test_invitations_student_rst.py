@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
@@ -20,6 +22,11 @@ from app.classrooms.models.invitations_db import (
 )
 from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config import settings
+from app.common.schemas.notifications_sch import (
+    InvitationAcceptanceNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from app.common.schemas.users_sch import UserProfileSchema
 from app.common.utils.datetime import datetime_utc_now
 from tests.common.active_session import ActiveSession
@@ -105,6 +112,7 @@ async def test_individual_invitation_previewing_has_already_joined(
 @freeze_time()
 async def test_individual_invitation_accepting(
     active_session: ActiveSession,
+    send_notification_mock: AsyncMock,
     users_internal_respx_mock: MockRouter,
     tutor_user_id: int,
     student_user_id: int,
@@ -174,6 +182,18 @@ async def test_individual_invitation_accepting(
         classroom = await IndividualClassroom.find_first_by_id(classroom_id)
         assert classroom is not None
         await classroom.delete()
+
+    send_notification_mock.assert_awaited_once_with(
+        NotificationInputSchema(
+            payload=InvitationAcceptanceNotificationPayloadSchema(
+                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
+                invitation_id=individual_invitation.id,
+                classroom_id=classroom_id,
+                student_id=student_user_id,
+            ),
+            recipient_user_ids=[individual_invitation.tutor_id],
+        )
+    )
 
     assert_last_httpx_request(
         users_internal_bridge_mock,
@@ -273,6 +293,7 @@ async def test_group_invitation_previewing_has_already_joined(
 @freeze_time()
 async def test_group_invitation_accepting(
     active_session: ActiveSession,
+    send_notification_mock: AsyncMock,
     tutor_user_id: int,
     student_user_id: int,
     student_client: TestClient,
@@ -327,6 +348,18 @@ async def test_group_invitation_accepting(
         )
         assert enrollment is not None
         await enrollment.delete()
+
+    send_notification_mock.assert_awaited_once_with(
+        NotificationInputSchema(
+            payload=InvitationAcceptanceNotificationPayloadSchema(
+                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
+                invitation_id=group_invitation.id,
+                classroom_id=group_classroom.id,
+                student_id=student_user_id,
+            ),
+            recipient_user_ids=[group_invitation.tutor_id],
+        )
+    )
 
 
 async def test_group_invitation_accepting_enrollments_count_quantity_exceeded(

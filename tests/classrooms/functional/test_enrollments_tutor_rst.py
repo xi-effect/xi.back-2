@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
@@ -9,6 +11,11 @@ from app.classrooms.models.classrooms_db import GroupClassroom
 from app.classrooms.models.enrollments_db import Enrollment
 from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config import settings
+from app.common.schemas.notifications_sch import (
+    EnrollmentNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from app.common.utils.datetime import datetime_utc_now
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -65,6 +72,7 @@ async def test_enrollments_listing_empty_list(
 @freeze_time()
 async def test_adding_classroom_student(
     active_session: ActiveSession,
+    send_notification_mock: AsyncMock,
     tutor_client: TestClient,
     tutorship: Tutorship,
     group_classroom: GroupClassroom,
@@ -100,6 +108,17 @@ async def test_adding_classroom_student(
             await GroupClassroom.find_first_by_id(group_classroom.id),
             {"enrollments_count": group_classroom.enrollments_count + 1},
         )
+
+    send_notification_mock.assert_awaited_once_with(
+        NotificationInputSchema(
+            payload=EnrollmentNotificationPayloadSchema(
+                kind=NotificationKind.ENROLLMENT_CREATED_V1,
+                classroom_id=group_classroom.id,
+                student_id=tutorship.student_id,
+            ),
+            recipient_user_ids=[tutorship.student_id],
+        )
+    )
 
 
 async def test_adding_classroom_student_enrollment_already_exists(

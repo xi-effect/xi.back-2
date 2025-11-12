@@ -1,7 +1,8 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from starlette.testclient import TestClient
 
-from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.schemas.notifications_sch import NotificationInputSchema
 from tests.common.assert_contains_ext import assert_nodata_response
 from tests.common.mock_stack import MockStack
@@ -14,14 +15,11 @@ async def test_queueing_notification_sending(
     mock_stack: MockStack,
     mub_client: TestClient,
     authorized_user_id: int,
+    send_notification_mock: AsyncMock,
 ) -> None:
     input_data = NotificationInputSchema(
         payload=factories.NotificationSimpleInputFactory.build().payload,
         recipient_user_ids=[authorized_user_id],
-    )
-
-    send_notification_mock = mock_stack.enter_async_mock(
-        NotificationsBridge, "send_notification"
     )
 
     assert_nodata_response(

@@ -1,10 +1,16 @@
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic_marshals.contains import assert_contains
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.schemas.notifications_sch import (
+    NotificationInputSchema,
+    NotificationKind,
+    RecipientInvoiceNotificationPayloadSchema,
+)
 from app.invoices.models.recipient_invoices_db import (
     PaymentStatus,
     RecipientInvoice,
@@ -42,6 +48,7 @@ async def test_student_recipient_invoice_retrieving(
 
 async def test_student_recipient_invoice_payment_confirmation(
     active_session: ActiveSession,
+    send_notification_mock: AsyncMock,
     student_client: TestClient,
     recipient_invoice: RecipientInvoice,
 ) -> None:
@@ -62,6 +69,16 @@ async def test_student_recipient_invoice_payment_confirmation(
             recipient_invoice,
             {**payment_data, "status": PaymentStatus.WF_RECEIVER_CONFIRMATION},
         )
+
+    send_notification_mock.assert_awaited_once_with(
+        NotificationInputSchema(
+            payload=RecipientInvoiceNotificationPayloadSchema(
+                kind=NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
+                recipient_invoice_id=recipient_invoice.id,
+            ),
+            recipient_user_ids=[recipient_invoice.tutor_id],
+        )
+    )
 
 
 @pytest.mark.parametrize(
