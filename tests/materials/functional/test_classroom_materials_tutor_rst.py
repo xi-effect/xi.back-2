@@ -37,14 +37,12 @@ async def test_material_creation(
     classroom_id: int,
 ) -> None:
     access_group_id = uuid4()
-    ydoc_id = uuid4()
+    main_ydoc_id = uuid4()
 
     create_access_group_mock = storage_v2_respx_mock.post("/access-groups/").respond(
-        status_code=status.HTTP_201_CREATED, json={"id": str(access_group_id)}
+        status_code=status.HTTP_201_CREATED,
+        json={"id": str(access_group_id), "main_ydoc_id": str(main_ydoc_id)},
     )
-    create_ydoc_mock = storage_v2_respx_mock.post(
-        f"/access-groups/{access_group_id}/ydocs/"
-    ).respond(status_code=status.HTTP_201_CREATED, json={"id": str(ydoc_id)})
 
     input_data = factories.ClassroomMaterialInputFactory.build_json()
     material_id: int = assert_response(
@@ -67,10 +65,6 @@ async def test_material_creation(
         create_access_group_mock,
         expected_headers={"X-Api-Key": settings.api_key},
     )
-    assert_last_httpx_request(
-        create_ydoc_mock,
-        expected_headers={"X-Api-Key": settings.api_key},
-    )
 
     async with active_session():
         classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
@@ -80,7 +74,7 @@ async def test_material_creation(
             {
                 "classroom_id": classroom_id,
                 "access_group_id": access_group_id,
-                "content_id": ydoc_id,
+                "content_id": main_ydoc_id,
             },
         )
         await classroom_material.delete()
@@ -95,13 +89,14 @@ async def test_tutor_material_to_classroom_duplication(
     tutor_material: TutorMaterial,
     classroom_id: int,
 ) -> None:
-    duplicate_access_group_id = uuid4()
+    new_access_group_id = uuid4()
+    new_main_ydoc_id = uuid4()
 
     duplicate_access_group_mock = storage_v2_respx_mock.post(
         f"/access-groups/{tutor_material.access_group_id}/duplicates/"
     ).respond(
         status_code=status.HTTP_201_CREATED,
-        json={"id": str(duplicate_access_group_id)},
+        json={"id": str(new_access_group_id), "main_ydoc_id": str(new_main_ydoc_id)},
     )
 
     input_data: AnyJSON = factories.ClassroomMaterialDuplicateInputFactory.build_json()
@@ -136,8 +131,8 @@ async def test_tutor_material_to_classroom_duplication(
         assert_contains(
             classroom_material,
             {
-                "access_group_id": duplicate_access_group_id,
-                "content_id": tutor_material.content_id,
+                "access_group_id": new_access_group_id,
+                "content_id": new_main_ydoc_id,
                 "classroom_id": classroom_id,
             },
         )

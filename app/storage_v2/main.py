@@ -12,7 +12,6 @@ from app.storage_v2.routers import (
     access_groups_int,
     files_rst,
     ydocs_hocus_int,
-    ydocs_meta_int,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/storage-service/v2")
@@ -28,7 +27,6 @@ internal_router = APIRouterExt(
     prefix="/internal/storage-service/v2",
 )
 internal_router.include_router(access_groups_int.router)
-internal_router.include_router(ydocs_meta_int.router)
 internal_router.include_router(ydocs_hocus_int.router)
 
 mub_router = APIRouterExt(

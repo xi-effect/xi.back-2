@@ -57,13 +57,10 @@ async def create_classroom_material(
     classroom_id: int,
 ) -> ClassroomMaterial:
     access_group_data = await storage_v2_bridge.create_access_group()
-    ydoc_data = await storage_v2_bridge.create_ydoc(
-        access_group_id=access_group_data.id
-    )
     return await ClassroomMaterial.create(
         **input_data.model_dump(),
         access_group_id=access_group_data.id,
-        content_id=ydoc_data.id,
+        content_id=access_group_data.main_ydoc_id,
         classroom_id=classroom_id,
     )
 
@@ -97,7 +94,7 @@ async def duplicate_tutor_material_to_classroom(
     return await ClassroomMaterial.create(
         **input_data.model_dump(exclude={"source_id"}),
         access_group_id=new_access_group_data.id,
-        content_id=tutor_material.content_id,
+        content_id=new_access_group_data.main_ydoc_id,
         content_kind=tutor_material.content_kind,
         classroom_id=classroom_id,
     )
