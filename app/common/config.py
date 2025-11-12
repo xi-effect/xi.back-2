@@ -9,7 +9,6 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from app.common.cyptography import CryptographyProvider
 from app.common.fastapi_tmexio_ext import TMEXIOExt
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
@@ -150,12 +149,14 @@ class Settings(BaseSettings):
     redis_consumer_name: str = "local"
 
     notifications_send_stream_name: str = "notifications.send"
+    email_messages_send_stream_name: str = "email-messages.send"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
     livekit_api_secret: str = "secret"
     livekit_demo_base_url: str = "https://meet.livekit.io/custom"
 
+    unisender_go_api_key: str | None = None
     email: EmailSettings | None = None
 
     supbot: SupbotSettings | None = None
@@ -203,14 +204,6 @@ smtp_client: SMTP | None = (
     )
 )
 
-password_reset_cryptography = CryptographyProvider(
-    settings.password_reset_keys.keys,
-    encryption_ttl=settings.password_reset_keys.encryption_ttl,
-)
-email_confirmation_cryptography = CryptographyProvider(
-    settings.email_confirmation_keys.keys,
-    encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
-)
 storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
     secret_keys=settings.storage_token_keys.keys,
     encryption_ttl=settings.storage_token_keys.encryption_ttl,
