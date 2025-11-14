@@ -12,7 +12,6 @@ pytestmark = pytest.mark.anyio
 
 async def test_queueing_email_message_sending(
     mub_client: TestClient,
-    authorized_user_id: int,
     send_email_message_mock: AsyncMock,
 ) -> None:
     input_data: EmailMessageInputSchema = factories.EmailMessageInputFactory.build()
