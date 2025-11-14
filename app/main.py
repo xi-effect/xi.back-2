@@ -33,8 +33,9 @@ from app import (
     users,
 )
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
-from app.common.config_bdg import all_bridges
+from app.common.config_bdg import all_bridges, datalake_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
+from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
@@ -72,6 +73,13 @@ async def connect_user(socket: AsyncSocket) -> None:
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
     await socket.enter_room(user_room(auth_data.user_id))
+
+    await datalake_bridge.record_datalake_event(
+        DatalakeEventInputSchema(
+            kind=DatalakeEventKind.OPEN_SOCKETIO_CONNECTION,
+            user_id=auth_data.user_id,
+        )
+    )
 
 
 @tmex.on_disconnect(summary="[special] Automatic event")
