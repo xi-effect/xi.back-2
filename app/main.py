@@ -67,7 +67,7 @@ if settings.socketio_admin is not None:
 async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
-    except ValidationError:  # TODO (38980978) pragma: no cover
+    except ValidationError:
         raise EventException(status.HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
