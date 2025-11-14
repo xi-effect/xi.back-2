@@ -126,6 +126,7 @@ exclude_also = [
   "if TYPE_CHECKING:",
   "if( not)? settings.production_mode",
   "if settings.postgres_automigrate",
+  "if settings.socketio_admin",
   "except ImportError",
   "raise AssertionError",
   "raise NotImplementedError",

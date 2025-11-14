@@ -44,6 +44,23 @@ tmex.include_router(communities.event_router)
 tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
 
+if settings.socketio_admin is not None:
+    tmex.backend.instrument(
+        auth={
+            "username": settings.socketio_admin.username,
+            "password": settings.socketio_admin.password,
+        },
+        mode=(
+            "production"
+            if settings.socketio_admin.is_production_mode
+            else "development"
+        ),
+        read_only=settings.socketio_admin.is_read_only,
+        server_id=settings.instance_name,
+        namespace=settings.socketio_admin.namespace_name,
+        server_stats_interval=settings.socketio_admin.server_stats_interval,
+    )
+
 
 @tmex.on_connect(summary="[special] Automatic event")
 async def connect_user(socket: AsyncSocket) -> None:

@@ -16,6 +16,17 @@ from app.common.schemas.storage_sch import StorageTokenPayloadSchema
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
 
+class SocketIOAdminSettings(BaseModel):
+    username: str
+    password: str
+
+    is_production_mode: bool = True
+    is_read_only: bool = False
+
+    namespace_name: str = "/admin"
+    server_stats_interval: int = 2
+
+
 class FernetSettings(BaseModel):
     current_key: str = Field(default_factory=lambda: Fernet.generate_key().decode())
     backup_key: str | None = None
@@ -66,8 +77,12 @@ class Settings(BaseSettings):
     def is_testing_mode(self) -> bool:
         return "pytest" in sys.modules
 
+    instance_name: str = "local"
+
     api_key: str = "local"  # common for now, split later
     mub_key: str = "local"
+
+    socketio_admin: SocketIOAdminSettings | None = None
 
     bridge_base_url: str = "http://localhost:5000"
 
@@ -156,8 +171,6 @@ class Settings(BaseSettings):
             port=self.redis_port,
             path=str(self.redis_supbot_db),
         ).unicode_string()
-
-    redis_consumer_name: str = "local"
 
     notifications_send_stream_name: str = "notifications.send"
     email_messages_send_stream_name: str = "email-messages.send"
