@@ -19,6 +19,7 @@ from app import (
     classrooms,
     communities,
     conferences,
+    datalake,
     invoices,
     materials,
     messenger,
@@ -101,6 +102,7 @@ faststream = RedisRouter(
     settings.redis_faststream_dsn,
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
+faststream.include_router(datalake.stream_router)  # type: ignore[arg-type]
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
 faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
 
@@ -164,6 +166,7 @@ include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(conferences.api_router)
+app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
 app.include_router(materials.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
