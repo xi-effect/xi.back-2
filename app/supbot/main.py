@@ -50,6 +50,7 @@ async def lifespan(_: Any) -> AsyncIterator[None]:
         bot_settings=settings.supbot,
         bot_commands=BOT_COMMANDS,
         webhook_prefix=outside_router.prefix,
+        redis_dsn=settings.redis_supbot_dsn,
         group_id=settings.supbot and settings.supbot.group_id,
     )
     yield

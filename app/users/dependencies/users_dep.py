@@ -36,14 +36,3 @@ async def get_user_by_id(user_id: Annotated[int, Path()]) -> User:
 
 
 UserByID = Annotated[User, Depends(get_user_by_id)]
-
-
-@with_responses(TargetUserResponses)
-async def get_user_by_username(username: Annotated[str, Path()]) -> User:
-    user = await User.find_first_by_kwargs(username=username)
-    if user is None:
-        raise TargetUserResponses.USER_NOT_FOUND
-    return user
-
-
-UserByUsername = Annotated[User, Depends(get_user_by_username)]

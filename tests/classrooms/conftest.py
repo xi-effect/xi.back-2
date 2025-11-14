@@ -20,7 +20,6 @@ from app.classrooms.models.invitations_db import (
     IndividualInvitation,
     Invitation,
 )
-from app.classrooms.models.materials_db import Material
 from app.classrooms.models.tutorships_db import Tutorship
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from tests.classrooms import factories
@@ -69,28 +68,6 @@ def outsider_client(
     client: TestClient, outsider_auth_data: ProxyAuthData
 ) -> TestClient:
     return TestClient(client.app, headers=outsider_auth_data.as_headers)
-
-
-@pytest.fixture()
-async def material(active_session: ActiveSession, tutor_user_id: int) -> Material:
-    async with active_session():
-        return await Material.create(
-            **factories.MaterialInputFactory.build_python(),
-            tutor_id=tutor_user_id,
-            ydoc_id=str(uuid4()),
-        )
-
-
-@pytest.fixture()
-async def material_data(material: Material) -> AnyJSON:
-    return Material.ResponseSchema.model_validate(material).model_dump(mode="json")
-
-
-@pytest.fixture()
-async def deleted_material_id(active_session: ActiveSession, material: Material) -> int:
-    async with active_session():
-        await material.delete()
-    return material.id
 
 
 @pytest.fixture()

@@ -5,6 +5,7 @@ from typing import Any
 
 from aiogram import Bot, Dispatcher, Router
 from aiogram.filters import CommandObject
+from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.methods import GetUpdates
 from aiogram.types import BotCommand, ChatMemberUpdated, Message, User
 from httpx import AsyncClient
@@ -91,6 +92,7 @@ class TelegramApp:
         max_connections: int = 40,
         webhook_prefix: str,
         webhook_path: str = "/telegram-updates/",
+        redis_dsn: str | None = None,
         **dispatcher_kwargs: Any,
     ) -> None:
         if settings.is_testing_mode or bot_settings is None:
@@ -100,7 +102,10 @@ class TelegramApp:
 
         await self.initialize(
             bot=Bot(bot_settings.token),
-            dispatcher=Dispatcher(**dispatcher_kwargs),
+            dispatcher=Dispatcher(
+                storage=None if redis_dsn is None else RedisStorage.from_url(redis_dsn),
+                **dispatcher_kwargs,
+            ),
         )
 
         if bot_commands is not None:

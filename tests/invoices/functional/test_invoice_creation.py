@@ -1,4 +1,5 @@
 from random import randint
+from unittest.mock import AsyncMock, call
 
 import pytest
 from freezegun import freeze_time
@@ -8,6 +9,11 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
+from app.common.schemas.notifications_sch import (
+    NotificationInputSchema,
+    NotificationKind,
+    RecipientInvoiceNotificationPayloadSchema,
+)
 from app.common.utils.datetime import datetime_utc_now
 from app.invoices.models.invoice_items_db import InvoiceItem
 from app.invoices.models.invoices_db import Invoice
@@ -31,6 +37,7 @@ pytestmark = pytest.mark.anyio
 )
 async def test_invoice_creation(
     active_session: ActiveSession,
+    send_notification_mock: AsyncMock,
     classrooms_respx_mock: MockRouter,
     tutor_client: TestClient,
     tutor_id: int,
@@ -92,30 +99,41 @@ async def test_invoice_creation(
             },
         )
 
-        assert (
-            await RecipientInvoice.count_by_kwargs(
-                RecipientInvoice.id, invoice_id=invoice_id
+        student_id_to_recipient_invoice = {
+            recipient_invoice.student_id: recipient_invoice
+            for recipient_invoice in await RecipientInvoice.find_all_by_kwargs(
+                invoice_id=invoice_id
             )
-            == expected_recipient_invoice_count
-        )
+        }
+
+        assert len(student_id_to_recipient_invoice) == expected_recipient_invoice_count
 
         assert_contains(
-            await RecipientInvoice.find_first_by_kwargs(
-                invoice_id=invoice_id,
-                student_id=student_id,
-            ),
+            student_id_to_recipient_invoice.get(student_id),
             {"status": PaymentStatus.WF_SENDER_CONFIRMATION},
         )
         if include_all_students:
             assert_contains(
-                await RecipientInvoice.find_first_by_kwargs(
-                    invoice_id=invoice_id,
-                    student_id=other_student_id,
-                ),
+                student_id_to_recipient_invoice.get(other_student_id),
                 {"status": PaymentStatus.WF_SENDER_CONFIRMATION},
             )
 
         await invoice.delete()
+
+    send_notification_mock.assert_has_awaits(
+        [
+            call(
+                NotificationInputSchema(
+                    payload=RecipientInvoiceNotificationPayloadSchema(
+                        kind=NotificationKind.RECIPIENT_INVOICE_CREATED_V1,
+                        recipient_invoice_id=recipient_invoice.id,
+                    ),
+                    recipient_user_ids=[recipient_invoice.student_id],
+                )
+            )
+            for recipient_invoice in student_id_to_recipient_invoice.values()
+        ]
+    )
 
     assert_last_httpx_request(
         classroom_bridge_mock,

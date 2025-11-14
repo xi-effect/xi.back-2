@@ -1,11 +1,15 @@
-import logging
 from typing import Annotated, Final
 
 from fastapi import Depends, Header, Response
 from starlette import status
 
-from app.common.config import email_confirmation_cryptography
+from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.users.config import (
+    EmailConfirmationTokenPayloadSchema,
+    email_confirmation_token_provider,
+)
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
 from app.users.utils.authorization import add_session_to_response
@@ -17,7 +21,6 @@ from app.users.utils.users import (
 )
 
 router = APIRouterExt(tags=["reglog"])
-
 
 TEST_HEADER_NAME: Final[str] = "X-Testing"
 
@@ -32,30 +35,35 @@ CrossSiteMode = Annotated[bool, Depends(is_cross_site_mode)]
 
 
 @router.post(
-    "/signup/",
+    path="/signup/",
     response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Register a new account",
 )
 async def signup(
-    user_data: User.InputSchema, is_cross_site: CrossSiteMode, response: Response
+    data: User.InputSchema,
+    is_cross_site: CrossSiteMode,
+    response: Response,
 ) -> User:
-    if not await is_email_unique(user_data.email):
+    if not await is_email_unique(data.email):
         raise UserEmailResponses.EMAIL_IN_USE
-    if not await is_username_unique(user_data.username):
+    if not await is_username_unique(data.username):
         raise UsernameResponses.USERNAME_IN_USE
 
-    user = await User.create(**user_data.model_dump())
+    user = await User.create(**data.model_dump())
 
-    confirmation_token: str = email_confirmation_cryptography.encrypt(user.email)
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Hi {user_data.email}! reset_token: {confirmation_token}",
-            "email": user_data.email,
-            "token": confirmation_token,
-        },
+    token = email_confirmation_token_provider.serialize_and_sign(
+        EmailConfirmationTokenPayloadSchema(user_id=user.id)
     )
+    await pochta_bridge.send_email_message(
+        data=EmailMessageInputSchema(
+            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
+            recipient_email=user.email,
+            token=token,
+        )
+    )
+
+    user.timeout_email_confirmation_resend()
 
     session = await Session.create(user=user, is_cross_site=is_cross_site)
     add_session_to_response(response, session)
@@ -64,18 +72,20 @@ async def signup(
 
 
 class SigninResponses(Responses):
-    USER_NOT_FOUND = status.HTTP_401_UNAUTHORIZED, User.not_found_text
+    USER_NOT_FOUND = status.HTTP_401_UNAUTHORIZED, "User not found"
     WRONG_PASSWORD = status.HTTP_401_UNAUTHORIZED, "Wrong password"
 
 
 @router.post(
-    "/signin/",
+    path="/signin/",
     response_model=User.FullSchema,
     responses=SigninResponses.responses(),
     summary="Sign in into an existing account (creates a new session)",
 )
 async def signin(
-    user_data: User.CredentialsSchema, is_cross_site: CrossSiteMode, response: Response
+    user_data: User.CredentialsSchema,
+    is_cross_site: CrossSiteMode,
+    response: Response,
 ) -> User:
     user = await User.find_first_by_kwargs(email=user_data.email)
     if user is None:

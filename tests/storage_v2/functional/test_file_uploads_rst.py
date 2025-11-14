@@ -61,7 +61,7 @@ async def test_file_uploading(
     ).json()["id"]
 
     async with active_session():
-        access_group_file = await AccessGroupFile.find_by_ids(
+        access_group_file = await AccessGroupFile.find_first_by_ids(
             access_group_id=access_group.id,
             file_id=file_id,
         )

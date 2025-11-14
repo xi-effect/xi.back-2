@@ -27,7 +27,6 @@ from app import (
     pochta,
     posts,
     scheduler,
-    storage,
     storage_v2,
     supbot,
     users,
@@ -44,6 +43,23 @@ from app.communities.store import user_id_to_sids
 tmex.include_router(communities.event_router)
 tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
+
+if settings.socketio_admin is not None:
+    tmex.backend.instrument(
+        auth={
+            "username": settings.socketio_admin.username,
+            "password": settings.socketio_admin.password,
+        },
+        mode=(
+            "production"
+            if settings.socketio_admin.is_production_mode
+            else "development"
+        ),
+        read_only=settings.socketio_admin.is_read_only,
+        server_id=settings.instance_name,
+        namespace=settings.socketio_admin.namespace_name,
+        server_stats_interval=settings.socketio_admin.server_stats_interval,
+    )
 
 
 @tmex.on_connect(summary="[special] Automatic event")
@@ -86,6 +102,7 @@ faststream = RedisRouter(
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
+faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
 
 
 async def reinit_database() -> None:  # pragma: no cover
@@ -155,7 +172,6 @@ app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
 app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
-app.include_router(storage.api_router)
 app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)
 app.include_router(classrooms.api_router)

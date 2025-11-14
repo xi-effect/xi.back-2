@@ -10,7 +10,6 @@ from app.classrooms.routes import (
     enrollments_tutor_rst,
     invitations_student_rst,
     invitations_tutor_rst,
-    materials_tutor_rst,
     tutorships_mub,
     tutorships_student_rst,
     tutorships_tutor_rst,
@@ -28,7 +27,6 @@ authorized_router = APIRouterExt(
 )
 authorized_router.include_router(invitations_tutor_rst.router)
 authorized_router.include_router(invitations_student_rst.router)
-authorized_router.include_router(materials_tutor_rst.router)
 authorized_router.include_router(tutorships_tutor_rst.router)
 authorized_router.include_router(tutorships_student_rst.router)
 authorized_router.include_router(classrooms_tutor_rst.router)

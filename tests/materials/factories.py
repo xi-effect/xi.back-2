@@ -10,6 +10,12 @@ class TutorMaterialPatchFactory(BasePatchModelFactory[TutorMaterial.PatchSchema]
     __model__ = TutorMaterial.PatchSchema
 
 
+class ClassroomMaterialDuplicateInputFactory(
+    BaseModelFactory[ClassroomMaterial.DuplicateInputSchema]
+):
+    __model__ = ClassroomMaterial.DuplicateInputSchema
+
+
 class ClassroomMaterialInputFactory(BaseModelFactory[ClassroomMaterial.InputSchema]):
     __model__ = ClassroomMaterial.InputSchema
 

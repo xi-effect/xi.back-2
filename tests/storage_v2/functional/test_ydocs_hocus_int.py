@@ -1,3 +1,5 @@
+from uuid import UUID
+
 import pytest
 from faker import Faker
 from pytest_lazy_fixtures import lf, lfc
@@ -6,7 +8,7 @@ from starlette.testclient import TestClient
 
 from app.common.config import storage_token_provider
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
-from app.storage_v2.models.access_groups_db import AccessGroupYDoc
+from app.storage_v2.models.access_groups_db import AccessGroup
 from app.storage_v2.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -18,10 +20,10 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture()
 def ydocs_access_storage_token_payload(
     authorized_user_id: int,
-    access_group_ydoc: AccessGroupYDoc,
+    access_group: AccessGroup,
 ) -> StorageTokenPayloadSchema:
     return factories.StorageTokenPayloadFactory.build(
-        access_group_id=access_group_ydoc.access_group_id,
+        access_group_id=access_group.id,
         user_id=authorized_user_id,
         can_upload_files=True,
     )
@@ -36,13 +38,14 @@ def ydocs_access_storage_token(
 
 async def test_ydoc_access_level_retrieving(
     authorized_internal_client: TestClient,
-    access_group_ydoc: AccessGroupYDoc,
+    access_group: AccessGroup,
     ydocs_access_storage_token_payload: StorageTokenPayloadSchema,
     ydocs_access_storage_token: str,
 ) -> None:
     assert_response(
         authorized_internal_client.get(
-            f"/internal/storage-service/v2/ydocs/{access_group_ydoc.ydoc_id}/access-level/",
+            "/internal/storage-service/v2"
+            f"/ydocs/{access_group.main_ydoc_id}/access-level/",
             headers={"X-Storage-Token": ydocs_access_storage_token},
         ),
         expected_json=ydocs_access_storage_token_payload.ydoc_access_level,
@@ -50,15 +53,25 @@ async def test_ydoc_access_level_retrieving(
 
 
 @pytest.mark.parametrize(
-    "storage_token",
+    ("storage_token", "ydoc_id"),
     [
         pytest.param(
             lfc(
                 "storage_token_generator",
-                lf("access_group_ydoc.access_group_id"),
+                lf("access_group.id"),
                 lf("outsider_user_id"),
             ),
+            lf("ydoc.id"),
             id="incorrect_user",
+        ),
+        pytest.param(
+            lfc(
+                "storage_token_generator",
+                lf("access_group.id"),
+                lf("authorized_user_id"),
+            ),
+            lf("other_ydoc.id"),
+            id="wrong_access_group",
         ),
         pytest.param(
             lfc(
@@ -66,22 +79,24 @@ async def test_ydoc_access_level_retrieving(
                 lf("missing_access_group_id"),
                 lf("authorized_user_id"),
             ),
+            lf("ydoc.id"),
             id="missing_access_group",
         ),
         pytest.param(
             lfc("faker.password"),
+            lf("ydoc.id"),
             id="malformed_token",
         ),
     ],
 )
 async def test_ydoc_access_level_invalid_token(
     authorized_internal_client: TestClient,
-    ydoc: YDoc,
     storage_token: str,
+    ydoc_id: UUID,
 ) -> None:
     assert_response(
         authorized_internal_client.get(
-            f"/internal/storage-service/v2/ydocs/{ydoc.id}/access-level/",
+            f"/internal/storage-service/v2/ydocs/{ydoc_id}/access-level/",
             headers={"X-Storage-Token": storage_token},
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
@@ -91,12 +106,13 @@ async def test_ydoc_access_level_invalid_token(
 
 async def test_ydoc_access_level_retrieving_proxy_authorization_missing(
     internal_client: TestClient,
-    access_group_ydoc: AccessGroupYDoc,
+    access_group: AccessGroup,
     ydocs_access_storage_token: str,
 ) -> None:
     assert_response(
         internal_client.get(
-            f"/internal/storage-service/v2/ydocs/{access_group_ydoc.ydoc_id}/access-level/",
+            "/internal/storage-service/v2"
+            f"/ydocs/{access_group.main_ydoc_id}/access-level/",
             headers={"X-Storage-Token": ydocs_access_storage_token},
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,

@@ -110,7 +110,7 @@ class TutorMaterial(Material):
     ResponseSchema = MappedModel.create(
         bases=[Material.BaseResponseSchema],
         extra_fields={
-            "kind": (Literal[MaterialAccessKind.TUTOR], MaterialAccessKind.TUTOR)
+            "access_kind": (Literal[MaterialAccessKind.TUTOR], MaterialAccessKind.TUTOR)
         },
     )
 
@@ -138,6 +138,7 @@ class ClassroomMaterial(Material):
     student_access_mode: Mapped[MaterialAccessMode] = mapped_column(nullable=True)
 
     StudentAccessModeSchema = MappedModel.create(columns=[student_access_mode])
+    DuplicateInputSchema = StudentAccessModeSchema.extend(bases=[Material.NameSchema])
     InputSchema = StudentAccessModeSchema.extend(bases=[Material.BaseInputSchema])
     PatchSchema = StudentAccessModeSchema.as_patch().extend(
         bases=[Material.BasePatchSchema]
@@ -145,7 +146,7 @@ class ClassroomMaterial(Material):
     ResponseSchema = StudentAccessModeSchema.extend(
         bases=[Material.BaseResponseSchema],
         extra_fields={
-            "kind": (
+            "access_kind": (
                 Literal[MaterialAccessKind.CLASSROOM],
                 MaterialAccessKind.CLASSROOM,
             )

@@ -4,9 +4,14 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 from starlette import status
 
-from app.common.config_bdg import classrooms_bridge
+from app.common.config_bdg import classrooms_bridge, notifications_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.notifications_sch import (
+    NotificationInputSchema,
+    NotificationKind,
+    RecipientInvoiceNotificationPayloadSchema,
+)
 from app.invoices.dependencies.recipient_invoices_dep import (
     PaymentStatusResponses,
     TutorRecipientInvoiceByID,
@@ -107,13 +112,23 @@ async def create_invoice(
         )
 
     for student_id in included_student_ids:
-        await RecipientInvoice.create(
+        recipient_invoice = await RecipientInvoice.create(
             invoice_id=invoice.id,
             student_id=student_id,
             total=total,
             status=PaymentStatus.WF_SENDER_CONFIRMATION,
         )
-        # TODO send notification to each recipient (worker task)
+
+        # TODO: batch sending or use invoice_ids instead
+        await notifications_bridge.send_notification(
+            NotificationInputSchema(
+                payload=RecipientInvoiceNotificationPayloadSchema(
+                    kind=NotificationKind.RECIPIENT_INVOICE_CREATED_V1,
+                    recipient_invoice_id=recipient_invoice.id,
+                ),
+                recipient_user_ids=[student_id],
+            )
+        )
 
     return invoice
 

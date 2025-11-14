@@ -5,16 +5,7 @@ from app.classrooms.models.classrooms_db import (
     IndividualClassroom,
     UserClassroomStatus,
 )
-from app.classrooms.models.materials_db import Material
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
-
-
-class MaterialInputFactory(BaseModelFactory[Material.InputSchema]):
-    __model__ = Material.InputSchema
-
-
-class MaterialPatchFactory(BasePatchModelFactory[Material.PatchSchema]):
-    __model__ = Material.PatchSchema
 
 
 class IndividualClassroomInputFactory(

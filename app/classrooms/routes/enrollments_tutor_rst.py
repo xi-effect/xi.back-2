@@ -7,9 +7,14 @@ from app.classrooms.dependencies.tutorships_dep import MyTutorTutorshipByIDs
 from app.classrooms.models.classrooms_db import GroupClassroom
 from app.classrooms.models.enrollments_db import Enrollment
 from app.classrooms.models.tutorships_db import Tutorship
-from app.common.config_bdg import users_internal_bridge
+from app.common.config_bdg import notifications_bridge, users_internal_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import LimitedListResponses
+from app.common.schemas.notifications_sch import (
+    EnrollmentNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
 router = APIRouterExt(tags=["classroom enrollments"])
@@ -77,6 +82,17 @@ async def add_classroom_student(
         tutor_id=tutorship.tutor_id,
         student_id=tutorship.student_id,
         delta=1,
+    )
+
+    await notifications_bridge.send_notification(
+        NotificationInputSchema(
+            payload=EnrollmentNotificationPayloadSchema(
+                kind=NotificationKind.ENROLLMENT_CREATED_V1,
+                classroom_id=group_classroom.id,
+                student_id=tutorship.student_id,
+            ),
+            recipient_user_ids=[tutorship.student_id],
+        )
     )
 
 

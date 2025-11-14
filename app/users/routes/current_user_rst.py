@@ -1,28 +1,21 @@
-import logging
 from typing import Annotated
 
-from pydantic import Field
+from fastapi import Body
 from starlette import status
 
-from app.common.config import email_confirmation_cryptography
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.users.dependencies.password_protected_dep import PasswordProtected
 from app.users.dependencies.users_dep import AuthorizedUser
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
-from app.users.utils.confirmations import EmailResendResponses
-from app.users.utils.users import (
-    UserEmailResponses,
-    UsernameResponses,
-    is_email_unique,
-    is_username_unique,
-)
+from app.users.utils.users import UsernameResponses, is_username_unique
 
 router = APIRouterExt(tags=["current user"])
 
 
 @router.get(
-    "/users/current/home/",
+    path="/users/current/home/",
     response_model=User.FullSchema,
     summary="Retrieve current user's 'home' data",
 )
@@ -31,93 +24,16 @@ async def get_user_data(user: AuthorizedUser) -> User:
 
 
 @router.patch(
-    "/users/current/profile/",
-    deprecated=True,
-    response_model=User.FullSchema,
-    responses=UsernameResponses.responses(),
-    summary="Use PATCH /users/current/ instead",
-)
-@router.patch(
-    "/users/current/",
+    path="/users/current/",
     response_model=User.FullSchema,
     responses=UsernameResponses.responses(),
     summary="Update current user's settings",
 )
-async def patch_user_data(
-    patch_data: User.SettingsPatchSchema, user: AuthorizedUser
-) -> User:
-    if not await is_username_unique(patch_data.username, user.username):
+async def patch_user_data(data: User.SettingsPatchSchema, user: AuthorizedUser) -> User:
+    if not await is_username_unique(data.username, user.username):
         raise UsernameResponses.USERNAME_IN_USE
-    user.update(**patch_data.model_dump(exclude_defaults=True))
+    user.update(**data.model_dump(exclude_defaults=True))
     return user
-
-
-@router.post(
-    "/users/current/email-confirmation-requests/",
-    status_code=status.HTTP_204_NO_CONTENT,
-    responses=EmailResendResponses.responses(),
-    summary="Resend email confirmation message for the current user",
-)
-async def resend_email_confirmation(user: AuthorizedUser) -> None:
-    if not user.is_email_confirmation_resend_allowed():
-        raise EmailResendResponses.TOO_MANY_EMAILS
-    confirmation_token: str = email_confirmation_cryptography.encrypt(user.email)
-    user.set_confirmation_resend_timeout()
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Hi {user.email}, verify email: {confirmation_token}",
-            "email": user.email,
-            "token": confirmation_token,
-        },
-    )
-
-
-class PasswordProtectedResponses(Responses):
-    WRONG_PASSWORD = status.HTTP_401_UNAUTHORIZED, "Wrong password"
-
-
-class EmailChangeSchema(User.PasswordSchema):
-    new_email: Annotated[str, Field(max_length=100)]
-
-
-@router.put(
-    "/users/current/email/",
-    response_model=User.FullSchema,
-    responses=Responses.chain(
-        PasswordProtectedResponses, UserEmailResponses, EmailResendResponses
-    ),
-    summary="Update current user's email",
-)
-async def change_user_email(user: AuthorizedUser, put_data: EmailChangeSchema) -> User:
-    if not user.is_password_valid(password=put_data.password):
-        raise PasswordProtectedResponses.WRONG_PASSWORD
-
-    if not await is_email_unique(put_data.new_email, user.username):
-        raise UserEmailResponses.EMAIL_IN_USE
-
-    if not user.is_email_confirmation_resend_allowed():
-        raise EmailResendResponses.TOO_MANY_EMAILS
-
-    user.email = put_data.new_email
-    user.email_confirmed = False
-    user.set_confirmation_resend_timeout()
-    confirmation_token: str = email_confirmation_cryptography.encrypt(user.email)
-    logging.info(
-        "Magical send to pochta will happen here",
-        extra={
-            "message": f"Your email has been changed to {put_data.new_email},"
-            + f"confirm new email: {confirmation_token}",
-            "new_email": put_data.new_email,
-            "token": confirmation_token,
-        },
-    )
-
-    return user
-
-
-class PasswordChangeSchema(User.PasswordSchema):
-    new_password: Annotated[str, Field(min_length=6, max_length=100)]
 
 
 class PasswordChangeResponses(Responses):
@@ -128,21 +44,22 @@ class PasswordChangeResponses(Responses):
 
 
 @router.put(
-    "/users/current/password/",
+    path="/users/current/password/",
     response_model=User.FullSchema,
-    responses=Responses.chain(PasswordChangeResponses, PasswordProtectedResponses),
+    responses=PasswordChangeResponses.responses(),
     summary="Update current user's password",
+    dependencies=[PasswordProtected],
 )
 async def change_user_password(
-    user: AuthorizedUser, auth_data: AuthorizationData, put_data: PasswordChangeSchema
+    user: AuthorizedUser,
+    auth_data: AuthorizationData,
+    new_password: Annotated[str, Body(embed=True, min_length=6, max_length=100)],
 ) -> User:
-    if not user.is_password_valid(password=put_data.password):
-        raise PasswordProtectedResponses.WRONG_PASSWORD
-
-    if user.is_password_valid(put_data.new_password):
+    if user.is_password_valid(new_password):
         raise PasswordChangeResponses.PASSWORD_MATCHES_CURRENT
 
-    user.change_password(put_data.new_password)
+    user.change_password(new_password)
+
     await Session.disable_all_but_one_for_user(
         user_id=auth_data.user_id, excluded_id=auth_data.session_id
     )

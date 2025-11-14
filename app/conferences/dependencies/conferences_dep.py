@@ -9,7 +9,7 @@ from app.conferences.services import conferences_svc
 
 
 def generate_livekit_room_name_by_classroom_id(
-    classroom_id: Annotated[str, Path()],
+    classroom_id: Annotated[int, Path()],
 ) -> str:
     return f"classroom-{classroom_id}"
 

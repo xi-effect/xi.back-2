@@ -1,11 +1,22 @@
+import random
+from unittest.mock import AsyncMock
+
 import pytest
 from faker import Faker
 from livekit.protocol.models import Room
+from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.config import settings
+from app.common.schemas.notifications_sch import (
+    ClassroomNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
+from tests.common.respx_ext import assert_last_httpx_request
 from tests.conferences.conftest import ClassroomRoleType
 from tests.conferences.factories import ConferenceParticipantFactory
 
@@ -14,6 +25,8 @@ pytestmark = pytest.mark.anyio
 
 async def test_classroom_conference_reactivation(
     mock_stack: MockStack,
+    classrooms_respx_mock: MockRouter,
+    send_notification_mock: AsyncMock,
     outsider_client: TestClient,
     classroom_id: int,
     classroom_conference_room_name: str,
@@ -22,11 +35,31 @@ async def test_classroom_conference_reactivation(
         "app.conferences.services.conferences_svc.reactivate_room"
     )
 
+    recipient_user_ids = random.choices(list(range(100)), k=random.randint(2, 10))
+    classroom_bridge_mock = classrooms_respx_mock.get(
+        path=f"/classrooms/{classroom_id}/students/"
+    ).respond(json=recipient_user_ids)
+
     assert_nodata_response(
         outsider_client.post(
             "/api/protected/conference-service/roles/tutor"
             f"/classrooms/{classroom_id}/conference/",
         ),
+    )
+
+    send_notification_mock.assert_awaited_once_with(
+        NotificationInputSchema(
+            payload=ClassroomNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1,
+                classroom_id=classroom_id,
+            ),
+            recipient_user_ids=recipient_user_ids,
+        )
+    )
+
+    assert_last_httpx_request(
+        classroom_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
     conferences_svc_mock.assert_awaited_once_with(

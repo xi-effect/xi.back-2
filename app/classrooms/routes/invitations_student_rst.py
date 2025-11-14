@@ -15,10 +15,15 @@ from app.classrooms.models.classrooms_db import (
 from app.classrooms.models.enrollments_db import Enrollment
 from app.classrooms.models.invitations_db import GroupInvitation, IndividualInvitation
 from app.classrooms.models.tutorships_db import Tutorship
-from app.common.config_bdg import users_internal_bridge
+from app.common.config_bdg import notifications_bridge, users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import LimitedListResponses
+from app.common.schemas.notifications_sch import (
+    InvitationAcceptanceNotificationPayloadSchema,
+    NotificationInputSchema,
+    NotificationKind,
+)
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
 router = APIRouterExt(tags=["student invitations"])
@@ -133,12 +138,26 @@ async def accept_individual_invitation(
     tutor_profile = user_id_to_profile[individual_invitation.tutor_id]
     student_profile = user_id_to_profile[student_id]
 
-    return await IndividualClassroom.create(
+    individual_classroom = await IndividualClassroom.create(
         tutor_id=individual_invitation.tutor_id,
         tutor_name=tutor_profile.display_name,
         student_id=student_id,
         student_name=student_profile.display_name,
     )
+
+    await notifications_bridge.send_notification(
+        NotificationInputSchema(
+            payload=InvitationAcceptanceNotificationPayloadSchema(
+                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
+                invitation_id=individual_invitation.id,
+                classroom_id=individual_classroom.id,
+                student_id=student_id,
+            ),
+            recipient_user_ids=[individual_invitation.tutor_id],
+        )
+    )
+
+    return individual_classroom
 
 
 async def accept_group_invitation(
@@ -163,6 +182,18 @@ async def accept_group_invitation(
     await Enrollment.create(
         group_classroom_id=group_invitation.group_classroom_id,
         student_id=student_id,
+    )
+
+    await notifications_bridge.send_notification(
+        NotificationInputSchema(
+            payload=InvitationAcceptanceNotificationPayloadSchema(
+                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
+                invitation_id=group_invitation.id,
+                classroom_id=group_invitation.group_classroom_id,
+                student_id=student_id,
+            ),
+            recipient_user_ids=[group_invitation.group_classroom.tutor_id],
+        )
     )
 
     return group_invitation.group_classroom

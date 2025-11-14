@@ -2,12 +2,12 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, ClassVar, Self
+from typing import Annotated, Self
 
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
 from pydantic import AfterValidator, AwareDatetime, StringConstraints
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import CHAR, DateTime, Enum, Index, String, select
+from sqlalchemy import DateTime, Enum, Index, String, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
@@ -19,6 +19,7 @@ password_reset_token_generator = TokenGenerator(randomness=40, length=50)
 
 
 class OnboardingStage(StrEnum):
+    EMAIL_CONFIRMATION = "email-confirmation"
     USER_INFORMATION = "user-information"
     DEFAULT_LAYOUT = "default-layout"
     NOTIFICATIONS = "notifications"
@@ -28,12 +29,14 @@ class OnboardingStage(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
-    not_found_text: ClassVar[str] = "User not found"
-    email_confirmation_resend_timeout: ClassVar[timedelta] = timedelta(minutes=10)
 
     @staticmethod
     def generate_hash(password: str) -> str:
         return pbkdf2_sha256.hash(password)
+
+    @staticmethod
+    def generate_next_email_confirmation_allowed_resend_at() -> datetime:
+        return datetime_utc_now() + timedelta(minutes=10)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(100))
@@ -48,26 +51,23 @@ class User(Base):
     theme: Mapped[str] = mapped_column(String(10), default="system")
 
     onboarding_stage: Mapped[OnboardingStage] = mapped_column(
-        Enum(OnboardingStage, name="onboarding_stage_2"),
-        default=OnboardingStage.USER_INFORMATION,
+        Enum(OnboardingStage, name="onboarding_stage_3"),
+        default=OnboardingStage.EMAIL_CONFIRMATION,
     )
 
-    reset_token: Mapped[str | None] = mapped_column(
-        CHAR(password_reset_token_generator.token_length)
-    )
-    last_password_change: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime_utc_now
+    email_confirmation_resend_allowed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime_utc_now,
     )
 
-    email_confirmed: Mapped[bool] = mapped_column(default=False)
-    allowed_confirmation_resend: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime_utc_now
+    password_last_changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime_utc_now,
     )
 
     __table_args__ = (
         Index("hash_index_users_username", username, postgresql_using="hash"),
         Index("hash_index_users_email", email, postgresql_using="hash"),
-        Index("hash_index_users_token", reset_token, postgresql_using="hash"),
     )
 
     PasswordType = Annotated[
@@ -106,13 +106,12 @@ class User(Base):
         columns=[
             id,
             email,
-            email_confirmed,
-            (last_password_change, AwareDatetime),
-            (allowed_confirmation_resend, AwareDatetime),
+            (password_last_changed_at, AwareDatetime),
+            (email_confirmation_resend_allowed_at, AwareDatetime),
             onboarding_stage,
         ]
     )
-    FullPatchSchema = InputSchema.extend(
+    PatchMUBSchema = InputSchema.extend(
         columns=[(display_name, DisplayNameType), theme, onboarding_stage]
     ).as_patch()
 
@@ -124,28 +123,19 @@ class User(Base):
         return pbkdf2_sha256.verify(password, self.password)
 
     def is_email_confirmation_resend_allowed(self) -> bool:
-        return self.allowed_confirmation_resend < datetime_utc_now()
+        return self.email_confirmation_resend_allowed_at < datetime_utc_now()
 
-    def set_confirmation_resend_timeout(self) -> None:
-        self.allowed_confirmation_resend = (
-            datetime_utc_now() + self.email_confirmation_resend_timeout
+    def timeout_email_confirmation_resend(self) -> None:
+        self.email_confirmation_resend_allowed_at = (
+            self.generate_next_email_confirmation_allowed_resend_at()
         )
 
     @property
     def avatar_path(self) -> Path:
         return settings.avatars_path / f"{self.id}.webp"
 
-    @property
-    def generated_reset_token(self) -> str:  # noqa: FNE002  # reset is a noun here
-        if self.reset_token is None:
-            self.reset_token = password_reset_token_generator.generate_token()
-        return self.reset_token
-
     def change_password(self, password: str) -> None:
-        if not self.is_password_valid(password):
-            self.last_password_change = datetime_utc_now()
+        if self.is_password_valid(password):
+            return
+        self.password_last_changed_at = datetime_utc_now()
         self.password = self.generate_hash(password)
-
-    def reset_password(self, password: str) -> None:
-        self.change_password(password)
-        self.reset_token = None
