@@ -30,8 +30,7 @@ pytestmark = pytest.mark.anyio
 async def test_user_settings_updating(
     faker: Faker,
     authorized_client: TestClient,
-    user_data: AnyJSON,
-    user: User,
+    user_full_data: AnyJSON,
     pass_username: bool,
     pass_display_name: bool,
     pass_theme: bool,
@@ -51,7 +50,7 @@ async def test_user_settings_updating(
         authorized_client.patch(
             "/api/protected/user-service/users/current/", json=update_data
         ),
-        expected_json={**user_data, **update_data, "id": user.id, "password": None},
+        expected_json={**user_full_data, **update_data},
     )
 
 
@@ -94,8 +93,7 @@ async def test_user_settings_updating_invalid_username(
 async def test_user_settings_updating_display_name_with_whitespaces(
     faker: Faker,
     authorized_client: TestClient,
-    user_data: AnyJSON,
-    user: User,
+    user_full_data: AnyJSON,
 ) -> None:
     new_display_name: str = rstr.xeger(r"^\s[a-zA-Z0-9]{2,30}\s$")
 
@@ -105,10 +103,8 @@ async def test_user_settings_updating_display_name_with_whitespaces(
             json={"display_name": new_display_name},
         ),
         expected_json={
-            **user_data,
-            "id": user.id,
+            **user_full_data,
             "display_name": new_display_name.strip(),
-            "password": None,
         },
     )
 
@@ -152,6 +148,7 @@ async def test_changing_user_password(
     authorized_client: TestClient,
     user_data: AnyJSON,
     user: User,
+    user_full_data: AnyJSON,
 ) -> None:
     new_password: str = faker.password()
 
@@ -161,7 +158,7 @@ async def test_changing_user_password(
             json={"password": user_data["password"], "new_password": new_password},
         ),
         expected_json={
-            **user_data,
+            **user_full_data,
             "password_last_changed_at": datetime_utc_now(),
             "password": None,
         },

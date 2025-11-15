@@ -175,6 +175,7 @@ class Settings(BaseSettings):
 
     notifications_send_stream_name: str = "notifications.send"
     email_messages_send_stream_name: str = "email-messages.send"
+    datalake_events_record_stream_name: str = "datalake-events.record"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"

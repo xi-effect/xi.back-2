@@ -19,6 +19,7 @@ from app import (
     classrooms,
     communities,
     conferences,
+    datalake,
     invoices,
     materials,
     messenger,
@@ -32,8 +33,9 @@ from app import (
     users,
 )
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
-from app.common.config_bdg import all_bridges
+from app.common.config_bdg import all_bridges, datalake_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
+from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
@@ -66,11 +68,18 @@ if settings.socketio_admin is not None:
 async def connect_user(socket: AsyncSocket) -> None:
     try:
         auth_data = await authorize_from_wsgi_environ(socket.get_environ())
-    except ValidationError:  # TODO (38980978) pragma: no cover
+    except ValidationError:
         raise EventException(status.HTTP_407_PROXY_AUTHENTICATION_REQUIRED, "bad")
     await socket.save_session({"auth": auth_data})
     user_id_to_sids[auth_data.user_id].add(socket.sid)
     await socket.enter_room(user_room(auth_data.user_id))
+
+    await datalake_bridge.record_datalake_event(
+        DatalakeEventInputSchema(
+            kind=DatalakeEventKind.OPEN_SOCKETIO_CONNECTION,
+            user_id=auth_data.user_id,
+        )
+    )
 
 
 @tmex.on_disconnect(summary="[special] Automatic event")
@@ -101,6 +110,7 @@ faststream = RedisRouter(
     settings.redis_faststream_dsn,
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
+faststream.include_router(datalake.stream_router)  # type: ignore[arg-type]
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
 faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
 
@@ -164,6 +174,7 @@ include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
 app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(conferences.api_router)
+app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
 app.include_router(materials.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
