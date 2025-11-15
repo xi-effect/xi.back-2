@@ -26,7 +26,7 @@ from tests.common.aiogram_testing import (
     TelegramBotWebhookDriver,
 )
 from tests.common.mock_stack import MockStack
-from tests.common.types import AnyJSON
+from tests.common.types import AnyJSON, PytestRequest
 from tests.notifications import factories
 
 
@@ -157,7 +157,52 @@ async def telegram_connection(
     yield telegram_connection
 
     async with active_session():
-        await TelegramConnection.delete_by_kwargs(user_id=proxy_auth_data.user_id)
+        await telegram_connection.delete()
+
+
+@pytest.fixture()
+async def active_telegram_connection(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    tg_chat_id: int,
+) -> AsyncIterator[TelegramConnection]:
+    async with active_session():
+        telegram_connection = await TelegramConnection.create(
+            user_id=proxy_auth_data.user_id,
+            chat_id=tg_chat_id,
+            status=TelegramConnectionStatus.ACTIVE,
+        )
+
+    yield telegram_connection
+
+    async with active_session():
+        await telegram_connection.delete()
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(status, id=f"{status.value}_connection")
+        for status in TelegramConnectionStatus
+        if status is not TelegramConnectionStatus.ACTIVE
+    ]
+)
+async def inactive_telegram_connection(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    tg_chat_id: int,
+    request: PytestRequest[TelegramConnection],
+) -> AsyncIterator[TelegramConnection]:
+    async with active_session():
+        telegram_connection = await TelegramConnection.create(
+            user_id=proxy_auth_data.user_id,
+            chat_id=tg_chat_id,
+            status=request.param,
+        )
+
+    yield telegram_connection
+
+    async with active_session():
+        await telegram_connection.delete()
 
 
 @pytest.fixture()
