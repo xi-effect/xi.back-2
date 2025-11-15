@@ -1,7 +1,7 @@
 from typing import Any
 from unittest.mock import Mock
 from urllib.parse import parse_qs, urlparse
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from pydantic import HttpUrl
@@ -17,13 +17,6 @@ from app.notifications.services.adapters.telegram_message_adapter import (
 from tests.notifications import factories
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.fixture()
-def notification_mock() -> Mock:
-    notification_mock = Mock()
-    notification_mock.id = uuid4()
-    return notification_mock
 
 
 def assert_telegram_message_payload(

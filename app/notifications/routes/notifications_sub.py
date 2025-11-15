@@ -9,6 +9,7 @@ from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sio import NewNotificationEmitter
 from app.notifications.services.senders import (
+    email_notification_sender,
     platform_notification_sender,
     telegram_notification_sender,
 )
@@ -43,6 +44,9 @@ async def send_notification(
         *platform_notification_sender.PlatformNotificationSender(
             notification=notification,
             emitter=emitter,
+        ).generate_tasks(recipient_user_ids=recipient_user_ids),
+        *email_notification_sender.EmailNotificationSender(
+            notification=notification
         ).generate_tasks(recipient_user_ids=recipient_user_ids),
         *telegram_notification_sender.TelegramNotificationSender(
             notification=notification,
