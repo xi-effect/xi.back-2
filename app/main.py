@@ -28,6 +28,7 @@ from app import (
     posts,
     scheduler,
     storage_v2,
+    subscriptions,
     supbot,
     users,
 )
@@ -176,6 +177,7 @@ app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)
 app.include_router(classrooms.api_router)
 app.include_router(users.api_router)
+app.include_router(subscriptions.api_router)
 
 old_openapi = app.openapi
 
