@@ -43,7 +43,7 @@ async def retrieve_user(user: UserByID) -> User:
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
     summary="Update any user's data by id",
 )
-async def update_user(user: UserByID, user_data: User.FullPatchSchema) -> User:
+async def update_user(user: UserByID, user_data: User.PatchMUBSchema) -> User:
     if not await is_email_unique(user_data.email, user.email):
         raise UserEmailResponses.EMAIL_IN_USE
     if not await is_username_unique(user_data.username, user.username):

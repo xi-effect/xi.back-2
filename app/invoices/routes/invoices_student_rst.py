@@ -2,8 +2,14 @@ from collections.abc import Sequence
 
 from starlette import status
 
+from app.common.config_bdg import notifications_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.notifications_sch import (
+    NotificationInputSchema,
+    NotificationKind,
+    RecipientInvoiceNotificationPayloadSchema,
+)
 from app.invoices.dependencies.recipient_invoices_dep import (
     PaymentStatusResponses,
     StudentRecipientInvoiceByID,
@@ -83,3 +89,13 @@ async def confirm_student_recipient_invoice_payment_with_payment_type(
         raise PaymentStatusResponses.INVALID_CONFIRMATION
     recipient_invoice.update(**data.model_dump())
     recipient_invoice.status = PaymentStatus.WF_RECEIVER_CONFIRMATION
+
+    await notifications_bridge.send_notification(
+        NotificationInputSchema(
+            payload=RecipientInvoiceNotificationPayloadSchema(
+                kind=NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
+                recipient_invoice_id=recipient_invoice.id,
+            ),
+            recipient_user_ids=[recipient_invoice.tutor_id],
+        )
+    )

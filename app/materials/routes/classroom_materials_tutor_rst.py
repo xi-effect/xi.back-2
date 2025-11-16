@@ -1,11 +1,13 @@
 from collections.abc import Sequence
+from typing import Annotated
 
+from fastapi import Path
 from starlette import status
 
 from app.common.config import storage_token_provider
 from app.common.config_bdg import storage_v2_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.storage_sch import (
     StorageItemSchema,
     StorageTokenPayloadSchema,
@@ -14,9 +16,14 @@ from app.common.schemas.storage_sch import (
 )
 from app.common.utils.datetime import datetime_utc_now
 from app.materials.dependencies.classroom_materials_dep import MyClassroomMaterialByIDs
+from app.materials.dependencies.materials_dep import (
+    MaterialResponses,
+    MyMaterialResponses,
+)
 from app.materials.models.materials_db import (
     ClassroomMaterial,
     MaterialSearchRequestSchema,
+    TutorMaterial,
 )
 from app.materials.services import materials_svc
 
@@ -50,13 +57,45 @@ async def create_classroom_material(
     classroom_id: int,
 ) -> ClassroomMaterial:
     access_group_data = await storage_v2_bridge.create_access_group()
-    ydoc_data = await storage_v2_bridge.create_ydoc(
-        access_group_id=access_group_data.id
-    )
     return await ClassroomMaterial.create(
         **input_data.model_dump(),
         access_group_id=access_group_data.id,
-        content_id=ydoc_data.id,
+        content_id=access_group_data.main_ydoc_id,
+        classroom_id=classroom_id,
+    )
+
+
+class DuplicateMaterialInputSchema(ClassroomMaterial.DuplicateInputSchema):
+    source_id: int
+
+
+@router.post(
+    path="/roles/tutor/classrooms/{classroom_id}/material-duplicates/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ClassroomMaterial.ResponseSchema,
+    responses=Responses.chain(MaterialResponses, MyMaterialResponses),
+    summary="Duplicate a tutor material to a classroom by id",
+)
+async def duplicate_tutor_material_to_classroom(
+    input_data: DuplicateMaterialInputSchema,
+    classroom_id: Annotated[int, Path()],
+    auth_data: AuthorizationData,
+) -> ClassroomMaterial:
+    tutor_material = await TutorMaterial.find_first_by_id(input_data.source_id)
+    if tutor_material is None:
+        raise MaterialResponses.MATERIAL_NOT_FOUND
+    if tutor_material.tutor_id != auth_data.user_id:
+        raise MyMaterialResponses.MATERIAL_ACCESS_DENIED
+
+    new_access_group_data = await storage_v2_bridge.duplicate_access_group(
+        source_access_group_id=tutor_material.access_group_id
+    )
+
+    return await ClassroomMaterial.create(
+        **input_data.model_dump(exclude={"source_id"}),
+        access_group_id=new_access_group_data.id,
+        content_id=new_access_group_data.main_ydoc_id,
+        content_kind=tutor_material.content_kind,
         classroom_id=classroom_id,
     )
 

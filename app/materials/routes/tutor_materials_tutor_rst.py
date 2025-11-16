@@ -49,13 +49,10 @@ async def create_tutor_material(
     auth_data: AuthorizationData,
 ) -> TutorMaterial:
     access_group_data = await storage_v2_bridge.create_access_group()
-    ydoc_data = await storage_v2_bridge.create_ydoc(
-        access_group_id=access_group_data.id
-    )
     return await TutorMaterial.create(
         **input_data.model_dump(),
         access_group_id=access_group_data.id,
-        content_id=ydoc_data.id,
+        content_id=access_group_data.main_ydoc_id,
         tutor_id=auth_data.user_id,
     )
 

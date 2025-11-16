@@ -9,12 +9,22 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from app.common.cyptography import CryptographyProvider
 from app.common.fastapi_tmexio_ext import TMEXIOExt
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
+
+
+class SocketIOAdminSettings(BaseModel):
+    username: str
+    password: str
+
+    is_production_mode: bool = True
+    is_read_only: bool = False
+
+    namespace_name: str = "/admin"
+    server_stats_interval: int = 2
 
 
 class FernetSettings(BaseModel):
@@ -67,8 +77,12 @@ class Settings(BaseSettings):
     def is_testing_mode(self) -> bool:
         return "pytest" in sys.modules
 
+    instance_name: str = "local"
+
     api_key: str = "local"  # common for now, split later
     mub_key: str = "local"
+
+    socketio_admin: SocketIOAdminSettings | None = None
 
     bridge_base_url: str = "http://localhost:5000"
 
@@ -136,6 +150,7 @@ class Settings(BaseSettings):
     redis_host: str = "localhost"
     redis_port: int = 6379
     redis_faststream_db: int = 0
+    redis_supbot_db: int = 1
 
     @computed_field
     @property
@@ -147,15 +162,25 @@ class Settings(BaseSettings):
             path=str(self.redis_faststream_db),
         ).unicode_string()
 
-    redis_consumer_name: str = "local"
+    @computed_field
+    @property
+    def redis_supbot_dsn(self) -> str:
+        return RedisDsn.build(
+            scheme="redis",
+            host=self.redis_host,
+            port=self.redis_port,
+            path=str(self.redis_supbot_db),
+        ).unicode_string()
 
     notifications_send_stream_name: str = "notifications.send"
+    email_messages_send_stream_name: str = "email-messages.send"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
     livekit_api_secret: str = "secret"
     livekit_demo_base_url: str = "https://meet.livekit.io/custom"
 
+    unisender_go_api_key: str | None = None
     email: EmailSettings | None = None
 
     supbot: SupbotSettings | None = None
@@ -203,14 +228,6 @@ smtp_client: SMTP | None = (
     )
 )
 
-password_reset_cryptography = CryptographyProvider(
-    settings.password_reset_keys.keys,
-    encryption_ttl=settings.password_reset_keys.encryption_ttl,
-)
-email_confirmation_cryptography = CryptographyProvider(
-    settings.email_confirmation_keys.keys,
-    encryption_ttl=settings.email_confirmation_keys.encryption_ttl,
-)
 storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
     secret_keys=settings.storage_token_keys.keys,
     encryption_ttl=settings.storage_token_keys.encryption_ttl,
