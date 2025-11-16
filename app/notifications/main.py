@@ -11,6 +11,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.notifications.config import telegram_app
 from app.notifications.routes import (
+    email_connections_int,
     notification_settings_rst,
     notifications_mub,
     notifications_rst,
@@ -54,6 +55,7 @@ internal_router = APIRouterExt(
     prefix="/internal/notification-service",
 )
 internal_router.include_router(user_contacts_int.router)
+internal_router.include_router(email_connections_int.router)
 
 
 @asynccontextmanager

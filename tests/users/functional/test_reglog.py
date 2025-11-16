@@ -1,9 +1,16 @@
+from unittest.mock import AsyncMock
+
 import pytest
+from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.common.bridges.pochta_bdg import PochtaBridge
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.config import settings
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.users.config import (
     EmailConfirmationTokenPayloadSchema,
     email_confirmation_token_provider,
@@ -12,7 +19,7 @@ from app.users.models.users_db import User
 from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
-from tests.common.mock_stack import MockStack
+from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON, PytestRequest
 from tests.users.utils import assert_session_from_cookie
 
@@ -25,15 +32,16 @@ def is_cross_site(request: PytestRequest[bool]) -> bool:
 
 
 async def test_signing_up(
+    notifications_respx_mock: MockRouter,
     active_session: ActiveSession,
-    mock_stack: MockStack,
     client: TestClient,
+    send_email_message_mock: AsyncMock,
     user_data: AnyJSON,
     is_cross_site: bool,
 ) -> None:
-    send_email_message_mock = mock_stack.enter_async_mock(
-        PochtaBridge, "send_email_message"
-    )
+    notifications_bridge_mock = notifications_respx_mock.put(
+        path__regex=r"/users/(?P<user_id>\d+)/email-connection/",
+    ).respond(status_code=status.HTTP_201_CREATED)
 
     response = assert_response(
         client.post(
@@ -46,14 +54,23 @@ async def test_signing_up(
     )
     user_id = response.json()["id"]
 
+    assert_last_httpx_request(
+        notifications_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+        expected_path=f"/internal/notification-service/users/{user_id}/email-connection/",
+        expected_json={"email": user_data["email"]},
+    )
+
     expected_token = email_confirmation_token_provider.serialize_and_sign(
         EmailConfirmationTokenPayloadSchema(user_id=user_id)
     )
     send_email_message_mock.assert_awaited_once_with(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.EMAIL_CONFIRMATION_V1,
-            recipient_email=user_data["email"],
-            token=expected_token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=expected_token,
+            ),
+            recipient_emails=[user_data["email"]],
         )
     )
 
