@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     bridge_base_url: str = "http://localhost:5000"
 
     cookie_domain: str = "localhost"
+    frontend_app_base_url: str = "https://app.sovlium.ru"
 
     password_reset_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 60)
     email_confirmation_keys: FernetSettings = FernetSettings(
