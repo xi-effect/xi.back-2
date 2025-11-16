@@ -26,7 +26,8 @@ async def user_factory(active_session: ActiveSession) -> Factory[User]:
 
 @pytest.fixture()
 async def session_factory(
-    active_session: ActiveSession, user: User
+    active_session: ActiveSession,
+    user: User,
 ) -> Factory[Session]:
     async def session_factory_inner(**kwargs: Any) -> Session:
         async with active_session():
@@ -51,6 +52,13 @@ async def user(
 @pytest.fixture()
 async def user_profile_data(user: User) -> AnyJSON:
     return UserProfileSchema.model_validate(user, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def user_full_data(user: User) -> AnyJSON:
+    return User.FullSchema.model_validate(user, from_attributes=True).model_dump(
         mode="json"
     )
 
@@ -105,7 +113,8 @@ async def other_session(active_session: ActiveSession, other_user: User) -> Sess
 
 @pytest.fixture()
 async def other_user_proxy_auth_data(
-    other_user: User, other_session: Session
+    other_user: User,
+    other_session: Session,
 ) -> ProxyAuthData:
     return ProxyAuthData(
         user_id=other_user.id,

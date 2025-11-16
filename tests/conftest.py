@@ -9,6 +9,7 @@ from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ig
 )
 from fastapi.testclient import TestClient
 
+from app.common.bridges.datalake_bdg import DatalakeBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.bridges.pochta_bdg import PochtaBridge
 from app.common.config import settings, tmex
@@ -128,6 +129,11 @@ async def pdf_data(faker: Faker) -> tuple[str, bytes, str]:
 @pytest.fixture()
 def vacancy_form_data() -> AnyJSON:
     return factories.VacancyFormWithMessageFactory.build_json()
+
+
+@pytest.fixture()
+def record_datalake_event_mock(mock_stack: MockStack) -> AsyncMock:
+    return mock_stack.enter_async_mock(DatalakeBridge, "record_datalake_event")
 
 
 @pytest.fixture()
