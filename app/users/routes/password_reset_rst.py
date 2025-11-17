@@ -5,7 +5,11 @@ from starlette import status
 
 from app.common.config_bdg import pochta_bridge
 from app.common.fastapi_ext import APIRouterExt
-from app.common.schemas.pochta_sch import EmailMessageInputSchema, EmailMessageKind
+from app.common.schemas.pochta_sch import (
+    EmailMessageInputSchema,
+    EmailMessageKind,
+    TokenEmailMessagePayloadSchema,
+)
 from app.users.config import (
     PasswordResetTokenPayloadSchema,
     password_reset_token_provider,
@@ -38,10 +42,12 @@ async def request_password_reset(data: User.EmailSchema) -> None:
         )
     )
     await pochta_bridge.send_email_message(
-        data=EmailMessageInputSchema(
-            kind=EmailMessageKind.PASSWORD_RESET_V1,
-            recipient_email=user.email,
-            token=token,
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.PASSWORD_RESET_V2,
+                token=token,
+            ),
+            recipient_emails=[user.email],
         )
     )
 

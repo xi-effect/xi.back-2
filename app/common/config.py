@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     bridge_base_url: str = "http://localhost:5000"
 
     cookie_domain: str = "localhost"
+    frontend_app_base_url: str = "https://app.sovlium.ru"
 
     password_reset_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 60)
     email_confirmation_keys: FernetSettings = FernetSettings(
@@ -174,6 +175,7 @@ class Settings(BaseSettings):
 
     notifications_send_stream_name: str = "notifications.send"
     email_messages_send_stream_name: str = "email-messages.send"
+    datalake_events_record_stream_name: str = "datalake-events.record"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
