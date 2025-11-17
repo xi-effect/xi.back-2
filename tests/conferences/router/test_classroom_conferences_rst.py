@@ -67,6 +67,41 @@ async def test_classroom_conference_reactivation(
     )
 
 
+async def test_classroom_conference_reactivation_no_students(
+    mock_stack: MockStack,
+    classrooms_respx_mock: MockRouter,
+    send_notification_mock: AsyncMock,
+    outsider_client: TestClient,
+    classroom_id: int,
+    classroom_conference_room_name: str,
+) -> None:
+    conferences_svc_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.reactivate_room"
+    )
+
+    classroom_bridge_mock = classrooms_respx_mock.get(
+        path=f"/classrooms/{classroom_id}/students/"
+    ).respond(json=[])
+
+    assert_nodata_response(
+        outsider_client.post(
+            "/api/protected/conference-service/roles/tutor"
+            f"/classrooms/{classroom_id}/conference/",
+        ),
+    )
+
+    send_notification_mock.assert_not_called()
+
+    assert_last_httpx_request(
+        classroom_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+    )
+
+    conferences_svc_mock.assert_awaited_once_with(
+        livekit_room_name=classroom_conference_room_name
+    )
+
+
 async def test_classroom_conference_access_token_generation(
     faker: Faker,
     mock_stack: MockStack,
