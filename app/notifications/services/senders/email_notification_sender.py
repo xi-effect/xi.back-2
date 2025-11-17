@@ -24,8 +24,8 @@ class EmailNotificationSender(BaseNotificationSender):
         email_connection = await EmailConnection.find_first_by_id(recipient_user_id)
 
         if email_connection is None:
-            logging.warning(
-                f"User {recipient_user_id} has not email connections",
+            logging.error(
+                f"User {recipient_user_id} has no email connections",
                 extra={
                     "notification_id": self.notification.id,
                     "recipient_user_id": recipient_user_id,
