@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import sentry_sdk
 from aiosmtplib import SMTP
 from cryptography.fernet import Fernet
 from pydantic import BaseModel, Field, PostgresDsn, RedisDsn, computed_field
@@ -70,14 +71,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    instance_name: str = "local"
+
     production_mode: bool = False
+    environment_name: str = "local"
 
     @computed_field
     @property
     def is_testing_mode(self) -> bool:
         return "pytest" in sys.modules
-
-    instance_name: str = "local"
 
     api_key: str = "local"  # common for now, split later
     mub_key: str = "local"
@@ -189,8 +191,22 @@ class Settings(BaseSettings):
     notifications_bot: TelegramBotSettings | None = None
     telegram_webhook_base_url: str | None = None
 
+    sentry_dsn: str | None = None
+
 
 settings = Settings()
+
+
+if not settings.is_testing_mode and settings.sentry_dsn is not None:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment_name,
+        server_name=settings.instance_name,
+        integrations=[],  # right now all of them are automatic
+        traces_sample_rate=0,
+        profiles_sample_rate=0,
+    )
+
 
 engine = create_async_engine(
     url=settings.postgres_dsn,

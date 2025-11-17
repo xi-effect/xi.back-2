@@ -1,5 +1,6 @@
 from typing import Annotated, Final
 
+import sentry_sdk
 from fastapi import Depends
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, ValidationError
@@ -82,13 +83,22 @@ async def authorize_proxy(
     username_token: UsernameHeader = None,
 ) -> ProxyAuthData:
     try:  # using try-except to use pydantic's validation
-        return construct_proxy_auth_data(
+        proxy_auth_data = construct_proxy_auth_data(
             session_id_token=session_id_token,
             user_id_token=user_id_token,
             username_token=username_token,
         )
     except ValidationError:  # noqa: WPS329  # bug  # TODO (36286438) pragma: no cover
         raise AuthorizedResponses.PROXY_AUTH_MISSING
+
+    sentry_sdk.set_user(
+        {
+            "id": proxy_auth_data.user_id,
+            "session_id": proxy_auth_data.session_id,
+        }
+    )
+
+    return proxy_auth_data
 
 
 ProxyAuthorized = Depends(authorize_proxy)

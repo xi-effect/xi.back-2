@@ -38,6 +38,7 @@ aiogram = "^3.4.1"
 aiosmtplib = "^3.0.2"
 itsdangerous = "^2.2.0"
 faststream = {extras = ["redis"], version = "^0.6.2"}
+sentry-sdk = {extras = ["asyncio", "fastapi", "sqlalchemy", "redis", "httpx"], version = "2.44.0"}
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
@@ -138,6 +139,7 @@ exclude_also = [
   "@abstractmethod",
   "custom_swagger_ui_html",
   "custom_openapi",
+  "sentry_sdk",
   "@mark.skip",
   "!wow!",
 ]
