@@ -1,9 +1,15 @@
+from httpx import Response
 from pydantic import TypeAdapter
 from starlette import status
 
 from app.common.bridges.base_bdg import BaseBridge
+from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
 from app.common.schemas.autocomplete_sch import SubjectSchema
+
+
+class SubjectNotFoundException(Exception):
+    pass
 
 
 class AutocompleteBridge(BaseBridge):
@@ -13,12 +19,12 @@ class AutocompleteBridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    async def retrieve_subject(self, subject_id: int) -> SubjectSchema | None:
+    @validate_external_json_response(TypeAdapter(SubjectSchema))
+    async def retrieve_subject(self, subject_id: int) -> Response:
         response = await self.client.get(f"/subjects/{subject_id}/")
         if (
             response.status_code == status.HTTP_404_NOT_FOUND
             and response.json()["detail"] == "Subject not found"
         ):
-            return None
-        response.raise_for_status()
-        return TypeAdapter(SubjectSchema).validate_python(response.json())
+            raise SubjectNotFoundException
+        return response

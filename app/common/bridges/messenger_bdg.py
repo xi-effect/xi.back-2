@@ -2,7 +2,7 @@ from httpx import Response
 from pydantic import BaseModel, TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
-from app.common.bridges.utils import validate_json_response
+from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
 from app.common.schemas.messenger_sch import ChatAccessKind
 
@@ -20,7 +20,7 @@ class MessengerBridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_json_response(TypeAdapter(ChatMetaSchema))
+    @validate_external_json_response(TypeAdapter(ChatMetaSchema))
     async def create_chat(
         self, access_kind: ChatAccessKind, related_id: int | str
     ) -> Response:
@@ -34,6 +34,6 @@ class MessengerBridge(BaseBridge):
         response.raise_for_status()
         return response
 
-    async def delete_chat(self, chat_id: int) -> None:
-        response = await self.client.delete(f"/chats/{chat_id}/")
-        response.raise_for_status()
+    @validate_external_json_response()
+    async def delete_chat(self, chat_id: int) -> Response:
+        return await self.client.delete(f"/chats/{chat_id}/")

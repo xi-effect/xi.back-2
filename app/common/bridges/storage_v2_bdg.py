@@ -2,7 +2,7 @@ from httpx import Response
 from pydantic import BaseModel, TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
-from app.common.bridges.utils import validate_json_response
+from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
 
 
@@ -22,16 +22,16 @@ class StorageV2Bridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_json_response(TypeAdapter(AccessGroupMetaSchema))
+    @validate_external_json_response(TypeAdapter(AccessGroupMetaSchema))
     async def create_access_group(self) -> Response:
         return await self.client.post("/access-groups/")
 
-    @validate_json_response(TypeAdapter(AccessGroupMetaSchema))
+    @validate_external_json_response(TypeAdapter(AccessGroupMetaSchema))
     async def duplicate_access_group(self, source_access_group_id: str) -> Response:
         return await self.client.post(
             f"/access-groups/{source_access_group_id}/duplicates/"
         )
 
-    async def delete_access_group(self, access_group_id: str) -> None:
-        response = await self.client.delete(f"/access-groups/{access_group_id}/")
-        response.raise_for_status()
+    @validate_external_json_response()
+    async def delete_access_group(self, access_group_id: str) -> Response:
+        return await self.client.delete(f"/access-groups/{access_group_id}/")

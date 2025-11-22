@@ -50,15 +50,15 @@ async def test_email_notification_sending_email_connection_not_found(
     notification: Notification,
     email_notification_sender: EmailNotificationSender,
 ) -> None:
-    logging_warning_mock = mock_stack.enter_mock(logging, "warning")
+    logging_error_mock = mock_stack.enter_mock(logging, "error")
 
     async with active_session():
         await email_notification_sender.send_notification(
             recipient_user_id=authorized_user_id
         )
 
-    logging_warning_mock.assert_called_once_with(
-        f"User {authorized_user_id} has not email connections",
+    logging_error_mock.assert_called_once_with(
+        f"User {authorized_user_id} has no email connections",
         extra={
             "notification_id": notification.id,
             "recipient_user_id": authorized_user_id,
