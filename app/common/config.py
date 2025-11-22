@@ -14,6 +14,7 @@ from app.common.fastapi_tmexio_ext import TMEXIOExt
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
+from app.common.sentry_ext import before_breadcrumb
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
 
@@ -205,6 +206,7 @@ if not settings.is_testing_mode and settings.sentry_dsn is not None:
         integrations=[],  # right now all of them are automatic
         traces_sample_rate=0,
         profiles_sample_rate=0,
+        before_breadcrumb=before_breadcrumb,
     )
 
 
