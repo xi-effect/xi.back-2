@@ -20,6 +20,7 @@ from app.classrooms.models.classrooms_db import (
     UserClassroomStatus,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.common.bridges.autocomplete_bdg import SubjectNotFoundException
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -58,8 +59,9 @@ async def validate_subject(
     if new_subject_id == old_subject_id:
         return
 
-    subject = await autocomplete_bridge.retrieve_subject(subject_id=new_subject_id)
-    if subject is None:
+    try:
+        await autocomplete_bridge.retrieve_subject(subject_id=new_subject_id)
+    except SubjectNotFoundException:  # noqa: WPS329  # false-positive / broken rule
         raise SubjectResponses.SUBJECT_NOT_FOUND
 
 

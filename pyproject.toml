@@ -137,6 +137,7 @@ exclude_also = [
   "if __name__ == [\"']__main__[\"']:",
   "class .*\\(Protocol\\):",
   "@abstractmethod",
+  "@overload",
   "custom_swagger_ui_html",
   "custom_openapi",
   "sentry_sdk",
