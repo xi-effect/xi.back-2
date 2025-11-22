@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.common.fastapi_tmexio_ext import TMEXIOExt
+from app.common.faststream_sentry_ext import FaststreamIntegration
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
@@ -203,7 +204,10 @@ if not settings.is_testing_mode and settings.sentry_dsn is not None:
         dsn=settings.sentry_dsn,
         environment=settings.environment_name,
         server_name=settings.instance_name,
-        integrations=[],  # right now all of them are automatic
+        integrations=[
+            FaststreamIntegration(),
+            # other integrations are automatic
+        ],
         traces_sample_rate=0,
         profiles_sample_rate=0,
         before_breadcrumb=before_breadcrumb,

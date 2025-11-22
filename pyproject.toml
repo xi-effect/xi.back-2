@@ -151,6 +151,7 @@ omit = [
   "app/common/aiogram_ext.py",
   "app/common/cyptography.py",
   "app/common/fastapi_ext.py",
+  "app/common/faststream_sentry_ext.py",
   "app/common/livekit_ext.py",
   "app/common/sentry_ext.py",
   "app/common/sqlalchemy_ext.py",
