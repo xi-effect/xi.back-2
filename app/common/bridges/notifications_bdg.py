@@ -2,7 +2,7 @@ from httpx import Response
 from pydantic import TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
-from app.common.bridges.utils import validate_json_response
+from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
 from app.common.schemas.notifications_sch import NotificationInputSchema
 from app.common.schemas.user_contacts_sch import UserContactSchema
@@ -15,21 +15,27 @@ class NotificationsBridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_json_response(TypeAdapter(list[UserContactSchema]))
+    @validate_external_json_response(TypeAdapter(list[UserContactSchema]))
     async def list_user_contacts(
-        self, user_id: int, public_only: bool = False
+        self,
+        user_id: int,
+        public_only: bool = False,
     ) -> Response:
         return await self.client.get(
             f"/users/{user_id}/contacts/",
             params={"public_only": public_only},
         )
 
-    async def create_or_update_email_connection(self, user_id: int, email: str) -> None:
-        response = await self.client.put(
+    @validate_external_json_response()
+    async def create_or_update_email_connection(
+        self,
+        user_id: int,
+        email: str,
+    ) -> Response:
+        return await self.client.put(
             f"/users/{user_id}/email-connection/",
             json={"email": email},
         )
-        response.raise_for_status()
 
     async def send_notification(self, data: NotificationInputSchema) -> None:
         await self.broker.publish(

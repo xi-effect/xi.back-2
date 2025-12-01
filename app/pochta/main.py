@@ -35,7 +35,7 @@ mub_router.include_router(pochta_mub.router)
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
     if settings.production_mode and settings.email is None:
-        logging.warning("Configuration for email service is missing")
+        logging.error("Configuration for email service is missing")
     yield
 
 
