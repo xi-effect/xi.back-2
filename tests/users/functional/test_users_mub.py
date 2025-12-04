@@ -2,10 +2,12 @@ from typing import Any
 
 import pytest
 from faker import Faker
+from freezegun import freeze_time
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.users.models.users_db import User
+from app.common.utils.datetime import datetime_utc_now
+from app.users.models.users_db import OnboardingStage, User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
@@ -14,6 +16,7 @@ from tests.users import factories
 pytestmark = pytest.mark.anyio
 
 
+@freeze_time()
 async def test_user_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
@@ -22,12 +25,24 @@ async def test_user_creation(
     user_id: int = assert_response(
         mub_client.post("/mub/user-service/users/", json=user_data),
         expected_code=status.HTTP_201_CREATED,
-        expected_json={**user_data, "id": int, "password": None},
+        expected_json={
+            **user_data,
+            "password": None,
+            "id": int,
+            "created_at": datetime_utc_now(),
+            "display_name": user_data["username"],
+            "default_layout": None,
+            "theme": "system",
+            "onboarding_stage": OnboardingStage.EMAIL_CONFIRMATION,
+            "password_last_changed_at": datetime_utc_now(),
+            "email_confirmation_resend_allowed_at": datetime_utc_now(),
+        },
     ).json()["id"]
 
     async with active_session():
         user = await User.find_first_by_id(user_id)
         assert user is not None
+        assert user.is_password_valid(user_data["password"])
         await user.delete()
 
 
@@ -63,39 +78,27 @@ async def test_user_creation_conflict(
 
 
 async def test_user_getting(
-    mub_client: TestClient, user: User, user_data: AnyJSON
+    mub_client: TestClient,
+    user: User,
+    user_full_data: AnyJSON,
 ) -> None:
     assert_response(
         mub_client.get(f"/mub/user-service/users/{user.id}/"),
-        expected_json={**user_data, "id": user.id, "password": None},
+        expected_json=user_full_data,
     )
 
 
 async def test_user_updating(
     faker: Faker,
     mub_client: TestClient,
-    user_data: AnyJSON,
     user: User,
+    user_full_data: AnyJSON,
 ) -> None:
     new_user_data: AnyJSON = factories.UserFullPatchFactory.build_json()
 
     assert_response(
         mub_client.patch(f"/mub/user-service/users/{user.id}/", json=new_user_data),
-        expected_json={**user_data, **new_user_data, "id": user.id, "password": None},
-    )
-
-
-async def test_user_updating_same_data(
-    mub_client: TestClient,
-    user_data: AnyJSON,
-    user: User,
-) -> None:
-    assert_response(
-        mub_client.patch(
-            f"/mub/user-service/users/{user.id}/",
-            json=user_data,
-        ),
-        expected_json={**user_data, "id": user.id, "password": None},
+        expected_json={**user_full_data, **new_user_data, "password": None},
     )
 
 

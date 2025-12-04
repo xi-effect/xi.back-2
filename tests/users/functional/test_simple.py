@@ -20,12 +20,11 @@ pytestmark = pytest.mark.anyio
 
 async def test_retrieving_home_data(
     authorized_client: TestClient,
-    user_data: AnyJSON,
-    user: User,
+    user_full_data: AnyJSON,
 ) -> None:
     assert_response(
         authorized_client.get("/api/protected/user-service/users/current/home/"),
-        expected_json={**user_data, "id": user.id, "password": None},
+        expected_json=user_full_data,
     )
 
 

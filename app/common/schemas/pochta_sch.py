@@ -1,15 +1,72 @@
 from enum import StrEnum, auto
+from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EmailMessageKind(StrEnum):
-    EMAIL_CONFIRMATION_V1 = auto()
-    EMAIL_CHANGE_V1 = auto()
-    PASSWORD_RESET_V1 = auto()
+    EMAIL_CONFIRMATION_V2 = auto()
+    EMAIL_CHANGE_V2 = auto()
+    PASSWORD_RESET_V2 = auto()
+
+    INDIVIDUAL_INVITATION_ACCEPTED_V1 = auto()
+    GROUP_INVITATION_ACCEPTED_V1 = auto()
+
+    ENROLLMENT_CREATED_V1 = auto()
+
+    CLASSROOM_CONFERENCE_STARTED_V1 = auto()
+
+    RECIPIENT_INVOICE_CREATED_V1 = auto()
+    STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
+
+
+class TokenEmailMessagePayloadSchema(BaseModel):
+    kind: Literal[
+        EmailMessageKind.EMAIL_CONFIRMATION_V2,
+        EmailMessageKind.EMAIL_CHANGE_V2,
+        EmailMessageKind.PASSWORD_RESET_V2,
+    ]
+
+    token: str
+
+
+class BaseNotificationEmailMessagePayloadSchema(BaseModel):
+    notification_id: UUID
+
+
+class ClassroomNotificationEmailMessagePayloadSchema(
+    BaseNotificationEmailMessagePayloadSchema
+):
+    kind: Literal[
+        EmailMessageKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
+        EmailMessageKind.GROUP_INVITATION_ACCEPTED_V1,
+        EmailMessageKind.ENROLLMENT_CREATED_V1,
+        EmailMessageKind.CLASSROOM_CONFERENCE_STARTED_V1,
+    ]
+
+    classroom_id: int
+
+
+class RecipientInvoiceNotificationEmailMessagePayloadSchema(
+    BaseNotificationEmailMessagePayloadSchema
+):
+    kind: Literal[
+        EmailMessageKind.RECIPIENT_INVOICE_CREATED_V1,
+        EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
+    ]
+
+    recipient_invoice_id: int
+
+
+AnyEmailMessagePayload = Annotated[
+    TokenEmailMessagePayloadSchema
+    | ClassroomNotificationEmailMessagePayloadSchema
+    | RecipientInvoiceNotificationEmailMessagePayloadSchema,
+    Field(discriminator="kind"),
+]
 
 
 class EmailMessageInputSchema(BaseModel):
-    kind: EmailMessageKind
-    recipient_email: str
-    token: str  # TODO pass actual data instead
+    payload: AnyEmailMessagePayload
+    recipient_emails: Annotated[list[str], Field(min_length=1, max_length=100)]

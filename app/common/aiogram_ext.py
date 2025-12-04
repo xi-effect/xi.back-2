@@ -97,7 +97,7 @@ class TelegramApp:
     ) -> None:
         if settings.is_testing_mode or bot_settings is None:
             if settings.production_mode:
-                logging.warning(f"Configuration for {bot_name} is missing")
+                logging.error(f"Configuration for {bot_name} is missing")
             return
 
         await self.initialize(

@@ -2,12 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from contextvars import ContextVar
 from typing import Any, Self
 
 from pydantic import TypeAdapter
-from sqlalchemy import JSON, Dialect, Row, Select, TypeDecorator, delete, func, select
+from sqlalchemy import (
+    JSON,
+    Dialect,
+    Row,
+    Select,
+    TypeDecorator,
+    delete,
+    func,
+    insert,
+    select,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.dml import ReturningInsert
 
@@ -60,6 +70,10 @@ class MappingBase:
         db.session.add(entry)
         await db.session.flush()
         return entry
+
+    @classmethod
+    async def create_batch(cls, values: Iterable[dict[str, Any]]) -> None:
+        await db.session.execute(insert(cls).values(list(values)))
 
     @classmethod
     def select_by_kwargs(cls, *order_by: Any, **kwargs: Any) -> Select[tuple[Self]]:

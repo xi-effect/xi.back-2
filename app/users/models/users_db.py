@@ -39,6 +39,10 @@ class User(Base):
         return datetime_utc_now() + timedelta(minutes=10)
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
+
     email: Mapped[str] = mapped_column(String(100))
     username: Mapped[str] = mapped_column(String(30))
     password: Mapped[str] = mapped_column(String(100))
@@ -105,6 +109,7 @@ class User(Base):
     FullSchema = SettingsSchema.extend(
         columns=[
             id,
+            (created_at, AwareDatetime),
             email,
             (password_last_changed_at, AwareDatetime),
             (email_confirmation_resend_allowed_at, AwareDatetime),

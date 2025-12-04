@@ -32,16 +32,20 @@ async def reactivate_classroom_conference(
 ) -> None:
     await conferences_svc.reactivate_room(livekit_room_name=livekit_room_name)
 
+    # TODO: make notifications service know classrooms instead
+    classroom_student_ids = await classrooms_bridge.list_classroom_student_ids(
+        classroom_id=classroom_id
+    )
+    if len(classroom_student_ids) == 0:
+        return
+
     await notifications_bridge.send_notification(
         NotificationInputSchema(
             payload=ClassroomNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1,
                 classroom_id=classroom_id,
             ),
-            # TODO: make notifications service know classrooms instead
-            recipient_user_ids=await classrooms_bridge.list_classroom_student_ids(
-                classroom_id=classroom_id
-            ),
+            recipient_user_ids=classroom_student_ids,
         )
     )
 

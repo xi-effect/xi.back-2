@@ -9,7 +9,9 @@ from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ig
 )
 from fastapi.testclient import TestClient
 
+from app.common.bridges.datalake_bdg import DatalakeBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
+from app.common.bridges.pochta_bdg import PochtaBridge
 from app.common.config import settings, tmex
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app
@@ -130,5 +132,15 @@ def vacancy_form_data() -> AnyJSON:
 
 
 @pytest.fixture()
+def record_datalake_event_mock(mock_stack: MockStack) -> AsyncMock:
+    return mock_stack.enter_async_mock(DatalakeBridge, "record_datalake_event")
+
+
+@pytest.fixture()
 def send_notification_mock(mock_stack: MockStack) -> AsyncMock:
     return mock_stack.enter_async_mock(NotificationsBridge, "send_notification")
+
+
+@pytest.fixture()
+def send_email_message_mock(mock_stack: MockStack) -> AsyncMock:
+    return mock_stack.enter_async_mock(PochtaBridge, "send_email_message")

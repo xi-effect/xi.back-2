@@ -5,8 +5,6 @@ from pydantic import BaseModel, Field
 
 
 class NotificationKind(StrEnum):
-    CUSTOM_V1 = auto()
-
     INDIVIDUAL_INVITATION_ACCEPTED_V1 = auto()
     GROUP_INVITATION_ACCEPTED_V1 = auto()
 
@@ -51,19 +49,11 @@ class RecipientInvoiceNotificationPayloadSchema(BaseModel):
     recipient_invoice_id: int
 
 
-class CustomNotificationPayloadSchema(BaseModel):
-    kind: Literal[NotificationKind.CUSTOM_V1] = NotificationKind.CUSTOM_V1
-
-    text: str
-    url: str | None = None
-
-
 AnyNotificationPayloadSchema = Annotated[
     InvitationAcceptanceNotificationPayloadSchema
     | EnrollmentNotificationPayloadSchema
     | ClassroomNotificationPayloadSchema
-    | RecipientInvoiceNotificationPayloadSchema
-    | CustomNotificationPayloadSchema,
+    | RecipientInvoiceNotificationPayloadSchema,
     Field(discriminator="kind"),
 ]
 
