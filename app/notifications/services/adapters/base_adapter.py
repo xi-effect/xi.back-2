@@ -3,6 +3,7 @@ from typing import assert_never, cast
 
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
+    CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
     NotificationKind,
@@ -57,6 +58,13 @@ class BaseNotificationAdapter[T](ABC):
     ) -> T:
         raise NotImplementedError
 
+    @abstractmethod
+    def adapt_custom_v1(
+        self,
+        payload: CustomNotificationPayloadSchema,
+    ) -> T:
+        raise NotImplementedError
+
     def adapt(self) -> T:
         # cast is used because mypy doesn't understand pydantic's discriminated unions
         payload = self.notification.payload
@@ -84,6 +92,10 @@ class BaseNotificationAdapter[T](ABC):
             case NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1:
                 return self.adapt_student_recipient_invoice_payment_confirmed_v1(
                     cast(RecipientInvoiceNotificationPayloadSchema, payload)
+                )
+            case NotificationKind.CUSTOM_V1:
+                return self.adapt_custom_v1(
+                    cast(CustomNotificationPayloadSchema, payload)
                 )
             case _:
                 assert_never(payload.kind)

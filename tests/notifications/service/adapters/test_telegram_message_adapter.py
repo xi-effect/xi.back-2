@@ -218,3 +218,27 @@ async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapt
             "recipient_invoice_id": [str(notification_payload.recipient_invoice_id)],
         },
     )
+
+
+async def test_custom_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.CustomNotificationPayloadSchema = (
+        factories.CustomNotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.CUSTOM_V1
+        )
+    )
+    notification_mock.payload = notification_payload
+
+    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+        notification=notification_mock
+    )
+
+    assert_contains(
+        telegram_notification_adapter.adapt(),
+        {
+            "message_text": f"{notification_payload.header}\n\n{notification_payload.content}",
+            "button_text": notification_payload.button_text,
+            "button_link": notification_payload.button_link,
+        },
+    )

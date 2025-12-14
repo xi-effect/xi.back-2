@@ -32,6 +32,12 @@ class RecipientInvoiceNotificationPayloadFactory(
     __model__ = notifications_sch.RecipientInvoiceNotificationPayloadSchema
 
 
+class CustomNotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.CustomNotificationPayloadSchema]
+):
+    __model__ = notifications_sch.CustomNotificationPayloadSchema
+
+
 class NotificationSimpleInputSchema(BaseModel):
     payload: notifications_sch.AnyNotificationPayloadSchema
 

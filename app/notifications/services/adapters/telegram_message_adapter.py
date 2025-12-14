@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
+    CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
     RecipientInvoiceNotificationPayloadSchema,
@@ -116,4 +117,14 @@ class NotificationToTelegramMessageAdapter(
                     "recipient_invoice_id": payload.recipient_invoice_id,
                 },
             ),
+        )
+
+    def adapt_custom_v1(
+        self,
+        payload: CustomNotificationPayloadSchema,
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=f"{payload.header}\n\n{payload.content}",
+            button_text=payload.button_text,
+            button_link=payload.button_link,
         )
