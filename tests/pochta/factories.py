@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from app.common.schemas.pochta_sch import (
     ClassroomNotificationEmailMessagePayloadSchema,
+    CustomEmailMessagePayloadSchema,
     EmailMessageInputSchema,
     RecipientInvoiceNotificationEmailMessagePayloadSchema,
     TokenEmailMessagePayloadSchema,
@@ -23,6 +24,12 @@ class EmailFormDataFactory(BaseModelFactory[EmailFormDataSchema]):
 
     receiver = Use(BaseModelFactory.__faker__.email)
     subject = Use(BaseModelFactory.__faker__.sentence)
+
+
+class CustomEmailMessagePayloadFactory(
+    BaseModelFactory[CustomEmailMessagePayloadSchema]
+):
+    __model__ = CustomEmailMessagePayloadSchema
 
 
 class TokenEmailMessagePayloadFactory(BaseModelFactory[TokenEmailMessagePayloadSchema]):
