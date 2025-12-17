@@ -30,6 +30,11 @@ pytestmark = pytest.mark.anyio
     ("kind", "payload_factory"),
     [
         pytest.param(
+            EmailMessageKind.CUSTOM_V1,
+            factories.CustomEmailMessagePayloadFactory,
+            id="custom_v1",
+        ),
+        pytest.param(
             EmailMessageKind.EMAIL_CONFIRMATION_V2,
             factories.TokenEmailMessagePayloadFactory,
             id="email_confirmation_v2",

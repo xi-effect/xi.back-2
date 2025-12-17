@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class EmailMessageKind(StrEnum):
+    CUSTOM_V1 = auto()
+
     EMAIL_CONFIRMATION_V2 = auto()
     EMAIL_CHANGE_V2 = auto()
     PASSWORD_RESET_V2 = auto()
@@ -19,6 +21,17 @@ class EmailMessageKind(StrEnum):
 
     RECIPIENT_INVOICE_CREATED_V1 = auto()
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
+
+
+class CustomEmailMessagePayloadSchema(BaseModel):
+    kind: Literal[EmailMessageKind.CUSTOM_V1]
+
+    theme: str
+    pre_header: str
+    header: str
+    content: str
+    button_text: str
+    button_link: str
 
 
 class TokenEmailMessagePayloadSchema(BaseModel):
@@ -60,7 +73,8 @@ class RecipientInvoiceNotificationEmailMessagePayloadSchema(
 
 
 AnyEmailMessagePayload = Annotated[
-    TokenEmailMessagePayloadSchema
+    CustomEmailMessagePayloadSchema
+    | TokenEmailMessagePayloadSchema
     | ClassroomNotificationEmailMessagePayloadSchema
     | RecipientInvoiceNotificationEmailMessagePayloadSchema,
     Field(discriminator="kind"),
