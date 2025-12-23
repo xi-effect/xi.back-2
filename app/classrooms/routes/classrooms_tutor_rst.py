@@ -14,12 +14,14 @@ from app.classrooms.dependencies.classrooms_tutor_dep import (
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomSearchRequestSchema,
     GroupClassroom,
     IndividualClassroom,
     TutorClassroomResponseSchema,
     UserClassroomStatus,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.bridges.autocomplete_bdg import SubjectNotFoundException
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -32,9 +34,10 @@ router = APIRouterExt(tags=["tutor classrooms"])
 @router.get(
     path="/roles/tutor/classrooms/",
     response_model=list[TutorClassroomResponseSchema],
-    summary="List paginated tutor classrooms for the current user",
+    summary="Use POST /roles/tutor/classrooms/searches/ instead",
+    deprecated=True,
 )
-async def list_classrooms(
+async def list_classrooms_old(
     auth_data: AuthorizationData,
     created_before: AwareDatetime | None = None,
     limit: Annotated[int, Field(gt=0, le=100)] = 50,
@@ -43,6 +46,21 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.post(
+    path="/roles/tutor/classrooms/searches/",
+    response_model=list[TutorClassroomResponseSchema],
+    summary="List paginated tutor classrooms for the current user",
+)
+async def list_classrooms(
+    auth_data: AuthorizationData,
+    data: ClassroomSearchRequestSchema,
+) -> Sequence[Classroom]:
+    return await classrooms_svc.retrieve_paginated_classrooms_by_tutor_id(
+        tutor_id=auth_data.user_id,
+        search_params=data,
+    )
 
 
 class SubjectResponses(Responses):
