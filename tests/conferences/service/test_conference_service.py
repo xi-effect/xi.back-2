@@ -1,6 +1,7 @@
 import jwt
 import pytest
 from faker import Faker
+from livekit.api import TwirpError, TwirpErrorCode
 from livekit.protocol.models import ParticipantInfo, Room
 from livekit.protocol.room import (
     CreateRoomRequest,
@@ -8,14 +9,17 @@ from livekit.protocol.room import (
     ListParticipantsResponse,
     ListRoomsRequest,
     ListRoomsResponse,
+    UpdateParticipantRequest,
     UpdateRoomMetadataRequest,
 )
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
+from starlette import status
 
 from app.common.config import settings
 from app.conferences.schemas.conferences_sch import (
     ConferenceParticipantSchema,
+    ParticipantMetadataSchema,
     RoomMetadataSchema,
 )
 from app.conferences.services import conferences_svc
@@ -24,6 +28,7 @@ from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
 from tests.conferences.factories import (
     ConferenceParticipantFactory,
+    ParticipantMetadataFactory,
     RoomMetadataFactory,
 )
 from tests.factories import UserProfileFactory
@@ -46,7 +51,6 @@ def default_livekit_room(livekit_room_name: str) -> Room:
 
 async def test_room_reactivation(
     livekit_mock: LiveKitMock,
-    users_internal_respx_mock: MockRouter,
     livekit_room_name: str,
     default_livekit_room: Room,
 ) -> None:
@@ -74,7 +78,6 @@ async def test_room_reactivation(
 )
 async def test_room_finding_by_name(
     livekit_mock: LiveKitMock,
-    users_internal_respx_mock: MockRouter,
     default_livekit_room: Room,
     is_room_found: bool,
 ) -> None:
@@ -99,7 +102,6 @@ async def test_room_finding_by_name(
 
 async def test_room_updating(
     livekit_mock: LiveKitMock,
-    users_internal_respx_mock: MockRouter,
     default_livekit_room: Room,
 ) -> None:
     new_room_metadata: RoomMetadataSchema = RoomMetadataFactory.build()
@@ -160,7 +162,6 @@ async def test_conference_access_token_generation(
 async def test_listing_room_participants(
     faker: Faker,
     livekit_mock: LiveKitMock,
-    users_internal_respx_mock: MockRouter,
     livekit_room_name: str,
 ) -> None:
     participants: list[ConferenceParticipantSchema] = (
@@ -175,6 +176,7 @@ async def test_listing_room_participants(
                 ParticipantInfo(
                     name=participant.display_name,
                     identity=str(participant.user_id),
+                    metadata=ParticipantMetadataSchema().model_dump_metadata_json(),
                 )
                 for participant in participants
             ]
@@ -190,4 +192,82 @@ async def test_listing_room_participants(
 
     list_participants_mock.assert_requested_once_with(
         ListParticipantsRequest(room=livekit_room_name)
+    )
+
+
+async def test_participant_metadata_updating(
+    livekit_mock: LiveKitMock,
+    default_livekit_room: Room,
+) -> None:
+    conference_participant_data: ConferenceParticipantSchema = (
+        ConferenceParticipantFactory.build()
+    )
+    new_participant_metadata: ParticipantMetadataSchema = (
+        ParticipantMetadataFactory.build()
+    )
+    new_participant_info = ParticipantInfo(
+        name=conference_participant_data.display_name,
+        identity=str(conference_participant_data.user_id),
+        metadata=new_participant_metadata.model_dump_metadata_json(),
+    )
+
+    update_participant_mock = livekit_mock.route(
+        "RoomService",
+        "UpdateParticipant",
+        new_participant_info,
+    )
+
+    assert (
+        await conferences_svc.update_participant_metadata(
+            livekit_room=default_livekit_room,
+            user_id=conference_participant_data.user_id,
+            metadata=new_participant_metadata,
+        )
+        == new_participant_info
+    )
+
+    update_participant_mock.assert_requested_once_with(
+        UpdateParticipantRequest(
+            room=default_livekit_room.name,
+            identity=str(conference_participant_data.user_id),
+            metadata=new_participant_metadata.model_dump_metadata_json(),
+        )
+    )
+
+
+async def test_participant_metadata_updating_participant_not_found(
+    faker: Faker,
+    livekit_mock: LiveKitMock,
+    default_livekit_room: Room,
+) -> None:
+    user_id: int = faker.random_int(1, 1000)
+    new_participant_metadata: ParticipantMetadataSchema = (
+        ParticipantMetadataFactory.build()
+    )
+
+    update_participant_mock = livekit_mock.route(
+        "RoomService",
+        "UpdateParticipant",
+        side_effect=TwirpError(
+            code=TwirpErrorCode.NOT_FOUND,
+            msg="participant not found",
+            status=status.HTTP_404_NOT_FOUND,
+        ),
+    )
+
+    assert (
+        await conferences_svc.update_participant_metadata(
+            livekit_room=default_livekit_room,
+            user_id=user_id,
+            metadata=new_participant_metadata,
+        )
+        is None
+    )
+
+    update_participant_mock.assert_requested_once_with(
+        UpdateParticipantRequest(
+            room=default_livekit_room.name,
+            identity=str(user_id),
+            metadata=new_participant_metadata.model_dump_metadata_json(),
+        )
     )

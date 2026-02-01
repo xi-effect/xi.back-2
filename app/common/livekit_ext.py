@@ -9,6 +9,7 @@ from livekit.protocol.room import (
     CreateRoomRequest,
     ListParticipantsRequest,
     ListRoomsRequest,
+    UpdateParticipantRequest,
     UpdateRoomMetadataRequest,
 )
 
@@ -51,12 +52,19 @@ class LiveKit:
     def room(self) -> RoomService:
         return self.api.room
 
-    def generate_access_token(self, identity: str, name: str, room_name: str) -> str:
+    def generate_access_token(
+        self,
+        room_name: str,
+        identity: str,
+        name: str,
+        metadata: str = "",
+    ) -> str:
         return (
             AccessToken(self.api_key, self.api_secret)
             .with_identity(identity=identity)
             .with_name(name=name)
             .with_grants(VideoGrants(room_join=True, room=room_name))
+            .with_metadata(metadata=metadata)
         ).to_jwt()
 
     async def list_rooms(self, room_names: list[str]) -> Iterator[Room]:
@@ -84,3 +92,17 @@ class LiveKit:
             ListParticipantsRequest(room=room_name)
         )
         return (participant for participant in response.participants)
+
+    async def update_participant_metadata(
+        self,
+        room_name: str,
+        identity: str,
+        metadata: str,
+    ) -> ParticipantInfo:
+        return await self.room.update_participant(
+            UpdateParticipantRequest(
+                room=room_name,
+                identity=identity,
+                metadata=metadata,
+            )
+        )

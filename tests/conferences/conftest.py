@@ -28,6 +28,16 @@ def outsider_user_id(outsider_auth_data: ProxyAuthData) -> int:
     return outsider_auth_data.user_id
 
 
+@pytest.fixture()
+def other_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def other_user_id(other_auth_data: ProxyAuthData) -> int:
+    return other_auth_data.user_id
+
+
 ClassroomRoleType = Literal["tutor", "student"]
 
 
