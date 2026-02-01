@@ -15,7 +15,10 @@ from app.conferences.dependencies.conferences_dep import (
     LivekitRoomByClassroomID,
     LivekitRoomNameByClassroomID,
 )
-from app.conferences.schemas.conferences_sch import ConferenceParticipantSchema
+from app.conferences.schemas.conferences_sch import (
+    ConferenceParticipantSchema,
+    RoomMetadataSchema,
+)
 from app.conferences.services import conferences_svc
 
 router = APIRouterExt(tags=["classroom conferences"])
@@ -47,6 +50,21 @@ async def reactivate_classroom_conference(
             ),
             recipient_user_ids=classroom_student_ids,
         )
+    )
+
+
+@router.put(
+    path="/roles/tutor/classrooms/{classroom_id}/conference/metadata/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Update metadata of a conference in a classroom by id",
+)
+async def update_classroom_conference_metadata(
+    livekit_room: LivekitRoomByClassroomID,
+    metadata: RoomMetadataSchema,
+) -> None:
+    await conferences_svc.update_room_metadata(
+        livekit_room=livekit_room,
+        metadata=metadata,
     )
 
 

@@ -14,11 +14,15 @@ from app.common.schemas.notifications_sch import (
     NotificationInputSchema,
     NotificationKind,
 )
+from app.conferences.schemas.conferences_sch import RoomMetadataSchema
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.conferences.conftest import ClassroomRoleType
-from tests.conferences.factories import ConferenceParticipantFactory
+from tests.conferences.factories import (
+    ConferenceParticipantFactory,
+    RoomMetadataFactory,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -102,6 +106,40 @@ async def test_classroom_conference_reactivation_no_students(
     )
 
 
+async def test_classroom_conference_metadata_updating(
+    mock_stack: MockStack,
+    outsider_client: TestClient,
+    classroom_id: int,
+    classroom_conference_room_name: str,
+    classroom_conference_room: Room,
+) -> None:
+    new_room_metadata: RoomMetadataSchema = RoomMetadataFactory.build()
+
+    find_room_by_name_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.find_room_by_name",
+        return_value=classroom_conference_room,
+    )
+    update_room_metadata_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.update_room_metadata"
+    )
+
+    assert_nodata_response(
+        outsider_client.put(
+            "/api/protected/conference-service/roles/tutor"
+            f"/classrooms/{classroom_id}/conference/metadata/",
+            json=new_room_metadata.model_dump(),
+        ),
+    )
+
+    find_room_by_name_mock.assert_awaited_once_with(
+        livekit_room_name=classroom_conference_room_name,
+    )
+    update_room_metadata_mock.assert_awaited_once_with(
+        livekit_room=classroom_conference_room,
+        metadata=new_room_metadata,
+    )
+
+
 async def test_classroom_conference_access_token_generation(
     faker: Faker,
     mock_stack: MockStack,
@@ -179,20 +217,27 @@ async def test_classroom_conference_participants_listing(
 
 
 @pytest.mark.parametrize(
-    ("method", "path"),
+    ("method", "path", "role"),
     [
-        pytest.param("POST", "access-tokens/", id="generate_access_token"),
-        pytest.param("GET", "participants/", id="list_participants"),
+        pytest.param("PUT", "metadata/", "tutor", id="update_room_metadata-tutor"),
+        pytest.param(
+            "POST", "access-tokens/", "tutor", id="generate_access_token-tutor"
+        ),
+        pytest.param(
+            "POST", "access-tokens/", "student", id="generate_access_token-student"
+        ),
+        pytest.param("GET", "participants/", "tutor", id="list_participants-tutor"),
+        pytest.param("GET", "participants/", "student", id="list_participants-student"),
     ],
 )
 async def test_classroom_conference_requesting_conference_not_active(
     mock_stack: MockStack,
     outsider_client: TestClient,
-    parametrized_classroom_role: str,
     classroom_id: int,
     classroom_conference_room_name: str,
     method: str,
     path: str,
+    role: str,
 ) -> None:
     find_room_by_name_mock = mock_stack.enter_async_mock(
         "app.conferences.services.conferences_svc.find_room_by_name",
@@ -202,7 +247,7 @@ async def test_classroom_conference_requesting_conference_not_active(
         outsider_client.request(
             method=method,
             url=(
-                f"/api/protected/conference-service/roles/{parametrized_classroom_role}"
+                f"/api/protected/conference-service/roles/{role}"
                 f"/classrooms/{classroom_id}/conference/{path}"
             ),
         ),

@@ -6,6 +6,7 @@ from livekit.protocol.models import Room
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.conferences.schemas.conferences_sch import RoomMetadataSchema
 from tests.common.types import PytestRequest
 from tests.factories import ProxyAuthDataFactory
 
@@ -49,4 +50,7 @@ async def classroom_conference_room_name(classroom_id: int) -> str:
 
 @pytest.fixture()
 async def classroom_conference_room(classroom_conference_room_name: str) -> Room:
-    return Room(name=classroom_conference_room_name)
+    return Room(
+        name=classroom_conference_room_name,
+        metadata=RoomMetadataSchema().model_dump_metadata_json(),
+    )

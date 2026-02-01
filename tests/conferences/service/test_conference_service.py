@@ -8,41 +8,60 @@ from livekit.protocol.room import (
     ListParticipantsResponse,
     ListRoomsRequest,
     ListRoomsResponse,
+    UpdateRoomMetadataRequest,
 )
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
 
 from app.common.config import settings
-from app.conferences.schemas.conferences_sch import ConferenceParticipantSchema
+from app.conferences.schemas.conferences_sch import (
+    ConferenceParticipantSchema,
+    RoomMetadataSchema,
+)
 from app.conferences.services import conferences_svc
 from tests.common.livekit_testing import LiveKitMock
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
-from tests.conferences.factories import ConferenceParticipantFactory
+from tests.conferences.factories import (
+    ConferenceParticipantFactory,
+    RoomMetadataFactory,
+)
 from tests.factories import UserProfileFactory
 
 pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture()
-async def livekit_room_name(faker: Faker) -> str:
+def livekit_room_name(faker: Faker) -> str:
     return faker.user_name()
+
+
+@pytest.fixture()
+def default_livekit_room(livekit_room_name: str) -> Room:
+    return Room(
+        name=livekit_room_name,
+        metadata=RoomMetadataSchema().model_dump_metadata_json(),
+    )
 
 
 async def test_room_reactivation(
     livekit_mock: LiveKitMock,
     users_internal_respx_mock: MockRouter,
     livekit_room_name: str,
+    default_livekit_room: Room,
 ) -> None:
-    livekit_room = Room(name=livekit_room_name)
-
-    create_room_mock = livekit_mock.route("RoomService", "CreateRoom", livekit_room)
+    create_room_mock = livekit_mock.route(
+        "RoomService", "CreateRoom", default_livekit_room
+    )
 
     result = await conferences_svc.reactivate_room(livekit_room_name=livekit_room_name)
-    assert result == livekit_room
+    assert result == default_livekit_room
 
     create_room_mock.assert_requested_once_with(
-        CreateRoomRequest(name=livekit_room_name)
+        CreateRoomRequest(
+            name=livekit_room_name,
+            metadata=RoomMetadataSchema().model_dump_metadata_json(),
+        )
     )
 
 
@@ -56,34 +75,62 @@ async def test_room_reactivation(
 async def test_room_finding_by_name(
     livekit_mock: LiveKitMock,
     users_internal_respx_mock: MockRouter,
-    livekit_room_name: str,
+    default_livekit_room: Room,
     is_room_found: bool,
 ) -> None:
-    livekit_room = Room(name=livekit_room_name) if is_room_found else None
-
     list_rooms_mock = livekit_mock.route(
         "RoomService",
         "ListRooms",
-        ListRoomsResponse(rooms=[] if livekit_room is None else [livekit_room]),
+        ListRoomsResponse(rooms=[default_livekit_room] if is_room_found else []),
     )
 
     result = await conferences_svc.find_room_by_name(
-        livekit_room_name=livekit_room_name
+        livekit_room_name=default_livekit_room.name
     )
-    assert result == livekit_room
+    if is_room_found:
+        assert result == default_livekit_room
+    else:
+        assert result is None
 
     list_rooms_mock.assert_requested_once_with(
-        ListRoomsRequest(names=[livekit_room_name])
+        ListRoomsRequest(names=[default_livekit_room.name])
+    )
+
+
+async def test_room_updating(
+    livekit_mock: LiveKitMock,
+    users_internal_respx_mock: MockRouter,
+    default_livekit_room: Room,
+) -> None:
+    new_room_metadata: RoomMetadataSchema = RoomMetadataFactory.build()
+    updated_livekit_room = Room(
+        name=default_livekit_room.name,
+        metadata=new_room_metadata.model_dump_metadata_json(),
+    )
+
+    create_room_mock = livekit_mock.route(
+        "RoomService", "UpdateRoomMetadata", updated_livekit_room
+    )
+
+    result = await conferences_svc.update_room_metadata(
+        livekit_room=default_livekit_room,
+        metadata=new_room_metadata,
+    )
+    assert result == updated_livekit_room
+
+    create_room_mock.assert_requested_once_with(
+        UpdateRoomMetadataRequest(
+            room=default_livekit_room.name,
+            metadata=new_room_metadata.model_dump_metadata_json(),
+        )
     )
 
 
 async def test_conference_access_token_generation(
     faker: Faker,
     users_internal_respx_mock: MockRouter,
-    livekit_room_name: str,
+    default_livekit_room: Room,
 ) -> None:
-    livekit_room = Room(name=livekit_room_name)
-
     user_id: int = faker.random_int()
     user_profile_data: AnyJSON = UserProfileFactory.build_json()
     users_internal_bridge_mock = users_internal_respx_mock.get(
@@ -91,7 +138,7 @@ async def test_conference_access_token_generation(
     ).respond(json=user_profile_data)
 
     access_token = await conferences_svc.generate_access_token(
-        livekit_room=livekit_room,
+        livekit_room=default_livekit_room,
         user_id=user_id,
     )
 
@@ -100,7 +147,7 @@ async def test_conference_access_token_generation(
         {
             "sub": str(user_id),
             "name": user_profile_data["display_name"],
-            "video": {"room": livekit_room_name},
+            "video": {"room": default_livekit_room.name},
         },
     )
 

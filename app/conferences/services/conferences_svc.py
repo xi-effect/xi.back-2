@@ -2,11 +2,17 @@ from livekit.protocol.models import Room
 
 from app.common.config import livekit
 from app.common.config_bdg import users_internal_bridge
-from app.conferences.schemas.conferences_sch import ConferenceParticipantSchema
+from app.conferences.schemas.conferences_sch import (
+    ConferenceParticipantSchema,
+    RoomMetadataSchema,
+)
 
 
 async def reactivate_room(livekit_room_name: str) -> Room:
-    return await livekit.find_or_create_room(room_name=livekit_room_name)
+    return await livekit.find_or_create_room(
+        room_name=livekit_room_name,
+        metadata=RoomMetadataSchema().model_dump_metadata_json(),
+    )
 
 
 async def find_room_by_name(livekit_room_name: str) -> Room | None:
@@ -14,6 +20,16 @@ async def find_room_by_name(livekit_room_name: str) -> Room | None:
         if room.name == livekit_room_name:
             return room
     return None
+
+
+async def update_room_metadata(
+    livekit_room: Room,
+    metadata: RoomMetadataSchema,
+) -> Room:
+    return await livekit.update_room_metadata(
+        room_name=livekit_room.name,
+        metadata=metadata.model_dump_metadata_json(),
+    )
 
 
 async def generate_access_token(livekit_room: Room, user_id: int) -> str:
