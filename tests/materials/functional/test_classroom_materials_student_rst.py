@@ -2,7 +2,7 @@ import random
 
 import pytest
 from freezegun import freeze_time
-from pytest_lazy_fixtures import lf, lfc
+from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -54,30 +54,26 @@ async def test_material_retrieving(
         pytest.param(
             MaterialAccessMode.READ_ONLY,
             lfc(
-                lambda access_group_id, user_id: StorageTokenPayloadSchema(
-                    access_group_id=access_group_id,
-                    user_id=user_id,
+                lambda classroom_material, student_user_id: StorageTokenPayloadSchema(
+                    access_group_id=classroom_material.access_group_id,
+                    user_id=student_user_id,
                     can_upload_files=False,
                     can_read_files=True,
                     ydoc_access_level=YDocAccessLevel.READ_ONLY,
                 ),
-                lf("classroom_material.access_group_id"),
-                lf("student_user_id"),
             ),
             id=MaterialAccessMode.READ_ONLY.value,
         ),
         pytest.param(
             MaterialAccessMode.READ_WRITE,
             lfc(
-                lambda access_group_id, user_id: StorageTokenPayloadSchema(
-                    access_group_id=access_group_id,
-                    user_id=user_id,
+                lambda classroom_material, student_user_id: StorageTokenPayloadSchema(
+                    access_group_id=classroom_material.access_group_id,
+                    user_id=student_user_id,
                     can_upload_files=True,
                     can_read_files=True,
                     ydoc_access_level=YDocAccessLevel.READ_WRITE,
                 ),
-                lf("classroom_material.access_group_id"),
-                lf("student_user_id"),
             ),
             id=MaterialAccessMode.READ_WRITE.value,
         ),
