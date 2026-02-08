@@ -208,9 +208,13 @@ if not settings.is_testing_mode and settings.sentry_dsn is not None:
             FaststreamIntegration(),
             # other integrations are automatic
         ],
+        before_breadcrumb=before_breadcrumb,
         traces_sample_rate=0,
         profiles_sample_rate=0,
-        before_breadcrumb=before_breadcrumb,
+        send_default_pii=True,
+        max_request_body_size="always",
+        send_client_reports=False,
+        auto_session_tracking=False,
     )
 
 
