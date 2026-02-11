@@ -92,6 +92,7 @@ class Settings(BaseSettings):
 
     cookie_domain: str = "localhost"
     frontend_app_base_url: str = "https://app.sovlium.ru"
+    frontend_vacancies_base_url: str = "https://vacancy.sovlium.ru/vacancy"
 
     password_reset_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 60)
     email_confirmation_keys: FernetSettings = FernetSettings(
