@@ -1,9 +1,9 @@
 from enum import StrEnum
 from pathlib import Path
-from shutil import copyfileobj
-from typing import BinaryIO, Literal, Self
+from typing import Literal, Self
 from uuid import UUID, uuid4
 
+import aiofiles
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import Enum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -57,7 +57,7 @@ class File(Base):
     @classmethod
     async def create_with_content(
         cls,
-        content: BinaryIO,
+        content: bytes,
         filename: str | None,
         file_kind: FileKind,
     ) -> Self:
@@ -65,8 +65,8 @@ class File(Base):
             name=filename or "upload",
             kind=file_kind,
         )
-        with file.path.open("wb") as f:
-            copyfileobj(content, f)  # TODO maybe convert to async
+        async with aiofiles.open(file.path, "wb") as f:
+            await f.write(content)
         return file
 
     async def delete(self) -> None:

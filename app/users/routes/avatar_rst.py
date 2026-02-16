@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import aiofiles
 import filetype  # type: ignore[import-untyped]
 from fastapi import File, UploadFile
 from filetype.types.image import Webp  # type: ignore[import-untyped]
@@ -28,8 +29,8 @@ async def update_or_create_avatar(
     if not filetype.match(avatar.file, [Webp()]):
         raise AvatarResponses.WRONG_FORMAT
 
-    with user.avatar_path.open("wb") as file:
-        file.write(await avatar.read())
+    async with aiofiles.open(user.avatar_path, "wb") as file:
+        await file.write(await avatar.read())
 
 
 @router.delete(

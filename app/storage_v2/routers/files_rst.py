@@ -36,7 +36,7 @@ async def upload_file(
         raise StorageTokenResponses.INVALID_STORAGE_TOKEN
 
     file = await File.create_with_content(
-        content=upload.file,
+        content=await upload.read(),
         filename=upload.filename,
         file_kind=file_kind,
     )
