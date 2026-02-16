@@ -58,11 +58,11 @@ class File(Base):
     async def create_with_content(
         cls,
         content: bytes,
-        filename: str | None,
+        filename: str,
         file_kind: FileKind,
     ) -> Self:
         file = await cls.create(
-            name=filename or "upload",
+            name=filename,
             kind=file_kind,
         )
         async with aiofiles.open(file.path, "wb") as f:

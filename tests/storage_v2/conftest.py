@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from io import BytesIO
 from os import stat
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 import pytest
 from faker import Faker
+from PIL import Image
 from pytest_lazy_fixtures import lf
 from starlette.responses import FileResponse
 from starlette.testclient import TestClient
@@ -104,45 +106,78 @@ def uncategorized_file_content(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
 
 
+def process_image_content(image_content: bytes) -> bytes:
+    image = Image.open(BytesIO(image_content))
+    processed_image_buffer = BytesIO()
+    image.save(processed_image_buffer, format="webp")
+    processed_image_buffer.seek(0)
+    return processed_image_buffer.read()
+
+
 @pytest.fixture()
-def image_file_content(faker: Faker) -> bytes:
+def webp_image_file_content(faker: Faker) -> bytes:
     return faker.graphic_webp_file(raw=True)  # type: ignore[no-any-return]
+
+
+@pytest.fixture()
+def png_image_file_content(faker: Faker) -> bytes:
+    return faker.graphic_png_file(raw=True)  # type: ignore[no-any-return]
 
 
 @dataclass
 class FileInputData:
     kind: FileKind
     name: str
-    content: bytes
     content_type: str
+    input_content: bytes
+    processed_content: bytes
 
 
 @pytest.fixture()
 def uncategorized_file_input_data(
-    faker: Faker, uncategorized_file_content: bytes
+    faker: Faker,
+    uncategorized_file_content: bytes,
 ) -> FileInputData:
     return FileInputData(
         kind=FileKind.UNCATEGORIZED,
         name=faker.file_name(),
-        content=uncategorized_file_content,
+        input_content=uncategorized_file_content,
+        processed_content=uncategorized_file_content,
         content_type=faker.mime_type(),
     )
 
 
 @pytest.fixture()
-def image_file_input_data(faker: Faker, image_file_content: bytes) -> FileInputData:
+def webp_image_file_input_data(
+    faker: Faker, webp_image_file_content: bytes
+) -> FileInputData:
     return FileInputData(
         kind=FileKind.IMAGE,
         name=faker.file_name(extension="webp"),
-        content=image_file_content,
+        input_content=webp_image_file_content,
+        processed_content=process_image_content(webp_image_file_content),
         content_type="image/webp",
+    )
+
+
+@pytest.fixture()
+def png_image_file_input_data(
+    faker: Faker, png_image_file_content: bytes
+) -> FileInputData:
+    return FileInputData(
+        kind=FileKind.IMAGE,
+        name=faker.file_name(extension="png"),
+        input_content=png_image_file_content,
+        processed_content=process_image_content(png_image_file_content),
+        content_type="image/png",
     )
 
 
 @pytest.fixture(
     params=[
         pytest.param(lf("uncategorized_file_input_data"), id="uncategorized"),
-        pytest.param(lf("image_file_input_data"), id="image"),
+        pytest.param(lf("webp_image_file_input_data"), id="webp_image"),
+        pytest.param(lf("png_image_file_input_data"), id="png_image"),
     ],
 )
 def parametrized_file_input_data(
@@ -163,7 +198,7 @@ async def file(
         )
 
     with file.path.open("wb") as f:
-        f.write(parametrized_file_input_data.content)
+        f.write(parametrized_file_input_data.processed_content)
 
     return file
 
