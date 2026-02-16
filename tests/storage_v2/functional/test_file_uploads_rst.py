@@ -1,8 +1,11 @@
 import random
+from io import BytesIO
 from uuid import UUID
 
 import pytest
 from faker import Faker
+from PIL import Image
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf, lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -75,7 +78,27 @@ async def test_file_uploading(
 
         assert file.path.is_file()
         with file.path.open("rb") as f:
-            assert f.read() == parametrized_file_input_data.processed_content
+            real_file_content = f.read()
+
+        if parametrized_file_input_data.content_type.startswith("image/"):
+            image_result = Image.open(BytesIO(real_file_content))
+            try:
+                image_result.verify()
+            except Exception as e:
+                raise AssertionError("Invalid resulting image") from e
+
+            assert_contains(
+                {
+                    "image_format": image_result.format,
+                    "image_content": real_file_content,
+                },
+                {
+                    "image_format": "WEBP",
+                    "image_content": parametrized_file_input_data.processed_content,
+                },
+            )
+        else:
+            assert real_file_content == parametrized_file_input_data.processed_content
 
         await file.delete()
 

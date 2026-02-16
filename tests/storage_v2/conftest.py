@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from io import BytesIO
 from os import stat
@@ -74,15 +75,29 @@ def outsider_internal_client(
 
 
 @pytest.fixture()
-async def ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
+async def ydoc(faker: Faker, active_session: ActiveSession) -> AsyncIterator[YDoc]:
     async with active_session():
-        return await YDoc.create(content=faker.binary(length=64))
+        ydoc = await YDoc.create(content=faker.binary(length=64))
+
+    yield ydoc
+
+    async with active_session() as session:
+        session.add(ydoc)
+        await ydoc.delete()
 
 
 @pytest.fixture()
-async def other_ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
+async def other_ydoc(
+    faker: Faker, active_session: ActiveSession
+) -> AsyncIterator[YDoc]:
     async with active_session():
-        return await YDoc.create(content=faker.binary(length=64))
+        ydoc = await YDoc.create(content=faker.binary(length=64))
+
+    yield ydoc
+
+    async with active_session() as session:
+        session.add(ydoc)
+        await ydoc.delete()
 
 
 @pytest.fixture()
@@ -91,9 +106,18 @@ def missing_ydoc_id() -> UUID:
 
 
 @pytest.fixture()
-async def access_group(active_session: ActiveSession, ydoc: YDoc) -> AccessGroup:
+async def access_group(
+    active_session: ActiveSession,
+    ydoc: YDoc,
+) -> AsyncIterator[AccessGroup]:
     async with active_session():
-        return await AccessGroup.create(main_ydoc_id=ydoc.id)
+        access_group = await AccessGroup.create(main_ydoc_id=ydoc.id)
+
+    yield access_group
+
+    async with active_session() as session:
+        session.add(access_group)
+        await access_group.delete()
 
 
 @pytest.fixture()
@@ -143,7 +167,7 @@ def uncategorized_file_input_data(
         name=faker.file_name(),
         input_content=uncategorized_file_content,
         processed_content=uncategorized_file_content,
-        content_type=faker.mime_type(),
+        content_type=faker.mime_type(category="application"),
     )
 
 
@@ -190,7 +214,7 @@ def parametrized_file_input_data(
 async def file(
     active_session: ActiveSession,
     parametrized_file_input_data: FileInputData,
-) -> File:
+) -> AsyncIterator[File]:
     async with active_session():
         file = await File.create(
             name=parametrized_file_input_data.name,
@@ -200,7 +224,11 @@ async def file(
     with file.path.open("wb") as f:
         f.write(parametrized_file_input_data.processed_content)
 
-    return file
+    yield file
+
+    async with active_session() as session:
+        session.add(file)
+        await file.delete()
 
 
 @pytest.fixture()
@@ -215,12 +243,18 @@ async def access_group_file(
     active_session: ActiveSession,
     access_group: AccessGroup,
     file: File,
-) -> AccessGroupFile:
+) -> AsyncIterator[AccessGroupFile]:
     async with active_session():
-        return await AccessGroupFile.create(
+        access_group_file = await AccessGroupFile.create(
             access_group_id=access_group.id,
             file_id=file.id,
         )
+
+    yield access_group_file
+
+    async with active_session() as session:
+        session.add(access_group_file)
+        await access_group_file.delete()
 
 
 @pytest.fixture()

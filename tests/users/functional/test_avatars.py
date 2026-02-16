@@ -4,6 +4,7 @@ from io import BytesIO
 import pytest
 from faker import Faker
 from PIL import Image
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -27,8 +28,8 @@ def image_content(request: PytestRequest[bytes]) -> bytes:
 
 @pytest.fixture()
 def processed_image_content(image_content: bytes) -> bytes:
-    image = Image.open(BytesIO(image_content))
-    image.resize(User.avatar_shape)
+    image: Image.Image = Image.open(BytesIO(image_content))
+    image = image.resize(User.avatar_shape)
 
     processed_image_buffer = BytesIO()
     image.save(processed_image_buffer, format="webp")
@@ -60,7 +61,28 @@ async def test_avatar_uploading(
 
     assert user.avatar_path.is_file()
     with user.avatar_path.open("rb") as f:
-        assert f.read() == processed_image_content
+        real_image_content = f.read()
+
+    image_result = Image.open(BytesIO(real_image_content))
+    try:
+        image_result.verify()
+    except Exception as e:
+        raise AssertionError("Invalid resulting image") from e
+
+    assert_contains(
+        {
+            "image_format": image_result.format,
+            "image_width": image_result.width,
+            "image_height": image_result.height,
+            "image_content": real_image_content,
+        },
+        {
+            "image_format": "WEBP",
+            "image_width": User.avatar_shape[0],
+            "image_height": User.avatar_shape[1],
+            "image_content": processed_image_content,
+        },
+    )
 
     user.avatar_path.unlink()
 
@@ -95,7 +117,28 @@ async def test_avatar_replacing(
 
     assert user.avatar_path.is_file()
     with user.avatar_path.open("rb") as f:
-        assert f.read() == processed_image_content
+        real_image_content = f.read()
+
+    image_result = Image.open(BytesIO(real_image_content))
+    try:
+        image_result.verify()
+    except Exception as e:
+        raise AssertionError("Invalid resulting image") from e
+
+    assert_contains(
+        {
+            "image_format": image_result.format,
+            "image_width": image_result.width,
+            "image_height": image_result.height,
+            "image_content": real_image_content,
+        },
+        {
+            "image_format": "WEBP",
+            "image_width": User.avatar_shape[0],
+            "image_height": User.avatar_shape[1],
+            "image_content": processed_image_content,
+        },
+    )
 
 
 @pytest.mark.usefixtures("create_avatar")
