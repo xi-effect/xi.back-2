@@ -40,6 +40,7 @@ aiofiles = "^25.1.0"
 itsdangerous = "^2.2.0"
 faststream = {extras = ["redis"], version = "^0.6.2"}
 sentry-sdk = {extras = ["asyncio", "fastapi", "sqlalchemy", "redis", "httpx"], version = "2.44.0"}
+pillow = "^11.2.1"
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
@@ -88,7 +89,6 @@ polyfactory = "^2.21.0"
 faker = "^37.1.0"
 faker-file = "^0.18.4"
 rstr = "^3.2.2"
-pillow = "^11.2.1"
 
 [tool.isort]
 profile = "black"
