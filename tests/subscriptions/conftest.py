@@ -1,0 +1,41 @@
+import pytest
+from faker import Faker
+
+from app.subscriptions.models.promocodes_db import Promocode
+from tests.common.active_session import ActiveSession
+from tests.common.types import AnyJSON
+from tests.subscriptions import factories
+
+
+@pytest.fixture()
+async def promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
+    async with active_session():
+        return await Promocode.create(
+            **factories.LimitedPromocodeInputFactory.build_python(
+                code=faker.pystr(min_chars=10, max_chars=10),
+            )
+        )
+
+
+@pytest.fixture()
+async def promocode_data(promocode: Promocode) -> AnyJSON:
+    return Promocode.ResponseSchema.model_validate(promocode).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def other_promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
+    async with active_session():
+        return await Promocode.create(
+            **factories.LimitedPromocodeInputFactory.build_python(
+                code=faker.pystr(min_chars=9, max_chars=9),
+            )
+        )
+
+
+@pytest.fixture()
+async def deleted_promocode(
+    active_session: ActiveSession, promocode: Promocode
+) -> Promocode:
+    async with active_session():
+        await promocode.delete()
+    return promocode
