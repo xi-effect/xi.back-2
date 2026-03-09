@@ -4,6 +4,7 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.scheduler.models.event_schedules_db import EventSchedule, EventScheduleKind
 from app.scheduler.models.events_db import ClassroomEvent, EventKind
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -12,35 +13,75 @@ from tests.common.types import AnyJSON
 from tests.scheduler.factories import (
     ClassroomEventInputFactory,
     ClassroomEventInvalidTimeFrameInputFactory,
+    OnceEventScheduleInputFactory,
+    WeeklyEventScheduleInputFactory,
 )
 
 pytestmark = pytest.mark.anyio
 
 
+@pytest.mark.parametrize(
+    (
+        "event_schedule_body_factory",
+        "event_schedule_kind",
+    ),
+    [
+        pytest.param(
+            OnceEventScheduleInputFactory, EventScheduleKind.ONCE, id="once_event"
+        ),
+        pytest.param(
+            WeeklyEventScheduleInputFactory, EventScheduleKind.WEEKLY, id="weekly_event"
+        ),
+    ],
+)
 async def test_tutor_classroom_event_creation(
     active_session: ActiveSession,
     tutor_client: TestClient,
     classroom_id: int,
+    event_schedule_body_factory: type[BaseModelFactory[Any]],
+    event_schedule_kind: EventScheduleKind,
 ) -> None:
     classroom_event_input_data = ClassroomEventInputFactory.build_json()
+    event_schedule_input_data = event_schedule_body_factory.build_json()
+    input_data: dict[str, Any] = {
+        "classroom_event": classroom_event_input_data,
+        "schedule": event_schedule_input_data,
+    }
 
     classroom_event_id: int = assert_response(
         tutor_client.post(
             f"/api/protected/scheduler-service/roles/tutor/classrooms/{classroom_id}/events/",
-            json=classroom_event_input_data,
+            json=input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
-            **classroom_event_input_data,
-            "id": int,
-            "classroom_id": classroom_id,
-            "kind": EventKind.CLASSROOM,
+            "classroom_event": {
+                **classroom_event_input_data,
+                "id": int,
+                "classroom_id": classroom_id,
+                "kind": EventKind.CLASSROOM,
+            },
+            "schedules": [
+                {
+                    **event_schedule_input_data,
+                    "id": int,
+                    "event_id": int,
+                    "kind": event_schedule_kind,
+                }
+            ],
         },
-    ).json()["id"]
+    ).json()["classroom_event"]["id"]
 
     async with active_session():
         classroom_event = await ClassroomEvent.find_first_by_id(classroom_event_id)
         assert classroom_event is not None
+
+        event_schedule = await EventSchedule.find_first_by_kwargs(
+            event_id=classroom_event_id
+        )
+        assert event_schedule is not None
+
+        await event_schedule.delete()
         await classroom_event.delete()
 
 
