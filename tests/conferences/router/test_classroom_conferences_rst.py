@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from faker import Faker
-from livekit.protocol.models import Room
+from livekit.protocol.models import ParticipantInfo, Room
+from pytest_lazy_fixtures import lf, lfc
 from respx import MockRouter
 from starlette import status
 from starlette.testclient import TestClient
@@ -14,11 +15,19 @@ from app.common.schemas.notifications_sch import (
     NotificationInputSchema,
     NotificationKind,
 )
+from app.conferences.schemas.conferences_sch import (
+    ParticipantMetadataSchema,
+    RoomMetadataSchema,
+)
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.conferences.conftest import ClassroomRoleType
-from tests.conferences.factories import ConferenceParticipantFactory
+from tests.conferences.factories import (
+    ConferenceParticipantFactory,
+    ParticipantMetadataFactory,
+    RoomMetadataFactory,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -102,6 +111,40 @@ async def test_classroom_conference_reactivation_no_students(
     )
 
 
+async def test_classroom_conference_metadata_updating(
+    mock_stack: MockStack,
+    outsider_client: TestClient,
+    classroom_id: int,
+    classroom_conference_room_name: str,
+    classroom_conference_room: Room,
+) -> None:
+    new_room_metadata: RoomMetadataSchema = RoomMetadataFactory.build()
+
+    find_room_by_name_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.find_room_by_name",
+        return_value=classroom_conference_room,
+    )
+    update_room_metadata_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.update_room_metadata"
+    )
+
+    assert_nodata_response(
+        outsider_client.put(
+            "/api/protected/conference-service/roles/tutor"
+            f"/classrooms/{classroom_id}/conference/metadata/",
+            json=new_room_metadata.model_dump(),
+        ),
+    )
+
+    find_room_by_name_mock.assert_awaited_once_with(
+        livekit_room_name=classroom_conference_room_name,
+    )
+    update_room_metadata_mock.assert_awaited_once_with(
+        livekit_room=classroom_conference_room,
+        metadata=new_room_metadata,
+    )
+
+
 async def test_classroom_conference_access_token_generation(
     faker: Faker,
     mock_stack: MockStack,
@@ -135,7 +178,8 @@ async def test_classroom_conference_access_token_generation(
         livekit_room_name=classroom_conference_room_name
     )
     generate_access_token_mock.assert_awaited_once_with(
-        livekit_room=classroom_conference_room, user_id=outsider_user_id
+        livekit_room=classroom_conference_room,
+        user_id=outsider_user_id,
     )
 
 
@@ -143,7 +187,6 @@ async def test_classroom_conference_participants_listing(
     faker: Faker,
     mock_stack: MockStack,
     outsider_client: TestClient,
-    outsider_user_id: int,
     parametrized_classroom_role: ClassroomRoleType,
     classroom_id: int,
     classroom_conference_room_name: str,
@@ -178,21 +221,173 @@ async def test_classroom_conference_participants_listing(
     )
 
 
-@pytest.mark.parametrize(
-    ("method", "path"),
+participant_metadata_updating_request_parametrization = pytest.mark.parametrize(
+    ("participant_user_id", "participant_user_id_in_path", "role"),
     [
-        pytest.param("POST", "access-tokens/", id="generate_access_token"),
-        pytest.param("GET", "participants/", id="list_participants"),
+        pytest.param(
+            lf("outsider_user_id"),
+            "current",
+            "tutor",
+            id="tutor-current_participant",
+        ),
+        pytest.param(
+            lf("outsider_user_id"),
+            "current",
+            "student",
+            id="student-current_participant",
+        ),
+        pytest.param(
+            lf("other_user_id"),
+            lf("other_user_id"),
+            "tutor",
+            id="tutor-current_participant",
+        ),
+    ],
+)
+
+
+@participant_metadata_updating_request_parametrization
+async def test_classroom_conference_participant_metadata_updating(
+    faker: Faker,
+    mock_stack: MockStack,
+    outsider_client: TestClient,
+    outsider_user_id: int,
+    classroom_id: int,
+    classroom_conference_room_name: str,
+    classroom_conference_room: Room,
+    role: ClassroomRoleType,
+    participant_user_id: int,
+    participant_user_id_in_path: int | str,
+) -> None:
+    new_participant_metadata: ParticipantMetadataSchema = (
+        ParticipantMetadataFactory.build()
+    )
+    new_participant_info = ParticipantInfo(
+        name=faker.user_name(),
+        identity=str(participant_user_id),
+        metadata=new_participant_metadata.model_dump_metadata_json(),
+    )
+
+    find_room_by_name_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.find_room_by_name",
+        return_value=classroom_conference_room,
+    )
+    update_participant_metadata_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.update_participant_metadata",
+        return_value=new_participant_info,
+    )
+
+    assert_nodata_response(
+        outsider_client.put(
+            f"/api/protected/conference-service/roles/{role}"
+            f"/classrooms/{classroom_id}/conference"
+            f"/participants/{participant_user_id_in_path}/metadata/",
+            json=new_participant_metadata.model_dump(),
+        ),
+    )
+
+    find_room_by_name_mock.assert_awaited_once_with(
+        livekit_room_name=classroom_conference_room_name
+    )
+    update_participant_metadata_mock.assert_awaited_once_with(
+        livekit_room=classroom_conference_room,
+        user_id=participant_user_id,
+        metadata=new_participant_metadata,
+    )
+
+
+@participant_metadata_updating_request_parametrization
+async def test_classroom_conference_participant_metadata_updating_participant_not_found(
+    faker: Faker,
+    mock_stack: MockStack,
+    outsider_client: TestClient,
+    outsider_user_id: int,
+    classroom_id: int,
+    classroom_conference_room_name: str,
+    classroom_conference_room: Room,
+    role: ClassroomRoleType,
+    participant_user_id: int,
+    participant_user_id_in_path: int | str,
+) -> None:
+    new_participant_metadata: ParticipantMetadataSchema = (
+        ParticipantMetadataFactory.build()
+    )
+
+    find_room_by_name_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.find_room_by_name",
+        return_value=classroom_conference_room,
+    )
+    update_participant_metadata_mock = mock_stack.enter_async_mock(
+        "app.conferences.services.conferences_svc.update_participant_metadata",
+    )
+
+    assert_response(
+        outsider_client.put(
+            f"/api/protected/conference-service/roles/{role}"
+            f"/classrooms/{classroom_id}/conference"
+            f"/participants/{participant_user_id_in_path}/metadata/",
+            json=new_participant_metadata.model_dump(),
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Conference participant not found"},
+    )
+
+    find_room_by_name_mock.assert_awaited_once_with(
+        livekit_room_name=classroom_conference_room_name
+    )
+    update_participant_metadata_mock.assert_awaited_once_with(
+        livekit_room=classroom_conference_room,
+        user_id=participant_user_id,
+        metadata=new_participant_metadata,
+    )
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "role"),
+    [
+        pytest.param("PUT", "metadata/", "tutor", id="update_room_metadata-tutor"),
+        pytest.param(
+            "POST",
+            "access-tokens/",
+            "tutor",
+            id="generate_access_token-tutor",
+        ),
+        pytest.param(
+            "POST",
+            "access-tokens/",
+            "student",
+            id="generate_access_token-student",
+        ),
+        pytest.param("GET", "participants/", "tutor", id="list_participants-tutor"),
+        pytest.param("GET", "participants/", "student", id="list_participants-student"),
+        pytest.param(
+            "PUT",
+            "participants/current/metadata/",
+            "tutor",
+            id="update_current_participant_metadata-tutor",
+        ),
+        pytest.param(
+            "PUT",
+            "participants/current/metadata/",
+            "student",
+            id="update_current_participant_metadata-student",
+        ),
+        pytest.param(
+            "PUT",
+            lfc(lambda other_user_id: f"participants/{other_user_id}/metadata/"),
+            "tutor",
+            id="update_other_participant_metadata-tutor",
+        ),
     ],
 )
 async def test_classroom_conference_requesting_conference_not_active(
     mock_stack: MockStack,
     outsider_client: TestClient,
-    parametrized_classroom_role: str,
     classroom_id: int,
     classroom_conference_room_name: str,
     method: str,
     path: str,
+    role: ClassroomRoleType,
 ) -> None:
     find_room_by_name_mock = mock_stack.enter_async_mock(
         "app.conferences.services.conferences_svc.find_room_by_name",
@@ -202,7 +397,7 @@ async def test_classroom_conference_requesting_conference_not_active(
         outsider_client.request(
             method=method,
             url=(
-                f"/api/protected/conference-service/roles/{parametrized_classroom_role}"
+                f"/api/protected/conference-service/roles/{role}"
                 f"/classrooms/{classroom_id}/conference/{path}"
             ),
         ),
