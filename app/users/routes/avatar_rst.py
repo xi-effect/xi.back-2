@@ -1,12 +1,14 @@
-from typing import Annotated
+from io import BytesIO
 
-import filetype  # type: ignore[import-untyped]
-from fastapi import File, UploadFile
-from filetype.types.image import Webp  # type: ignore[import-untyped]
+import aiofiles
+from fastapi import UploadFile
+from PIL import Image
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.filetype_ext import FILE_HEADER_SIZE, match_image_filetype
 from app.users.dependencies.users_dep import AuthorizedUser
+from app.users.models.users_db import User
 
 router = APIRouterExt(tags=["current user avatar"])
 
@@ -23,13 +25,24 @@ class AvatarResponses(Responses):
 )
 async def update_or_create_avatar(
     user: AuthorizedUser,
-    avatar: Annotated[UploadFile, File(description="image/webp")],
+    avatar: UploadFile,
 ) -> None:
-    if not filetype.match(avatar.file, [Webp()]):
+    avatar_header_data = await avatar.read(FILE_HEADER_SIZE)
+
+    if match_image_filetype(avatar_header_data) is None:
         raise AvatarResponses.WRONG_FORMAT
 
-    with user.avatar_path.open("wb") as file:
-        file.write(await avatar.read())
+    await avatar.seek(0)
+    avatar_image: Image.Image = Image.open(BytesIO(await avatar.read()))
+
+    avatar_image = avatar_image.resize(User.avatar_shape)
+
+    processed_avatar = BytesIO()
+    avatar_image.save(processed_avatar, format="webp")
+    processed_avatar.seek(0)
+
+    async with aiofiles.open(user.avatar_path, "wb") as file:
+        await file.write(processed_avatar.read())
 
 
 @router.delete(

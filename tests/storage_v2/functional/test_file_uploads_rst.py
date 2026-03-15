@@ -1,6 +1,11 @@
+import random
+from io import BytesIO
 from uuid import UUID
 
 import pytest
+from faker import Faker
+from PIL import Image
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf, lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -47,7 +52,7 @@ async def test_file_uploading(
             files={
                 "upload": (
                     parametrized_file_input_data.name,
-                    parametrized_file_input_data.content,
+                    parametrized_file_input_data.input_content,
                     parametrized_file_input_data.content_type,
                 )
             },
@@ -73,15 +78,89 @@ async def test_file_uploading(
 
         assert file.path.is_file()
         with file.path.open("rb") as f:
-            assert f.read() == parametrized_file_input_data.content
+            real_file_content = f.read()
+
+        if parametrized_file_input_data.content_type.startswith("image/"):
+            image_result = Image.open(BytesIO(real_file_content))
+            try:
+                image_result.verify()
+            except Exception as e:
+                raise AssertionError("Invalid resulting image") from e
+
+            assert_contains(
+                {
+                    "image_format": image_result.format,
+                    "image_content": real_file_content,
+                },
+                {
+                    "image_format": "WEBP",
+                    "image_content": parametrized_file_input_data.processed_content,
+                },
+            )
+        else:
+            assert real_file_content == parametrized_file_input_data.processed_content
 
         await file.delete()
 
 
+CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
+    ("image/avif", "avif"),
+    ("image/bmp", "bmp"),
+    ("image/gif", "gif"),
+    ("image/x-icon", "ico"),
+    ("image/jpeg", "jpe"),
+    ("image/jpeg", "jpeg"),
+    ("image/jpeg", "jpg"),
+    ("image/jpx", "jpx"),
+    ("image/png", "png"),
+    ("image/tiff", "tif"),
+    ("image/tiff", "tiff"),
+    ("image/webp", "webp"),
+]
+
+
+@pytest.mark.parametrize(
+    "file_input_data",
+    [
+        pytest.param(lf("webp_image_file_input_data"), id="webp"),
+        pytest.param(lf("png_image_file_input_data"), id="png"),
+    ],
+)
+async def test_image_file_uploading_content_type_mismatch(
+    faker: Faker,
+    authorized_client: TestClient,
+    file_upload_storage_token: str,
+    file_input_data: FileInputData,
+) -> None:
+    content_type, file_extension = random.choice(
+        [
+            (content_type, file_extension)
+            for content_type, file_extension in CONTENT_TYPES_AND_FILE_EXTENSIONS
+            if content_type != file_input_data.content_type
+        ]
+    )
+
+    assert_response(
+        authorized_client.post(
+            "/api/protected/storage-service/v2/file-kinds/image/files/",
+            headers={"X-Storage-Token": file_upload_storage_token},
+            files={
+                "upload": (
+                    faker.file_name(extension=file_extension),
+                    file_input_data.input_content,
+                    content_type,
+                )
+            },
+        ),
+        expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        expected_json={"detail": "File content doesn't match the content-type header"},
+    )
+
+
 async def test_image_file_uploading_wrong_content_format(
+    faker: Faker,
     authorized_client: TestClient,
     uncategorized_file_content: bytes,
-    image_file_input_data: FileInputData,
     file_upload_storage_token: str,
 ) -> None:
     assert_response(
@@ -90,9 +169,9 @@ async def test_image_file_uploading_wrong_content_format(
             headers={"X-Storage-Token": file_upload_storage_token},
             files={
                 "upload": (
-                    image_file_input_data.name,
+                    faker.file_name(extension="webp"),
                     uncategorized_file_content,
-                    image_file_input_data.content_type,
+                    "image/webp",
                 )
             },
         ),
@@ -150,7 +229,7 @@ async def test_file_uploading_invalid_token(
             files={
                 "upload": (
                     parametrized_file_input_data.name,
-                    parametrized_file_input_data.content,
+                    parametrized_file_input_data.input_content,
                     parametrized_file_input_data.content_type,
                 )
             },
