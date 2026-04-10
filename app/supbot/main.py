@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -45,14 +46,17 @@ internal_router = APIRouterExt(
 
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
-    await telegram_app.maybe_initialize_from_config(
-        bot_name="supbot",
-        bot_settings=settings.supbot,
-        bot_commands=BOT_COMMANDS,
-        webhook_prefix=outside_router.prefix,
-        redis_dsn=settings.redis_supbot_dsn,
-        group_id=settings.supbot and settings.supbot.group_id,
-    )
+    try:
+        await telegram_app.maybe_initialize_from_config(
+            bot_name="supbot",
+            bot_settings=settings.supbot,
+            bot_commands=BOT_COMMANDS,
+            webhook_prefix=outside_router.prefix,
+            redis_dsn=settings.redis_supbot_dsn,
+            group_id=settings.supbot and settings.supbot.group_id,
+        )
+    except Exception as e:  # pragma: no cover  # setup-level safety
+        logging.error("Supbot initialization failed", exc_info=e)
     yield
 
 

@@ -192,6 +192,7 @@ class Settings(BaseSettings):
 
     supbot: SupbotSettings | None = None
     notifications_bot: TelegramBotSettings | None = None
+    telegram_server_base_url: str | None = None
     telegram_webhook_base_url: str | None = None
 
     sentry_dsn: str | None = None

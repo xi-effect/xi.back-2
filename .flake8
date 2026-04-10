@@ -33,7 +33,7 @@ extend-ignore =
   WPS347
 
   # # broken
-  PIE798 WPS226 WPS354 WPS432 WPS473 WPS507 FNE004
+  PIE786 PIE798 WPS226 WPS354 WPS432 WPS473 WPS507 FNE004
   # fails to understand `raise NotImplementedError` and overloading
   U100
   # fails to understand enums
