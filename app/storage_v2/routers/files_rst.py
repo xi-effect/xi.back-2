@@ -18,6 +18,7 @@ from app.storage_v2.dependencies.storage_token_dep import (
     UploadAllowedStorageTokenPayload,
 )
 from app.storage_v2.dependencies.uploads_dep import (
+    ValidatedAudioUpload,
     ValidatedDocumentUpload,
     ValidatedImageUpload,
 )
@@ -103,6 +104,24 @@ async def upload_document_file(
         upload_content=await upload.read(),
         upload_filename=upload.filename,
         file_kind=FileKind.DOCUMENT,
+    )
+
+
+@router.post(
+    "/file-kinds/audio/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.ResponseSchema,
+    summary="Upload a new audio file",
+)
+async def upload_audio_file(
+    storage_token_payload: UploadAllowedStorageTokenPayload,
+    upload: ValidatedAudioUpload,
+) -> File:
+    return await upload_file(
+        storage_token_payload=storage_token_payload,
+        upload_content=await upload.read(),
+        upload_filename=upload.filename,
+        file_kind=FileKind.AUDIO,
     )
 
 
