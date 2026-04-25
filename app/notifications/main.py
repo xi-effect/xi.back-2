@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -60,11 +61,14 @@ internal_router.include_router(email_connections_int.router)
 
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
-    await telegram_app.maybe_initialize_from_config(
-        bot_name="notifications bot",
-        bot_settings=settings.notifications_bot,
-        webhook_prefix=outside_router.prefix,
-    )
+    try:
+        await telegram_app.maybe_initialize_from_config(
+            bot_name="notifications bot",
+            bot_settings=settings.notifications_bot,
+            webhook_prefix=outside_router.prefix,
+        )
+    except Exception as e:  # pragma: no cover  # setup-level safety
+        logging.error("Notifications bot initialization failed", exc_info=e)
     yield
 
 
