@@ -7,8 +7,8 @@ from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.scheduler.routes import (
-    classroom_events_student_rst,
     classroom_events_tutor_rst,
+    classroom_schedules_rst,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/scheduler-service")
@@ -18,7 +18,7 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/scheduler-service",
 )
 authorized_router.include_router(classroom_events_tutor_rst.router)
-authorized_router.include_router(classroom_events_student_rst.router)
+authorized_router.include_router(classroom_schedules_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

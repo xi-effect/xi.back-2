@@ -38,6 +38,8 @@ extend-ignore =
   U100
   # fails to understand enums
   WPS115
+  # broken for longer statements (also shadowed by the formatter)
+  WPS361
   # fails to understand overloading
   WPS428
   # fails to understand pipe-unions
