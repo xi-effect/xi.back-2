@@ -24,13 +24,13 @@ class Event(Base):
 
     kind: Mapped[EventKind] = mapped_column(Enum(EventKind))
 
-    NameType = Annotated[str, Field(min_length=1, max_length=100)]
-    DescriptionType = Annotated[str | None, Field(min_length=1, max_length=1000)]
-
     __mapper_args__ = {
         "polymorphic_on": kind,
         "polymorphic_abstract": True,
     }
+
+    NameType = Annotated[str, Field(min_length=1, max_length=100)]
+    DescriptionType = Annotated[str | None, Field(min_length=1, max_length=1000)]
 
     InputSchema = MappedModel.create(
         columns=[

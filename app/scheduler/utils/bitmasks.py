@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, ClassVar, Self
 
 from sqlalchemy import Dialect, TypeDecorator
@@ -12,6 +12,11 @@ from app.common.utils.bitwise import (
 
 class TimestampRelativeBitmask:
     size: ClassVar[int]
+    unit_duration: ClassVar[timedelta]
+
+    @classmethod
+    def get_cycle_duration(cls) -> timedelta:
+        return cls.size * cls.unit_duration
 
     def __init__(self, value: int) -> None:
         self.value = value
@@ -20,8 +25,30 @@ class TimestampRelativeBitmask:
     def position_from_timestamp(cls, timestamp: datetime) -> int:
         raise NotImplementedError
 
+    @classmethod
+    def build_continuous(
+        cls, start_timestamp: datetime, end_timestamp: datetime
+    ) -> Self:
+        start_position: int = cls.position_from_timestamp(start_timestamp)
+        end_position: int = cls.position_from_timestamp(end_timestamp)
+
+        if start_position <= end_position:
+            bitmask_value = 0
+            for bit_position in range(start_position, end_position + 1):
+                bitmask_value ^= 1 << bit_position
+        else:
+            bitmask_value = (1 << cls.size) - 1
+            for bit_position in range(end_position, start_position - 1):
+                bitmask_value ^= 1 << bit_position
+
+        return cls(value=bitmask_value)
+
     def check_if_timestamp_matches(self, timestamp: datetime) -> bool:
         return bool(self.value & (1 << self.position_from_timestamp(timestamp)))
+
+    def calculate_cycle_offset_for_timestamp(self, timestamp: datetime) -> int:
+        bitmask_position: int = self.position_from_timestamp(timestamp)
+        return (((1 << bitmask_position) - 1) & self.value).bit_count()
 
     def replace_origin(self, old_origin: datetime, new_origin: datetime) -> Self:
         position_difference: int = (
@@ -51,6 +78,7 @@ class TimestampRelativeBitmask:
 
 class WeeklyBitmask(TimestampRelativeBitmask):
     size = 7
+    unit_duration = timedelta(days=1)
 
     @classmethod
     def position_from_timestamp(cls, timestamp: datetime) -> int:
