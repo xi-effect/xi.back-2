@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 from enum import StrEnum, auto
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field, computed_field
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, and_
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
 from app.scheduler.config import (
@@ -25,7 +25,7 @@ class EventInstanceResponseSchemaKind(StrEnum):
 
 class BaseEventInstanceResponseSchema(BaseModel):
     event_id: int
-    classroom_id: int  # TODO: ClassroomEvent-specific
+    classroom_id: int  # TODO (170) ClassroomEvent-specific
 
     starts_at: AwareDatetime
     ends_at: AwareDatetime
@@ -39,7 +39,7 @@ class PersistedEventInstanceDataMixin(BaseModel):
     cancelled_at: AwareDatetime | None = None
 
     # TODO "meta"
-    # TODO could just add name & description from Event as proxies
+    # TODO (170) could just add name & description from Event as proxies
 
 
 class SoleEventInstanceResponseSchema(
@@ -99,6 +99,7 @@ class EventInstance(Base):
         ForeignKey(Event.id, ondelete="CASCADE"),
         use_existing_column=True,
     )
+    event: Mapped[Event] = relationship(lazy="joined")
 
     cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
@@ -110,6 +111,10 @@ class EventInstance(Base):
         "polymorphic_on": kind,
         "polymorphic_abstract": True,
     }
+
+    def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:
+        # TODO (170) mb check if changed to not send a notification
+        raise NotImplementedError
 
 
 class SoleEventInstance(EventInstance):
@@ -128,6 +133,10 @@ class SoleEventInstance(EventInstance):
         TIMESTAMP(precision=0, timezone=True),
         nullable=True,
     )
+
+    def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:
+        self.starts_at = new_starts_at
+        self.ends_at = new_ends_at
 
 
 # declared outside the class, because STI doesn't support indexes on child classes
@@ -178,6 +187,21 @@ class RepeatedEventInstance(EventInstance):
         default=None,
     )
 
+    @classmethod
+    async def find_by_repetition_mode_id_and_index(
+        cls,
+        repetition_mode_id: UUID,
+        instance_index: int,
+    ) -> Self | None:
+        return await cls.find_first_by_kwargs(
+            repetition_mode_id=repetition_mode_id,
+            instance_index=instance_index,
+        )
+
+    def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:
+        self.starts_at_override = new_starts_at
+        self.ends_at_override = new_ends_at
+
 
 # declared outside the class, because STI doesn't support indexes on child classes
 Index(
@@ -201,7 +225,7 @@ Index(
 AnyEventInstance = SoleEventInstance | RepeatedEventInstance
 
 
-class SoleEventInstanceInputSchema(BaseModel):
+class EventInstanceTimeSlotInputSchema(BaseModel):
     starts_at: AwareDatetime
     duration_seconds: int = Field(
         gt=MIN_EVENT_INSTANCE_DURATION.seconds,
@@ -213,3 +237,7 @@ class SoleEventInstanceInputSchema(BaseModel):
     @property
     def ends_at(self) -> datetime:
         return self.starts_at + timedelta(seconds=self.duration_seconds)
+
+
+class SoleEventInstanceInputSchema(EventInstanceTimeSlotInputSchema):
+    pass  # TODO meta

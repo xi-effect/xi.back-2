@@ -25,6 +25,7 @@ from sqlalchemy.orm import (
     InstrumentedAttribute,
     Mapped,
     mapped_column,
+    relationship,
 )
 
 from app.common.config import Base
@@ -57,6 +58,7 @@ class RepetitionMode(Base):
         ForeignKey(Event.id, ondelete="CASCADE"),
         index=True,
     )
+    event: Mapped[Event] = relationship(lazy="joined")
 
     kind: Mapped[RepetitionKind] = mapped_column(Enum(RepetitionKind))
 

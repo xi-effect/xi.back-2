@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import Path
 from pydantic import AwareDatetime
 from sqlalchemy import Select, and_, or_, select, tuple_
+from sqlalchemy.orm import raiseload
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.sqlalchemy_ext import db
@@ -57,6 +58,7 @@ async def get_repetition_modes_in_range(
 ) -> list[RepetitionMode]:
     return await get_from_db_with_assumed_limit(
         select(RepetitionMode)
+        .options(raiseload(RepetitionMode.event))
         .join(ClassroomEvent)
         .filter_by(classroom_id=classroom_id)
         .filter(
@@ -162,6 +164,7 @@ async def get_event_instances_in_range(
         list[AnyEventInstance],
         await get_from_db_with_assumed_limit(
             select(EventInstance)
+            .options(raiseload(EventInstance.event))
             .join(ClassroomEvent)
             .filter_by(classroom_id=classroom_id)
             .filter(or_(*filters_or))
