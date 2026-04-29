@@ -6,8 +6,7 @@ from typing import Annotated, assert_never, cast
 from uuid import UUID
 
 from fastapi import Path
-from pydantic import AwareDatetime, TypeAdapter
-from pydantic_marshals.base import CompositeMarshalModel
+from pydantic import AwareDatetime
 from sqlalchemy import Select, and_, or_, select, tuple_
 
 from app.common.fastapi_ext import APIRouterExt
@@ -24,11 +23,10 @@ from app.scheduler.models.event_instances_db import (
     SoleEventInstanceResponseSchema,
     VirtualRepeatedEventInstanceResponseSchema,
 )
-from app.scheduler.models.events_db import ClassroomEvent, Event
+from app.scheduler.models.events_db import ClassroomEvent
 from app.scheduler.models.repetition_modes_db import (
     ConcreteRepetitionModeClasses,
     RepetitionMode,
-    RepetitionModeResponseSchema,
 )
 
 router = APIRouterExt(tags=["classroom schedules"])
@@ -171,21 +169,10 @@ async def get_event_instances_in_range(
     )
 
 
-class ScheduleResponseSchema(CompositeMarshalModel):
-    events: list[Annotated[ClassroomEvent, ClassroomEvent.ResponseSchema]]
-    repetition_modes: list[RepetitionModeResponseSchema]
-    event_instances: list[EventInstanceResponseSchema]
-
-
 class ScheduleResponseSchemaAdapter:
-    repetition_modes_type_adapter = TypeAdapter(list[RepetitionModeResponseSchema])
-
-    # Composite marshal model doesn't support union-models (yet), so the conversion has to be done manually
-
     def __init__(
         self,
         events_by_id: dict[int, ClassroomEvent],
-        repetition_modes: list[RepetitionMode],
         sole_event_instances: list[SoleEventInstance],
         persisted_repeated_event_instances: list[RepeatedEventInstance],
         persisted_repeated_event_instance_keys: set[
@@ -197,7 +184,6 @@ class ScheduleResponseSchemaAdapter:
         ],
     ) -> None:
         self.events_by_id = events_by_id
-        self.repetition_modes = repetition_modes
         self.virtual_repeated_instances_by_id = virtual_repeated_instances_by_id
         self.sole_event_instances = sole_event_instances
         self.persisted_repeated_event_instances = persisted_repeated_event_instances
@@ -207,10 +193,11 @@ class ScheduleResponseSchemaAdapter:
 
     def iter_sole_event_instances(self) -> Iterator[SoleEventInstanceResponseSchema]:
         for sole_event_instance in self.sole_event_instances:
-            event: Event = self.events_by_id[sole_event_instance.event_id]
+            event = self.events_by_id[sole_event_instance.event_id]
             yield SoleEventInstanceResponseSchema(
                 id=sole_event_instance.id,
                 event_id=event.id,
+                classroom_id=event.classroom_id,
                 cancelled_at=sole_event_instance.cancelled_at,
                 starts_at=sole_event_instance.starts_at,
                 ends_at=sole_event_instance.ends_at,
@@ -234,6 +221,7 @@ class ScheduleResponseSchemaAdapter:
             yield PersistedRepeatedEventInstanceResponseSchema(
                 id=persisted_repeated_event_instance.id,
                 event_id=event.id,
+                classroom_id=event.classroom_id,
                 repetition_mode_id=persisted_repeated_event_instance.repetition_mode_id,
                 instance_index=persisted_repeated_event_instance.instance_index,
                 cancelled_at=persisted_repeated_event_instance.cancelled_at,
@@ -268,6 +256,7 @@ class ScheduleResponseSchemaAdapter:
             event = self.events_by_id[virtual_repeated_event_instance_value.event_id]
             yield VirtualRepeatedEventInstanceResponseSchema(
                 event_id=event.id,
+                classroom_id=event.classroom_id,
                 repetition_mode_id=virtual_repeated_event_instance_key.repetition_mode_id,
                 instance_index=virtual_repeated_event_instance_key.instance_index,
                 starts_at=virtual_repeated_event_instance_value.starts_at,
@@ -281,30 +270,22 @@ class ScheduleResponseSchemaAdapter:
         yield from self.iter_persisted_repeated_event_instances()
         yield from self.iter_virtual_repeated_event_instances()
 
-    def adapt(self) -> ScheduleResponseSchema:
-        return ScheduleResponseSchema(
-            events=list(self.events_by_id.values()),
-            repetition_modes=self.repetition_modes_type_adapter.validate_python(
-                self.repetition_modes
-            ),
-            event_instances=list(self.iter_event_instances()),
-        )
+    def adapt(self) -> list[EventInstanceResponseSchema]:
+        return list(self.iter_event_instances())
 
 
 @router.get(
     path="/roles/tutor/classrooms/{classroom_id}/schedule/",
-    response_model=ScheduleResponseSchema.build_marshal(),
     summary="Retrieve a schedule for all of the events in a classroom by id",
 )
 @router.get(
     path="/roles/student/classrooms/{classroom_id}/schedule/",
-    response_model=ScheduleResponseSchema.build_marshal(),
     summary="Retrieve a schedule for all of the events in a classroom by id",
 )
 async def list_classroom_events(
     classroom_id: Annotated[int, Path()],
     time_frame: EventTimeFrameQuery,
-) -> ScheduleResponseSchema:
+) -> list[EventInstanceResponseSchema]:
     repetition_modes = await get_repetition_modes_in_range(
         classroom_id=classroom_id,
         happens_after=time_frame.happens_after,
@@ -384,14 +365,12 @@ async def list_classroom_events(
         )
     }
 
-    repetition_modes = [
-        repetition_mode
-        for repetition_mode in repetition_modes
-        if repetition_mode.id in repetition_mode_ids_used_in_event_instances
-    ]
-
     event_ids: list[int] = list(
-        {repetition_mode.event_id for repetition_mode in repetition_modes}
+        {
+            repetition_mode.event_id
+            for repetition_mode in repetition_modes
+            if repetition_mode.id in repetition_mode_ids_used_in_event_instances
+        }
         | {event_instance.event_id for event_instance in persisted_event_instances}
     )
 
@@ -408,7 +387,6 @@ async def list_classroom_events(
 
     return ScheduleResponseSchemaAdapter(
         events_by_id=events_by_id,
-        repetition_modes=repetition_modes,
         virtual_repeated_instances_by_id=virtual_repeated_instances_by_id,
         sole_event_instances=sole_event_instances,
         persisted_repeated_event_instances=persisted_repeated_event_instances,

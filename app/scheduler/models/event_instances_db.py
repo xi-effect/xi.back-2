@@ -25,6 +25,7 @@ class EventInstanceResponseSchemaKind(StrEnum):
 
 class BaseEventInstanceResponseSchema(BaseModel):
     event_id: int
+    classroom_id: int  # TODO: ClassroomEvent-specific
 
     starts_at: AwareDatetime
     ends_at: AwareDatetime
