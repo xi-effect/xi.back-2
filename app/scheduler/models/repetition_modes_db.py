@@ -107,6 +107,12 @@ class RepetitionMode(Base):
         yield cls.starts_at <= happens_before
         yield or_(cls.is_finite.is_(False), cls.ends_at > happens_after)
 
+    def calculate_event_instance_starts_at_for_index(
+        self,
+        instance_index: int,
+    ) -> datetime:
+        raise NotImplementedError
+
     def calculate_event_instance_index_for_starts_at(
         self,
         event_instance_starts_at: datetime,
@@ -161,6 +167,12 @@ class DailyRepetitionMode(RepetitionMode):
         extra_fields={"kind": (Literal[RepetitionKind.DAILY], RepetitionKind.DAILY)},
     )
 
+    def calculate_event_instance_starts_at_for_index(
+        self,
+        instance_index: int,
+    ) -> datetime:
+        return self.starts_at + timedelta(days=instance_index)
+
     def calculate_event_instance_index_for_starts_at(
         self,
         event_instance_starts_at: datetime,
@@ -176,8 +188,10 @@ class DailyRepetitionMode(RepetitionMode):
             happens_after=happens_after,
             happens_before=happens_before,
         )
-        current_event_instance_index: int = self.calculate_event_instance_index_for_starts_at(
-            event_instance_starts_at=current_starts_at
+        current_event_instance_index: int = (
+            self.calculate_event_instance_index_for_starts_at(
+                event_instance_starts_at=current_starts_at
+            )
         )
         while current_starts_at < starts_at_upper_bound:
             yield current_event_instance_index, current_starts_at
@@ -224,6 +238,35 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
                 interval_bitmask.value
             ) != 0
 
+    def calculate_event_instance_starts_at_for_index(
+        self,
+        instance_index: int,
+    ) -> datetime:
+        offset_in_cycles = instance_index // self.starting_bitmask.value.bit_count()
+
+        rotated_bitmask_value: int = self.starting_bitmask.rotate(
+            source_position=self.starting_bitmask.position_from_timestamp(
+                self.starts_at.astimezone(timezone.utc)
+            ),
+            target_position=-1,
+        ).value
+
+        required_bit_count: int = (
+            instance_index % self.starting_bitmask.value.bit_count()
+        )
+        offset_in_units: int = 0
+        while required_bit_count > 0:
+            if rotated_bitmask_value & 1:
+                required_bit_count -= 1
+            rotated_bitmask_value >>= 1
+            offset_in_units += 1
+
+        return (
+            self.starts_at
+            + offset_in_cycles * self.starting_bitmask.get_cycle_duration()
+            + offset_in_units * self.starting_bitmask.unit_duration
+        )
+
     def calculate_event_instance_index_for_starts_at(
         self,
         event_instance_starts_at: datetime,
@@ -262,7 +305,9 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
             if self.starting_bitmask.check_if_timestamp_matches(current_starts_at):
                 if current_event_instance_index is None:
                     current_event_instance_index = (
-                        self.calculate_event_instance_index_for_starts_at(current_starts_at)
+                        self.calculate_event_instance_index_for_starts_at(
+                            current_starts_at
+                        )
                     )
                 yield current_event_instance_index, current_starts_at
                 current_event_instance_index += 1
