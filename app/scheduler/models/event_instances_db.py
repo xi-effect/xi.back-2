@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field, computed_field
+from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, and_
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -19,7 +20,7 @@ from app.scheduler.models.repetition_modes_db import RepetitionMode
 
 class EventInstanceResponseSchemaKind(StrEnum):
     SOLE = auto()
-    REPEATED_PERSISTENT = auto()
+    REPEATED_PERSISTED = auto()
     REPEATED_VIRTUAL = auto()
 
 
@@ -60,8 +61,8 @@ class PersistedRepeatedEventInstanceResponseSchema(
     BaseRepeatedEventInstanceResponseSchema,
     PersistedEventInstanceDataMixin,
 ):
-    kind: Literal[EventInstanceResponseSchemaKind.REPEATED_PERSISTENT] = (
-        EventInstanceResponseSchemaKind.REPEATED_PERSISTENT
+    kind: Literal[EventInstanceResponseSchemaKind.REPEATED_PERSISTED] = (
+        EventInstanceResponseSchemaKind.REPEATED_PERSISTED
     )
 
 
@@ -112,6 +113,10 @@ class EventInstance(Base):
         "polymorphic_abstract": True,
     }
 
+    StandaloneResponseSchema = MappedModel.create(
+        columns=[id, cancelled_at],
+    )
+
     def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:
         # TODO (170) mb check if changed to not send a notification
         raise NotImplementedError
@@ -132,6 +137,11 @@ class SoleEventInstance(EventInstance):
     ends_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(precision=0, timezone=True),
         nullable=True,
+    )
+
+    StandaloneResponseSchema = MappedModel.create(
+        bases=[EventInstance.StandaloneResponseSchema],
+        columns=[(starts_at, AwareDatetime), (ends_at, AwareDatetime)],
     )
 
     def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:
@@ -166,6 +176,7 @@ class RepeatedEventInstance(EventInstance):
         ForeignKey(RepetitionMode.id, ondelete="CASCADE"),
         nullable=True,
     )
+    repetition_mode: Mapped[RepetitionMode] = relationship(lazy="joined")
     instance_index: Mapped[int] = mapped_column(nullable=True)
 
     starts_at_override: Mapped[datetime | None] = mapped_column(
@@ -185,6 +196,16 @@ class RepeatedEventInstance(EventInstance):
     description_override: Mapped[str | None] = mapped_column(
         String(1000),
         default=None,
+    )
+
+    StandaloneResponseSchema = MappedModel.create(
+        bases=[EventInstance.StandaloneResponseSchema],
+        columns=[
+            (starts_at_override, AwareDatetime | None),
+            (ends_at_override, AwareDatetime | None),
+            name_override,
+            description_override,
+        ],
     )
 
     @classmethod

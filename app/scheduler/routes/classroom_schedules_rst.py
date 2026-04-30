@@ -164,7 +164,10 @@ async def get_event_instances_in_range(
         list[AnyEventInstance],
         await get_from_db_with_assumed_limit(
             select(EventInstance)
-            .options(raiseload(EventInstance.event))
+            .options(
+                raiseload(EventInstance.event),
+                raiseload(RepeatedEventInstance.repetition_mode),
+            )
             .join(ClassroomEvent)
             .filter_by(classroom_id=classroom_id)
             .filter(or_(*filters_or))

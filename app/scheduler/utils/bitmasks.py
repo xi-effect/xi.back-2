@@ -50,11 +50,8 @@ class TimestampRelativeBitmask:
         bitmask_position: int = self.position_from_timestamp(timestamp)
         return (((1 << bitmask_position) - 1) & self.value).bit_count()
 
-    def replace_origin(self, old_origin: datetime, new_origin: datetime) -> Self:
-        position_difference: int = (
-            self.position_from_timestamp(new_origin)
-            - self.position_from_timestamp(old_origin)
-        ) % self.size
+    def rotate(self, source_position: int, target_position: int) -> Self:
+        position_difference: int = (target_position - source_position) % self.size
         if position_difference > self.size // 2:
             position_difference -= self.size
 
@@ -74,6 +71,12 @@ class TimestampRelativeBitmask:
             new_value = self.value
 
         return type(self)(value=new_value)
+
+    def replace_origin(self, old_origin: datetime, new_origin: datetime) -> Self:
+        return self.rotate(
+            source_position=self.position_from_timestamp(old_origin),
+            target_position=self.position_from_timestamp(new_origin),
+        )
 
 
 class WeeklyBitmask(TimestampRelativeBitmask):
