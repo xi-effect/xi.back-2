@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, BaseModel, Field, TypeAdapter
+from pydantic import AwareDatetime, BaseModel, Field
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -21,13 +21,12 @@ from app.scheduler.models.event_instances_db import (
     SoleEventInstance,
 )
 from app.scheduler.models.events_db import ClassroomEvent
-from app.scheduler.models.repetition_modes_db import RepetitionModeResponseSchema
+from app.scheduler.models.repetition_modes_db import (
+    RepetitionModeResponseSchema,
+    REPETITION_MODE_TYPE_ADAPTER,
+)
 
 router = APIRouterExt(tags=["classroom event instances"])
-
-REPETITION_MODE_TYPE_ADAPTER: TypeAdapter[RepetitionModeResponseSchema] = TypeAdapter(
-    RepetitionModeResponseSchema
-)
 
 
 class VirtualRepeatedEventInstanceStandaloneResponseSchema(BaseModel):

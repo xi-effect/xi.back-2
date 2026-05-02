@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     computed_field,
     model_validator,
+    TypeAdapter,
 )
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import (
@@ -471,3 +472,7 @@ RepetitionModeResponseSchema = Annotated[
     DailyRepetitionMode.ResponseSchema | WeeklyRepetitionMode.ResponseSchema,
     Field(discriminator="kind"),
 ]
+
+REPETITION_MODE_TYPE_ADAPTER: TypeAdapter[RepetitionModeResponseSchema] = TypeAdapter(
+    RepetitionModeResponseSchema
+)

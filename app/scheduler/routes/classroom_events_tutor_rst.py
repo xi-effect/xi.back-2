@@ -12,12 +12,16 @@ from app.scheduler.models.event_instances_db import (
     SoleEventInstanceInputSchema,
 )
 from app.scheduler.models.events_db import ClassroomEvent
-from app.scheduler.models.repetition_modes_db import RepetitionModeInputSchema
+from app.scheduler.models.repetition_modes_db import (
+    RepetitionModeInputSchema,
+    RepetitionModeResponseSchema,
+    REPETITION_MODE_TYPE_ADAPTER,
+)
 
 router = APIRouterExt(tags=["tutor classroom events"])
 
 
-class EventInputKind(StrEnum):
+class EventSchemaKind(StrEnum):
     SINGLE = auto()
     REPEATING = auto()
 
@@ -27,12 +31,12 @@ class BaseEventInputSchema(BaseModel):
 
 
 class SingleEventInputSchema(BaseEventInputSchema):
-    kind: Literal[EventInputKind.SINGLE] = EventInputKind.SINGLE
+    kind: Literal[EventSchemaKind.SINGLE] = EventSchemaKind.SINGLE
     sole_instance: SoleEventInstanceInputSchema
 
 
 class RepeatingEventInputSchema(BaseEventInputSchema):
-    kind: Literal[EventInputKind.REPEATING] = EventInputKind.REPEATING
+    kind: Literal[EventSchemaKind.REPEATING] = EventSchemaKind.REPEATING
     repetition_mode: RepetitionModeInputSchema
 
 
@@ -42,36 +46,71 @@ EventInputSchema = Annotated[
 ]
 
 
+class BaseEventResponseSchema(BaseModel):
+    event: ClassroomEvent.ResponseSchema
+
+
+class SingleEventResponseSchema(BaseEventResponseSchema):
+    kind: Literal[EventSchemaKind.SINGLE] = EventSchemaKind.SINGLE
+    sole_instance: SoleEventInstance.StandaloneResponseSchema
+
+
+class RepeatingEventResponseSchema(BaseEventResponseSchema):
+    kind: Literal[EventSchemaKind.REPEATING] = EventSchemaKind.REPEATING
+    repetition_mode: RepetitionModeResponseSchema
+
+
+EventResponseSchema = Annotated[
+    SingleEventResponseSchema | RepeatingEventResponseSchema,
+    Field(discriminator="kind"),
+]
+
+
 @router.post(
     path="/roles/tutor/classrooms/{classroom_id}/events/",
     status_code=status.HTTP_201_CREATED,
-    response_model=ClassroomEvent.ResponseSchema,
     summary="Create a new event in a classroom by id",
 )
 async def create_classroom_event(
     classroom_id: Annotated[int, Path()],
     data: EventInputSchema,
-) -> ClassroomEvent:
-    event = await ClassroomEvent.create(
+) -> EventResponseSchema:
+    classroom_event = await ClassroomEvent.create(
         **data.event.model_dump(),
         classroom_id=classroom_id,
     )
 
     match data:
         case SingleEventInputSchema():
-            await SoleEventInstance.create(
+            sole_instance = await SoleEventInstance.create(
                 **data.sole_instance.model_dump(),
-                event_id=event.id,
+                event_id=classroom_event.id,
+            )
+            return SingleEventResponseSchema(
+                event=ClassroomEvent.ResponseSchema.model_validate(
+                    classroom_event, from_attributes=True
+                ),
+                sole_instance=SoleEventInstance.StandaloneResponseSchema.model_validate(
+                    sole_instance,
+                    from_attributes=True,
+                ),
             )
         case RepeatingEventInputSchema():
-            await data.repetition_mode.db_class.create(
+            repetition_mode = await data.repetition_mode.db_class.create(
                 **data.repetition_mode.model_dump(),
-                event_id=event.id,
+                event_id=classroom_event.id,
+            )
+            return RepeatingEventResponseSchema(
+                event=ClassroomEvent.ResponseSchema.model_validate(
+                    classroom_event, from_attributes=True
+                ),
+                repetition_mode=REPETITION_MODE_TYPE_ADAPTER.validate_python(
+                    repetition_mode,
+                    from_attributes=True,
+                ),
             )
         case _:
             assert_never(data)
-
-    return event
 
 
 @router.patch(
