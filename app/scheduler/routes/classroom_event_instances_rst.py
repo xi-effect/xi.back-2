@@ -22,8 +22,8 @@ from app.scheduler.models.event_instances_db import (
 )
 from app.scheduler.models.events_db import ClassroomEvent
 from app.scheduler.models.repetition_modes_db import (
-    RepetitionModeResponseSchema,
     REPETITION_MODE_TYPE_ADAPTER,
+    RepetitionModeResponseSchema,
 )
 
 router = APIRouterExt(tags=["classroom event instances"])

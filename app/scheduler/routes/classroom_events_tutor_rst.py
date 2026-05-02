@@ -1,21 +1,24 @@
+from datetime import datetime
 from enum import StrEnum, auto
 from typing import Annotated, Literal, assert_never
 
-from fastapi import Path
-from pydantic import BaseModel, Field
+from fastapi import Body, Path
+from pydantic import AwareDatetime, BaseModel, Field
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.scheduler.dependencies.classroom_events_dep import MyClassroomEventByIDs
 from app.scheduler.models.event_instances_db import (
+    RepeatedEventInstance,
     SoleEventInstance,
     SoleEventInstanceInputSchema,
 )
 from app.scheduler.models.events_db import ClassroomEvent
 from app.scheduler.models.repetition_modes_db import (
+    REPETITION_MODE_TYPE_ADAPTER,
+    RepetitionMode,
     RepetitionModeInputSchema,
     RepetitionModeResponseSchema,
-    REPETITION_MODE_TYPE_ADAPTER,
 )
 
 router = APIRouterExt(tags=["tutor classroom events"])
@@ -124,6 +127,84 @@ async def patch_classroom_event(
 ) -> ClassroomEvent:
     classroom_event.update(**data.model_dump(exclude_defaults=True))
     return classroom_event
+
+
+async def cancel_repetition_modes_after_timestamp(
+    classroom_event: ClassroomEvent,
+    timestamp: datetime,
+) -> None:
+    await RepetitionMode.delete_all_at_or_after_timestamp(
+        event_id=classroom_event.id,
+        timestamp=timestamp,
+    )
+
+    border_repetition_mode = await RepetitionMode.find_last_bordering_on_a_timestamp(
+        event_id=classroom_event.id,
+        timestamp=timestamp,
+    )
+    if border_repetition_mode is None:
+        return
+
+    last_starts_at = border_repetition_mode.calculate_closest_past_event_instance_starts_at_for_timestamp(
+        timestamp=timestamp
+    )
+    if last_starts_at is None:
+        await border_repetition_mode.delete()
+        return
+
+    border_repetition_mode.is_finite = True
+    border_repetition_mode.ends_at = (
+        last_starts_at + border_repetition_mode.event_instance_duration
+    )
+
+    last_instance_index: int = (
+        border_repetition_mode.calculate_event_instance_index_for_starts_at(
+            event_instance_starts_at=last_starts_at
+        )
+    )
+    await RepeatedEventInstance.delete_all_after_index(
+        repetition_mode_id=border_repetition_mode.id,
+        instance_index=last_instance_index,
+    )
+
+
+@router.post(
+    path=(
+        "/roles/tutor/classrooms/{classroom_id}"
+        "/events/{event_id}/last-repetition-mode/"
+    ),
+    status_code=status.HTTP_201_CREATED,
+    response_model=RepetitionModeResponseSchema,
+    summary="Create a new repetition mode at the end for a classroom event by id",
+)
+async def create_last_repetition_mode(
+    classroom_event: MyClassroomEventByIDs,
+    data: RepetitionModeInputSchema,
+) -> RepetitionMode:
+    await cancel_repetition_modes_after_timestamp(
+        classroom_event=classroom_event,
+        timestamp=data.starts_at,
+    )
+
+    return await data.db_class.create(
+        **data.model_dump(),
+        event_id=classroom_event.id,
+    )
+
+
+@router.post(
+    path="/roles/tutor/classrooms/{classroom_id}/events/{event_id}/cancellations/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Cancel a repeating classroom event by id after some timestamp",
+)
+async def cancel_repeating_event_after_timestamp(
+    classroom_event: MyClassroomEventByIDs,
+    starts_at: Annotated[AwareDatetime, Body(embed=True)],
+) -> None:
+    await cancel_repetition_modes_after_timestamp(
+        classroom_event=classroom_event,
+        timestamp=starts_at,
+    )
 
 
 @router.delete(
