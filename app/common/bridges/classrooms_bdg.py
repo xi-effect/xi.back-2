@@ -18,3 +18,15 @@ class ClassroomsBridge(BaseBridge):
         return await self.client.get(
             f"/classrooms/{classroom_id}/students/",
         )
+
+    @validate_external_json_response(TypeAdapter(list[int]))
+    async def list_tutor_classroom_ids(self, tutor_id: int) -> Response:
+        return await self.client.get(
+            f"/tutors/{tutor_id}/classroom-ids/",
+        )
+
+    @validate_external_json_response(TypeAdapter(list[int]))
+    async def list_student_classroom_ids(self, student_id: int) -> Response:
+        return await self.client.get(
+            f"/students/{student_id}/classroom-ids/",
+        )

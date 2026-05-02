@@ -181,6 +181,8 @@ async def create_last_repetition_mode(
     classroom_event: MyClassroomEventByIDs,
     data: RepetitionModeInputSchema,
 ) -> RepetitionMode:
+    # TODO (170) check if this is a single event
+
     await cancel_repetition_modes_after_timestamp(
         classroom_event=classroom_event,
         timestamp=data.starts_at,

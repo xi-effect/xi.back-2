@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
@@ -7,12 +6,17 @@ from uuid import UUID
 
 from fastapi import Path
 from pydantic import AwareDatetime
-from sqlalchemy import Select, and_, or_, select, tuple_
+from sqlalchemy import and_, or_, select, tuple_
 from sqlalchemy.orm import raiseload
 
+from app.common.config_bdg import classrooms_bridge
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.sqlalchemy_ext import db
-from app.scheduler.dependencies.events_dep import EventTimeFrameQuery
+from app.scheduler.dependencies.events_dep import (
+    EventTimeFrameQuery,
+    EventTimeFrameSchema,
+)
 from app.scheduler.models.event_instances_db import (
     AnyEventInstance,
     EventInstance,
@@ -33,35 +37,20 @@ from app.scheduler.models.repetition_modes_db import (
 router = APIRouterExt(tags=["classroom schedules"])
 
 
-# TODO (naming) `_range`???
-
-
-async def get_from_db_with_assumed_limit[T](
-    stmt: Select[tuple[T]],
-    limit: int = 1000,
-) -> list[T]:
-    result = list(await db.get_all(stmt.limit(limit)))
-
-    if len(result) == limit:
-        logging.warning(
-            f"Reached the limit of {limit} in one query",
-            extra={"stmt": str(stmt)},
-        )
-
-    return result
+# TODO (170) naming: `_range`???
 
 
 async def get_repetition_modes_in_range(
-    classroom_id: int,
+    classroom_ids: list[int],
     happens_after: datetime,
     happens_before: datetime,
 ) -> list[RepetitionMode]:
-    return await get_from_db_with_assumed_limit(
+    return await db.get_all_with_assumed_limit(
         select(RepetitionMode)
         .options(raiseload(RepetitionMode.event))
         .join(ClassroomEvent)
-        .filter_by(classroom_id=classroom_id)
         .filter(
+            ClassroomEvent.classroom_id.in_(classroom_ids),
             or_(
                 *(
                     and_(
@@ -72,8 +61,9 @@ async def get_repetition_modes_in_range(
                     )
                     for klass in ConcreteRepetitionModeClasses
                 )
-            )
-        )
+            ),
+        ),
+        limit=1000,
     )
 
 
@@ -125,7 +115,7 @@ def iter_virtual_repeated_event_instances_in_range(
 
 
 async def get_event_instances_in_range(
-    classroom_id: int,
+    classroom_ids: list[int],
     happens_after: datetime,
     happens_before: datetime,
     virtual_repeated_instance_keys: list[VirtualRepeatedEventInstanceKeyData],
@@ -162,15 +152,18 @@ async def get_event_instances_in_range(
 
     return cast(  # no good way to type this in SQLAlchemy
         list[AnyEventInstance],
-        await get_from_db_with_assumed_limit(
+        await db.get_all_with_assumed_limit(
             select(EventInstance)
             .options(
                 raiseload(EventInstance.event),
                 raiseload(RepeatedEventInstance.repetition_mode),
             )
             .join(ClassroomEvent)
-            .filter_by(classroom_id=classroom_id)
-            .filter(or_(*filters_or))
+            .filter(
+                ClassroomEvent.classroom_id.in_(classroom_ids),
+                or_(*filters_or),
+            ),
+            limit=1000,
         ),
     )
 
@@ -280,20 +273,12 @@ class ScheduleResponseSchemaAdapter:
         return list(self.iter_event_instances())
 
 
-@router.get(
-    path="/roles/tutor/classrooms/{classroom_id}/schedule/",
-    summary="Retrieve a schedule for all of the events in a classroom by id",
-)
-@router.get(
-    path="/roles/student/classrooms/{classroom_id}/schedule/",
-    summary="Retrieve a schedule for all of the events in a classroom by id",
-)
-async def list_classroom_events(
-    classroom_id: Annotated[int, Path()],
-    time_frame: EventTimeFrameQuery,
+async def list_classroom_event_instances(
+    classroom_ids: list[int],
+    time_frame: EventTimeFrameSchema,
 ) -> list[EventInstanceResponseSchema]:
     repetition_modes = await get_repetition_modes_in_range(
-        classroom_id=classroom_id,
+        classroom_ids=classroom_ids,
         happens_after=time_frame.happens_after,
         happens_before=time_frame.happens_before,
     )
@@ -310,7 +295,7 @@ async def list_classroom_events(
     )
 
     persisted_event_instances = await get_event_instances_in_range(
-        classroom_id=classroom_id,
+        classroom_ids=classroom_ids,
         happens_after=time_frame.happens_after,
         happens_before=time_frame.happens_before,
         virtual_repeated_instance_keys=list(virtual_repeated_instances_by_id.keys()),
@@ -398,3 +383,53 @@ async def list_classroom_events(
         persisted_repeated_event_instances=persisted_repeated_event_instances,
         persisted_repeated_event_instance_keys=persisted_repeated_event_instance_keys,
     ).adapt()
+
+
+@router.get(
+    path="/roles/tutor/classrooms/{classroom_id}/schedule/",
+    summary="Retrieve a schedule for all of the events in a classroom by id",
+)
+@router.get(
+    path="/roles/student/classrooms/{classroom_id}/schedule/",
+    summary="Retrieve a schedule for all of the events in a classroom by id",
+)
+async def retrieve_classroom_schedule(
+    classroom_id: Annotated[int, Path()],
+    time_frame: EventTimeFrameQuery,
+) -> list[EventInstanceResponseSchema]:
+    return await list_classroom_event_instances(
+        classroom_ids=[classroom_id],
+        time_frame=time_frame,
+    )
+
+
+@router.get(
+    path="/roles/tutor/schedule/",
+    summary="Retrieve a schedule for all events for the current tutor",
+)
+async def retrieve_tutor_schedule(
+    auth_data: AuthorizationData,
+    time_frame: EventTimeFrameQuery,
+) -> list[EventInstanceResponseSchema]:
+    return await list_classroom_event_instances(
+        classroom_ids=await classrooms_bridge.list_tutor_classroom_ids(
+            tutor_id=auth_data.user_id
+        ),
+        time_frame=time_frame,
+    )
+
+
+@router.get(
+    path="/roles/student/schedule/",
+    summary="Retrieve a schedule for all events for the current student",
+)
+async def retrieve_student_schedule(
+    auth_data: AuthorizationData,
+    time_frame: EventTimeFrameQuery,
+) -> list[EventInstanceResponseSchema]:
+    return await list_classroom_event_instances(
+        classroom_ids=await classrooms_bridge.list_student_classroom_ids(
+            student_id=auth_data.user_id
+        ),
+        time_frame=time_frame,
+    )
