@@ -5,11 +5,12 @@ from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field, computed_field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, and_
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, and_, delete
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.scheduler.config import (
     MAX_EVENT_INSTANCE_DURATION,
     MIN_EVENT_INSTANCE_DURATION,
@@ -217,6 +218,19 @@ class RepeatedEventInstance(EventInstance):
         return await cls.find_first_by_kwargs(
             repetition_mode_id=repetition_mode_id,
             instance_index=instance_index,
+        )
+
+    @classmethod
+    async def delete_all_after_index(
+        cls,
+        repetition_mode_id: UUID,
+        instance_index: int,
+    ) -> None:
+        await db.session.execute(
+            delete(cls).filter(
+                cls.repetition_mode_id == repetition_mode_id,
+                cls.instance_index > instance_index,
+            )
         )
 
     def reschedule(self, new_starts_at: datetime, new_ends_at: datetime) -> None:

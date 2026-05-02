@@ -9,9 +9,9 @@ from pydantic import (
     AwareDatetime,
     BaseModel,
     Field,
+    TypeAdapter,
     computed_field,
     model_validator,
-    TypeAdapter,
 )
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import (
@@ -19,7 +19,9 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     SQLColumnExpression,
+    delete,
     or_,
+    select,
 )
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import (
@@ -30,6 +32,7 @@ from sqlalchemy.orm import (
 )
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 from app.scheduler.config import (
     MAX_EVENT_INSTANCE_DURATION,
@@ -99,6 +102,36 @@ class RepetitionMode(Base):
     )
 
     @classmethod
+    async def delete_all_at_or_after_timestamp(
+        cls,
+        event_id: int,
+        timestamp: datetime,
+    ) -> None:
+        await db.session.execute(
+            delete(cls).filter(
+                cls.event_id == event_id,
+                cls.starts_at >= timestamp,
+            )
+        )
+
+    @classmethod
+    async def find_last_bordering_on_a_timestamp(
+        cls,
+        event_id: int,
+        timestamp: datetime,
+    ) -> Self | None:
+        return await db.get_first(
+            select(cls).filter(
+                cls.event_id == event_id,
+                cls.starts_at < timestamp,
+                or_(
+                    cls.ends_at > timestamp,
+                    cls.is_finite.is_(False),
+                ),
+            )
+        )
+
+    @classmethod
     def iter_in_range_conditions(
         cls,
         happens_after: datetime,
@@ -113,6 +146,22 @@ class RepetitionMode(Base):
         instance_index: int,
     ) -> datetime:
         raise NotImplementedError
+
+    def calculate_closest_past_event_instance_starts_at_for_timestamp(
+        self,
+        timestamp: datetime,
+    ) -> datetime | None:
+        if timestamp < self.starts_at:
+            return None
+
+        if self.is_finite and timestamp >= self.ends_at:
+            timestamp = self.ends_at - self.event_instance_duration
+        else:
+            timestamp = self.starts_at + (timestamp - self.starts_at) // timedelta(
+                days=1
+            ) * timedelta(days=1)
+
+        return timestamp
 
     def calculate_event_instance_index_for_starts_at(
         self,
@@ -268,6 +317,24 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
             + offset_in_units * self.starting_bitmask.unit_duration
         )
 
+    def calculate_closest_past_event_instance_starts_at_for_timestamp(
+        self,
+        timestamp: datetime,
+    ) -> datetime | None:
+        result = super().calculate_closest_past_event_instance_starts_at_for_timestamp(
+            timestamp=timestamp
+        )
+
+        if result is None:
+            return None
+
+        while not self.starting_bitmask.check_if_timestamp_matches(result):
+            result -= self.bitmask_type.unit_duration
+            if result < self.starts_at:
+                return None
+
+        return result
+
     def calculate_event_instance_index_for_starts_at(
         self,
         event_instance_starts_at: datetime,
@@ -287,7 +354,7 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
             // self.bitmask_type.get_cycle_duration()
             * self.starting_bitmask.value.bit_count()
         ) + (
-            (event_instance_cycle_offset - repetition_mode_cycle_offset)
+            (event_instance_cycle_offset - repetition_mode_cycle_offset - 1)
             % self.starting_bitmask.value.bit_count()
         )
 
@@ -354,7 +421,7 @@ ConcreteRepetitionModeClasses: tuple[type[RepetitionMode], ...] = (
 
 
 class BaseRepetitionModeInputSchema(BaseModel):
-    db_class: ClassVar[type[Base]]
+    db_class: ClassVar[type[RepetitionMode]]
 
     starts_at: AwareDatetime
     duration_seconds: int = Field(
