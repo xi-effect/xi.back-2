@@ -11,6 +11,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
+from starlette_exporter import PrometheusMiddleware, handle_metrics
 from tmexio import AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
@@ -142,6 +143,21 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    PrometheusMiddleware,
+    group_paths=True,
+    app_name="xi.back-2",
+    prefix="fastapi",
+    skip_paths=["/metrics"],
+    labels={
+        "instance_name": settings.instance_name,
+        # TODO: Add these only to some metrics to save on series amount
+        #  `"x_user_id": from_header("X-User-ID")`,
+        #  `"x_session_id": from_header("X-Session-ID")`,
+    },
+)
+app.add_route("/metrics", handle_metrics)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

@@ -41,6 +41,7 @@ itsdangerous = "^2.2.0"
 faststream = {extras = ["redis"], version = "^0.6.2"}
 sentry-sdk = {extras = ["asyncio", "fastapi", "sqlalchemy", "redis", "httpx"], version = "2.44.0"}
 pillow = "^12.2.0"
+starlette-exporter = "^0.23.0"
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
