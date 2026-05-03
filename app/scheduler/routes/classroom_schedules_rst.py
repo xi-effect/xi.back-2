@@ -156,7 +156,8 @@ async def get_event_instances_in_range(
             select(EventInstance)
             .options(
                 raiseload(EventInstance.event),
-                raiseload(RepeatedEventInstance.repetition_mode),
+                # TODO enable `raiseload` for `RepeatedEventInstance.repetition_mode`
+                #   Currently disabled for generating virtual event in `iter_persisted_repeated_event_instances`
             )
             .join(ClassroomEvent)
             .filter(
@@ -211,12 +212,26 @@ class ScheduleResponseSchemaAdapter:
             persisted_repeated_event_instance
         ) in self.persisted_repeated_event_instances:
             event = self.events_by_id[persisted_repeated_event_instance.event_id]
-            virtual_event_instance_value = self.virtual_repeated_instances_by_id[
+
+            virtual_event_instance_value = self.virtual_repeated_instances_by_id.get(
                 VirtualRepeatedEventInstanceKeyData(
                     repetition_mode_id=persisted_repeated_event_instance.repetition_mode_id,
                     instance_index=persisted_repeated_event_instance.instance_index,
                 )
-            ]
+            )
+            if virtual_event_instance_value is None:
+                repetition_mode = persisted_repeated_event_instance.repetition_mode
+                starts_at = (
+                    repetition_mode.calculate_event_instance_starts_at_for_index(
+                        instance_index=persisted_repeated_event_instance.instance_index,
+                    )
+                )
+                virtual_event_instance_value = VirtualRepeatedEventInstanceValueData(
+                    starts_at=starts_at,
+                    ends_at=starts_at + repetition_mode.event_instance_duration,
+                    event_id=event.id,
+                )
+
             yield PersistedRepeatedEventInstanceResponseSchema(
                 id=persisted_repeated_event_instance.id,
                 event_id=event.id,
@@ -362,7 +377,11 @@ async def list_classroom_event_instances(
             for repetition_mode in repetition_modes
             if repetition_mode.id in repetition_mode_ids_used_in_event_instances
         }
-        | {event_instance.event_id for event_instance in persisted_event_instances}
+        | {event_instance.event_id for event_instance in sole_event_instances}
+        | {
+            event_instance.event_id
+            for event_instance in persisted_repeated_event_instances
+        }
     )
 
     events_by_id: dict[int, ClassroomEvent]
