@@ -178,13 +178,11 @@ class RepetitionMode(Base):
             starts_at_lower_bound = self.starts_at
         else:
             starts_at_lower_bound = datetime.combine(
-                happens_after.date(),
+                happens_after.astimezone(timezone.utc).date(),
                 self.starts_at.time(),
                 self.starts_at.tzinfo,
             )
-            if (
-                (happens_after - self.starts_at) % timedelta(days=1)
-            ) >= self.event_instance_duration:
+            if starts_at_lower_bound + self.event_instance_duration <= happens_after:
                 # TODO use bitmask's unit instead of `days=1`
                 #   or just implement "skipping" the first starts at
                 starts_at_lower_bound += timedelta(days=1)
@@ -354,7 +352,7 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
             // self.bitmask_type.get_cycle_duration()
             * self.starting_bitmask.value.bit_count()
         ) + (
-            (event_instance_cycle_offset - repetition_mode_cycle_offset - 1)
+            (event_instance_cycle_offset - repetition_mode_cycle_offset)
             % self.starting_bitmask.value.bit_count()
         )
 

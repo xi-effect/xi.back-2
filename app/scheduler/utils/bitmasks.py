@@ -38,7 +38,7 @@ class TimestampRelativeBitmask:
                 bitmask_value ^= 1 << bit_position
         else:
             bitmask_value = (1 << cls.size) - 1
-            for bit_position in range(end_position, start_position - 1):
+            for bit_position in range(end_position + 1, start_position):
                 bitmask_value ^= 1 << bit_position
 
         return cls(value=bitmask_value)
