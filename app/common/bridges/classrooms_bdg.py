@@ -4,6 +4,7 @@ from pydantic import TypeAdapter
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
+from app.common.schemas.classrooms_sch import ClassroomRole
 
 
 class ClassroomsBridge(BaseBridge):
@@ -14,9 +15,14 @@ class ClassroomsBridge(BaseBridge):
         )
 
     @validate_external_json_response(TypeAdapter(list[int]))
-    async def list_classroom_student_ids(self, classroom_id: int) -> Response:
+    async def list_classroom_participant_ids(
+        self,
+        classroom_id: int,
+        role: ClassroomRole | None = None,
+    ) -> Response:
         return await self.client.get(
-            f"/classrooms/{classroom_id}/students/",
+            f"/classrooms/{classroom_id}/participant-ids/",
+            params=None if role is None else {"role": role},
         )
 
     @validate_external_json_response(TypeAdapter(list[int]))
