@@ -24,8 +24,9 @@ from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
     InvitationAcceptanceNotificationPayloadSchema,
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
+    SingleUserRecipientFilterSchema,
 )
 from app.common.schemas.users_sch import UserProfileSchema
 from app.common.utils.datetime import datetime_utc_now
@@ -184,14 +185,16 @@ async def test_individual_invitation_accepting(
         await classroom.delete()
 
     send_notification_mock.assert_awaited_once_with(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=InvitationAcceptanceNotificationPayloadSchema(
                 kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
                 invitation_id=individual_invitation.id,
                 classroom_id=classroom_id,
                 student_id=student_user_id,
             ),
-            recipient_user_ids=[individual_invitation.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=individual_invitation.tutor_id),
+            ],
         )
     )
 
@@ -350,14 +353,16 @@ async def test_group_invitation_accepting(
         await enrollment.delete()
 
     send_notification_mock.assert_awaited_once_with(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=InvitationAcceptanceNotificationPayloadSchema(
                 kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
                 invitation_id=group_invitation.id,
                 classroom_id=group_classroom.id,
                 student_id=student_user_id,
             ),
-            recipient_user_ids=[group_invitation.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=group_invitation.tutor_id),
+            ],
         )
     )
 
