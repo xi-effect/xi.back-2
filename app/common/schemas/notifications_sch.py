@@ -3,6 +3,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
+from app.common.schemas.classrooms_sch import ClassroomRole
+
 
 class NotificationKind(StrEnum):
     INDIVIDUAL_INVITATION_ACCEPTED_V1 = auto()
@@ -73,5 +75,40 @@ AnyNotificationPayloadSchema = Annotated[
 
 
 class NotificationInputSchema(BaseModel):
+    # TODO remove after switching everything to V2
     payload: AnyNotificationPayloadSchema
     recipient_user_ids: Annotated[list[int], Field(min_length=1, max_length=100)]
+
+
+class RecipientKind(StrEnum):
+    SINGLE_USER = auto()
+    CLASSROOM_PARTICIPANT = auto()
+
+
+class SingleUserRecipientFilterSchema(BaseModel):
+    kind: Literal[RecipientKind.SINGLE_USER] = RecipientKind.SINGLE_USER
+
+    user_id: int
+
+
+class ClassroomParticipantRecipientFilterSchema(BaseModel):
+    kind: Literal[RecipientKind.CLASSROOM_PARTICIPANT] = (
+        RecipientKind.CLASSROOM_PARTICIPANT
+    )
+
+    classroom_id: int
+    role: ClassroomRole | None
+
+
+AnyRecipientFilterSchema = Annotated[
+    SingleUserRecipientFilterSchema | ClassroomParticipantRecipientFilterSchema,
+    Field(discriminator="kind"),
+]
+
+
+class NotificationInputV2Schema(BaseModel):
+    payload: AnyNotificationPayloadSchema
+    recipient_filters: Annotated[
+        list[AnyRecipientFilterSchema],
+        Field(min_length=1, max_length=100),
+    ]

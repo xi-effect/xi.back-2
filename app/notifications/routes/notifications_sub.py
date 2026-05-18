@@ -4,10 +4,14 @@ from faststream.redis import RedisRouter
 
 from app.common.config import settings
 from app.common.faststream_ext import build_stream_sub
-from app.common.schemas.notifications_sch import NotificationInputSchema
+from app.common.schemas.notifications_sch import (
+    NotificationInputSchema,
+    NotificationInputV2Schema,
+)
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sio import NewNotificationEmitter
+from app.notifications.services import recipients_svc
 from app.notifications.services.senders import (
     email_notification_sender,
     platform_notification_sender,
@@ -26,9 +30,16 @@ router = RedisRouter()
 )
 async def send_notification(
     emitter: NewNotificationEmitter,
-    data: NotificationInputSchema,
+    data: NotificationInputSchema | NotificationInputV2Schema,
 ) -> None:
-    recipient_user_ids = list(set(data.recipient_user_ids))
+    recipient_user_ids = (
+        await recipients_svc.generate_recipient_user_ids_for_notification(
+            notification_data=data,
+        )
+    )
+
+    if len(recipient_user_ids) == 0:
+        return
 
     notification = await Notification.create(payload=data.payload)
 
