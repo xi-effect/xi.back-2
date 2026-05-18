@@ -31,6 +31,11 @@ from tests.common.types import AnyJSON, PytestRequest
 from tests.notifications import factories
 
 
+@pytest.fixture()
+async def classroom_id(faker: Faker) -> int:
+    return faker.random_int()
+
+
 @pytest.fixture(scope="session")
 def notifications_bot_webhook_url() -> str:
     return "/api/public/notification-service/telegram-updates/"

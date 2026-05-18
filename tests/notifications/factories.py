@@ -46,6 +46,24 @@ class NotificationSimpleInputFactory(BaseModelFactory[NotificationSimpleInputSch
     __model__ = NotificationSimpleInputSchema
 
 
+class SingleUserRecipientFilterFactory(
+    BaseModelFactory[notifications_sch.SingleUserRecipientFilterSchema]
+):
+    __model__ = notifications_sch.SingleUserRecipientFilterSchema
+
+
+class ClassroomParticipantRecipientFilterFactory(
+    BaseModelFactory[notifications_sch.ClassroomParticipantRecipientFilterSchema]
+):
+    __model__ = notifications_sch.ClassroomParticipantRecipientFilterSchema
+
+
+class NotificationInputV2Factory(
+    BaseModelFactory[notifications_sch.NotificationInputV2Schema]
+):
+    __model__ = notifications_sch.NotificationInputV2Schema
+
+
 class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):
     __model__ = EmailConnection.InputSchema
 
