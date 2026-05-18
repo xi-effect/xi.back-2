@@ -9,9 +9,10 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
     RecipientInvoiceNotificationPayloadSchema,
+    SingleUserRecipientFilterSchema,
 )
 from app.invoices.dependencies.recipient_invoices_dep import (
     PaymentStatusResponses,
@@ -123,12 +124,14 @@ async def create_invoice(
 
         # TODO: batch sending or use invoice_ids instead
         await notifications_bridge.send_notification(
-            NotificationInputSchema(
+            NotificationInputV2Schema(
                 payload=RecipientInvoiceNotificationPayloadSchema(
                     kind=NotificationKind.RECIPIENT_INVOICE_CREATED_V1,
                     recipient_invoice_id=recipient_invoice.id,
                 ),
-                recipient_user_ids=[student_id],
+                recipient_filters=[
+                    SingleUserRecipientFilterSchema(user_id=student_id),
+                ],
             )
         )
 

@@ -21,8 +21,9 @@ from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import LimitedListResponses
 from app.common.schemas.notifications_sch import (
     InvitationAcceptanceNotificationPayloadSchema,
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
+    SingleUserRecipientFilterSchema,
 )
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
@@ -146,14 +147,16 @@ async def accept_individual_invitation(
     )
 
     await notifications_bridge.send_notification(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=InvitationAcceptanceNotificationPayloadSchema(
                 kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
                 invitation_id=individual_invitation.id,
                 classroom_id=individual_classroom.id,
                 student_id=student_id,
             ),
-            recipient_user_ids=[individual_invitation.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=individual_invitation.tutor_id),
+            ],
         )
     )
 
@@ -185,14 +188,18 @@ async def accept_group_invitation(
     )
 
     await notifications_bridge.send_notification(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=InvitationAcceptanceNotificationPayloadSchema(
                 kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
                 invitation_id=group_invitation.id,
                 classroom_id=group_invitation.group_classroom_id,
                 student_id=student_id,
             ),
-            recipient_user_ids=[group_invitation.group_classroom.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(
+                    user_id=group_invitation.group_classroom.tutor_id
+                ),
+            ],
         )
     )
 

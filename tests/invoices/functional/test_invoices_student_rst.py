@@ -7,9 +7,10 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.schemas.notifications_sch import (
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
     RecipientInvoiceNotificationPayloadSchema,
+    SingleUserRecipientFilterSchema,
 )
 from app.invoices.models.recipient_invoices_db import (
     PaymentStatus,
@@ -71,12 +72,14 @@ async def test_student_recipient_invoice_payment_confirmation(
         )
 
     send_notification_mock.assert_awaited_once_with(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=RecipientInvoiceNotificationPayloadSchema(
                 kind=NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
                 recipient_invoice_id=recipient_invoice.id,
             ),
-            recipient_user_ids=[recipient_invoice.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=recipient_invoice.tutor_id),
+            ],
         )
     )
 
