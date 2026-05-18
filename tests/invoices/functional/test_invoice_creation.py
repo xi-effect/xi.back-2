@@ -9,6 +9,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     NotificationInputSchema,
     NotificationKind,
@@ -63,7 +64,8 @@ async def test_invoice_creation(
     )
 
     classroom_bridge_mock = classrooms_respx_mock.get(
-        path=f"/classrooms/{classroom_id}/students/"
+        path=f"/classrooms/{classroom_id}/participant-ids/",
+        params={"role": ClassroomRole.STUDENT},
     ).respond(json=[student_id, other_student_id])
 
     invoice_id: int = assert_response(
@@ -148,7 +150,8 @@ async def test_invoice_creation_student_not_found(
     classroom_id: int,
 ) -> None:
     classroom_bridge_mock = classrooms_respx_mock.get(
-        path=f"/classrooms/{classroom_id}/students/"
+        path=f"/classrooms/{classroom_id}/participant-ids/",
+        params={"role": ClassroomRole.STUDENT},
     ).respond(json=[])
 
     assert_response(
