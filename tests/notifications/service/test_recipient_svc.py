@@ -12,7 +12,6 @@ from app.common.config import settings
 from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     ClassroomParticipantRecipientFilterSchema,
-    NotificationInputSchema,
     NotificationInputV2Schema,
     SingleUserRecipientFilterSchema,
 )
@@ -23,24 +22,6 @@ from tests.common.utils import remove_none_values
 from tests.notifications import factories
 
 pytestmark = pytest.mark.anyio
-
-
-async def test_generate_recipient_user_ids_for_old_notification(
-    faker: Faker,
-) -> None:
-    recipient_user_ids = random.choices(list(range(100)), k=faker.random_int(2, 5))
-
-    notification_data = NotificationInputSchema(
-        payload=factories.NotificationSimpleInputFactory.build().payload,
-        recipient_user_ids=recipient_user_ids * 2,
-    )
-
-    assert_contains(
-        await recipients_svc.generate_recipient_user_ids_for_notification(
-            notification_data=notification_data
-        ),
-        UnorderedLiteralCollection(recipient_user_ids),
-    )
 
 
 async def test_iter_recipient_user_ids_from_single_user_filter() -> None:

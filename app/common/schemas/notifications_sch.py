@@ -74,12 +74,6 @@ AnyNotificationPayloadSchema = Annotated[
 ]
 
 
-class NotificationInputSchema(BaseModel):
-    # TODO remove after switching everything to V2
-    payload: AnyNotificationPayloadSchema
-    recipient_user_ids: Annotated[list[int], Field(min_length=1, max_length=100)]
-
-
 class RecipientKind(StrEnum):
     SINGLE_USER = auto()
     CLASSROOM_PARTICIPANT = auto()
