@@ -3,7 +3,15 @@ from typing import Annotated, Literal
 from pydantic import AwareDatetime, BaseModel, Field
 from starlette import status
 
+from app.common.config_bdg import notifications_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.classrooms_sch import ClassroomRole
+from app.common.schemas.notifications_sch import (
+    ClassroomEventInstanceNotificationPayloadSchema,
+    ClassroomParticipantRecipientFilterSchema,
+    NotificationInputV2Schema,
+    NotificationKind,
+)
 from app.common.utils.datetime import datetime_utc_now
 from app.scheduler.dependencies.event_instances_dep import (
     ClassroomEventByInstanceID,
@@ -97,7 +105,7 @@ EventInstanceDetailedResponseSchema = Annotated[
     ),
     summary="Retrieve detailed data for any classroom event instance by id",
 )
-async def retrieve_detailed_classroom_event_instance(
+async def retrieve_detailed_persisted_classroom_event_instance(
     classroom_event: ClassroomEventByInstanceID,
     event_instance: MyClassroomEventInstanceByIDs,
 ) -> EventInstanceDetailedResponseSchema:
@@ -221,12 +229,29 @@ async def retrieve_detailed_repeated_classroom_event_instance(
     summary="Reschedule any classroom event instance by id",
 )
 async def reschedule_persisted_classroom_event_instance(
+    classroom_event: ClassroomEventByInstanceID,
     event_instance: MyClassroomEventInstanceByIDs,
     data: EventInstanceTimeSlotInputSchema,
 ) -> None:
     event_instance.reschedule(
         new_starts_at=data.starts_at,
         new_ends_at=data.ends_at,
+    )
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomEventInstanceNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
+                classroom_id=classroom_event.classroom_id,
+                event_instance_id=event_instance.id,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
+        )
     )
 
 
@@ -241,6 +266,7 @@ async def reschedule_persisted_classroom_event_instance(
     summary="Reschedule any classroom event instance in a repetition mode by id and index",
 )
 async def reschedule_repeated_classroom_event_instance(
+    classroom_event: ClassroomEventByRepetitionModeID,
     repetition_mode: MyClassroomRepetitionModeByIDs,
     instance_index: EventInstanceIndex,
     data: EventInstanceTimeSlotInputSchema,
@@ -253,21 +279,33 @@ async def reschedule_repeated_classroom_event_instance(
     if event_instance is None:
         # TODO (170) generate the actual event instance and check it's not outside of the range
         # TODO (170) check new time-slot is not equal to the generated one
-        await RepeatedEventInstance.create(
+        event_instance = await RepeatedEventInstance.create(
             event_id=repetition_mode.event_id,
             repetition_mode_id=repetition_mode.id,
             instance_index=instance_index,
-            starts_at_override=data.starts_at,
-            ends_at_override=data.ends_at,
         )
-        # TODO(?)
-        #   `event_instance = await create(...)`
-        #   `event_instance.reschedule(...)`
-    else:
-        event_instance.reschedule(
-            new_starts_at=data.starts_at,
-            new_ends_at=data.ends_at,
+
+        # TODO (170) check new time-slot is not equal to the previous one (in else)
+    event_instance.reschedule(
+        new_starts_at=data.starts_at,
+        new_ends_at=data.ends_at,
+    )
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomEventInstanceNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
+                classroom_id=classroom_event.classroom_id,
+                event_instance_id=event_instance.id,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
         )
+    )
 
 
 class EventInstanceCancellationResponses(Responses):
@@ -288,11 +326,28 @@ class EventInstanceCancellationResponses(Responses):
     summary="Cancel any classroom event instance by id",
 )
 async def cancel_persisted_classroom_event_instance(
+    classroom_event: ClassroomEventByInstanceID,
     event_instance: MyClassroomEventInstanceByIDs,
 ) -> None:
     if event_instance.cancelled_at is not None:
         raise EventInstanceCancellationResponses.EVENT_INSTANCE_ALREADY_CANCELLED
     event_instance.cancelled_at = datetime_utc_now()
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomEventInstanceNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
+                classroom_id=classroom_event.classroom_id,
+                event_instance_id=event_instance.id,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
+        )
+    )
 
 
 @router.post(
@@ -307,6 +362,7 @@ async def cancel_persisted_classroom_event_instance(
     summary="Cancel any classroom event instance in a repetition mode by id and index",
 )
 async def cancel_repeated_classroom_event_instance(
+    classroom_event: ClassroomEventByRepetitionModeID,
     repetition_mode: MyClassroomRepetitionModeByIDs,
     instance_index: EventInstanceIndex,
 ) -> None:
@@ -316,7 +372,7 @@ async def cancel_repeated_classroom_event_instance(
     )
     if event_instance is None:
         # TODO (170) generate the actual event instance and check it's not outside of the range
-        await RepeatedEventInstance.create(
+        event_instance = await RepeatedEventInstance.create(
             event_id=repetition_mode.event_id,
             repetition_mode_id=repetition_mode.id,
             instance_index=instance_index,
@@ -326,6 +382,22 @@ async def cancel_repeated_classroom_event_instance(
         raise EventInstanceCancellationResponses.EVENT_INSTANCE_ALREADY_CANCELLED
     else:
         event_instance.cancelled_at = datetime_utc_now()
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomEventInstanceNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
+                classroom_id=classroom_event.classroom_id,
+                event_instance_id=event_instance.id,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
+        )
+    )
 
 
 class EventInstanceUncancellationResponses(Responses):
