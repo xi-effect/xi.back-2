@@ -6,7 +6,16 @@ from fastapi import Body, Path
 from pydantic import AwareDatetime, BaseModel, Field
 from starlette import status
 
+from app.common.config_bdg import notifications_bridge
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.classrooms_sch import ClassroomRole
+from app.common.schemas.notifications_sch import (
+    ClassroomEventInstanceNotificationPayloadSchema,
+    ClassroomParticipantRecipientFilterSchema,
+    ClassroomScheduleFocusNotificationPayloadSchema,
+    NotificationInputV2Schema,
+    NotificationKind,
+)
 from app.scheduler.dependencies.classroom_events_dep import MyClassroomEventByIDs
 from app.scheduler.models.event_instances_db import (
     RepeatedEventInstance,
@@ -89,6 +98,21 @@ async def create_classroom_event(
                 **data.sole_instance.model_dump(),
                 event_id=classroom_event.id,
             )
+            await notifications_bridge.send_notification(
+                NotificationInputV2Schema(
+                    payload=ClassroomEventInstanceNotificationPayloadSchema(
+                        kind=NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1,
+                        classroom_id=classroom_event.classroom_id,
+                        event_instance_id=sole_instance.id,
+                    ),
+                    recipient_filters=[
+                        ClassroomParticipantRecipientFilterSchema(
+                            classroom_id=classroom_event.classroom_id,
+                            role=ClassroomRole.STUDENT,
+                        )
+                    ],
+                )
+            )
             return SingleEventResponseSchema(
                 event=ClassroomEvent.ResponseSchema.model_validate(
                     classroom_event, from_attributes=True
@@ -99,9 +123,26 @@ async def create_classroom_event(
                 ),
             )
         case RepeatingEventInputSchema():
-            repetition_mode = await data.repetition_mode.db_class.create(
-                **data.repetition_mode.model_dump(),
-                event_id=classroom_event.id,
+            repetition_mode: RepetitionMode = (
+                await data.repetition_mode.db_class.create(
+                    **data.repetition_mode.model_dump(),
+                    event_id=classroom_event.id,
+                )
+            )
+            await notifications_bridge.send_notification(
+                NotificationInputV2Schema(
+                    payload=ClassroomScheduleFocusNotificationPayloadSchema(
+                        kind=NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1,
+                        classroom_id=classroom_event.classroom_id,
+                        focused_at=repetition_mode.starts_at,
+                    ),
+                    recipient_filters=[
+                        ClassroomParticipantRecipientFilterSchema(
+                            classroom_id=classroom_event.classroom_id,
+                            role=ClassroomRole.STUDENT,
+                        )
+                    ],
+                )
             )
             return RepeatingEventResponseSchema(
                 event=ClassroomEvent.ResponseSchema.model_validate(
@@ -188,10 +229,28 @@ async def create_last_repetition_mode(
         timestamp=data.starts_at,
     )
 
-    return await data.db_class.create(
+    repetition_mode = await data.db_class.create(
         **data.model_dump(),
         event_id=classroom_event.id,
     )
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomScheduleFocusNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1,
+                classroom_id=classroom_event.classroom_id,
+                focused_at=repetition_mode.starts_at,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
+        )
+    )
+
+    return repetition_mode
 
 
 @router.post(
@@ -206,6 +265,22 @@ async def cancel_repeating_event_after_timestamp(
     await cancel_repetition_modes_after_timestamp(
         classroom_event=classroom_event,
         timestamp=starts_at,
+    )
+
+    await notifications_bridge.send_notification(
+        NotificationInputV2Schema(
+            payload=ClassroomScheduleFocusNotificationPayloadSchema(
+                kind=NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1,
+                classroom_id=classroom_event.classroom_id,
+                focused_at=starts_at,
+            ),
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_event.classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
+        )
     )
 
 
