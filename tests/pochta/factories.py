@@ -1,13 +1,7 @@
 from polyfactory import Use
 from pydantic import BaseModel
 
-from app.common.schemas.pochta_sch import (
-    ClassroomNotificationEmailMessagePayloadSchema,
-    CustomEmailMessagePayloadSchema,
-    EmailMessageInputSchema,
-    RecipientInvoiceNotificationEmailMessagePayloadSchema,
-    TokenEmailMessagePayloadSchema,
-)
+from app.common.schemas import pochta_sch
 from app.pochta.schemas.unisender_go_sch import (
     UnisenderGoSendEmailSuccessfulResponseSchema,
 )
@@ -27,29 +21,37 @@ class EmailFormDataFactory(BaseModelFactory[EmailFormDataSchema]):
 
 
 class CustomEmailMessagePayloadFactory(
-    BaseModelFactory[CustomEmailMessagePayloadSchema]
+    BaseModelFactory[pochta_sch.CustomEmailMessagePayloadSchema]
 ):
-    __model__ = CustomEmailMessagePayloadSchema
+    __model__ = pochta_sch.CustomEmailMessagePayloadSchema
 
 
-class TokenEmailMessagePayloadFactory(BaseModelFactory[TokenEmailMessagePayloadSchema]):
-    __model__ = TokenEmailMessagePayloadSchema
+class TokenEmailMessagePayloadFactory(
+    BaseModelFactory[pochta_sch.TokenEmailMessagePayloadSchema]
+):
+    __model__ = pochta_sch.TokenEmailMessagePayloadSchema
 
 
 class ClassroomNotificationEmailMessagePayloadFactory(
-    BaseModelFactory[ClassroomNotificationEmailMessagePayloadSchema]
+    BaseModelFactory[pochta_sch.ClassroomNotificationEmailMessagePayloadSchema]
 ):
-    __model__ = ClassroomNotificationEmailMessagePayloadSchema
+    __model__ = pochta_sch.ClassroomNotificationEmailMessagePayloadSchema
 
 
 class RecipientInvoiceNotificationEmailMessagePayloadFactory(
-    BaseModelFactory[RecipientInvoiceNotificationEmailMessagePayloadSchema]
+    BaseModelFactory[pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema]
 ):
-    __model__ = RecipientInvoiceNotificationEmailMessagePayloadSchema
+    __model__ = pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema
 
 
-class EmailMessageInputFactory(BaseModelFactory[EmailMessageInputSchema]):
-    __model__ = EmailMessageInputSchema
+class UniversalEmailMessagePayloadFactory(
+    BaseModelFactory[pochta_sch.UniversalEmailMessagePayloadSchema]
+):
+    __model__ = pochta_sch.UniversalEmailMessagePayloadSchema
+
+
+class EmailMessageInputFactory(BaseModelFactory[pochta_sch.EmailMessageInputSchema]):
+    __model__ = pochta_sch.EmailMessageInputSchema
 
 
 class UnisenderGoSendEmailSuccessfulResponseFactory(
