@@ -1,11 +1,9 @@
-from typing import Any
-from urllib.parse import urlencode
-
 from pydantic import BaseModel
 
-from app.common.config import settings
 from app.common.schemas.notifications_sch import (
+    ClassroomEventInstanceNotificationPayloadSchema,
     ClassroomNotificationPayloadSchema,
+    ClassroomScheduleFocusNotificationPayloadSchema,
     CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
@@ -24,15 +22,6 @@ class TelegramMessagePayloadSchema(BaseModel):
 class NotificationToTelegramMessageAdapter(
     BaseNotificationAdapter[TelegramMessagePayloadSchema]
 ):
-    def build_url(self, path: str, params: dict[str, Any]) -> str:
-        query_string = urlencode(
-            {
-                **params,
-                "read_notification_id": self.notification.id,
-            }
-        )
-        return f"{settings.frontend_app_base_url}{path}?{query_string}"
-
     def adapt_individual_invitation_accepted_v1(
         self,
         payload: InvitationAcceptanceNotificationPayloadSchema,
@@ -117,6 +106,60 @@ class NotificationToTelegramMessageAdapter(
                     "recipient_invoice_id": payload.recipient_invoice_id,
                 },
             ),
+        )
+
+    def adapt_single_classroom_event_created_v1(
+        self, payload: ClassroomEventInstanceNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.SINGLE_CLASSROOM_EVENT_CREATED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
+            button_link=self.build_student_classroom_event_instance_url(payload),
+        )
+
+    def adapt_classroom_event_instance_rescheduled_v1(
+        self, payload: ClassroomEventInstanceNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
+            button_link=self.build_student_classroom_event_instance_url(payload),
+        )
+
+    def adapt_classroom_event_instance_cancelled_v1(
+        self, payload: ClassroomEventInstanceNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
+            button_link=self.build_student_classroom_event_instance_url(payload),
+        )
+
+    def adapt_repeating_classroom_event_created_v1(
+        self, payload: ClassroomScheduleFocusNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.REPEATING_CLASSROOM_EVENT_CREATED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
+            button_link=self.build_student_classroom_schedule_focus_url(payload),
+        )
+
+    def adapt_classroom_event_repetition_updated_v1(
+        self, payload: ClassroomScheduleFocusNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.CLASSROOM_EVENT_REPETITION_UPDATED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
+            button_link=self.build_student_classroom_schedule_focus_url(payload),
+        )
+
+    def adapt_classroom_event_repetition_cancelled_v1(
+        self, payload: ClassroomScheduleFocusNotificationPayloadSchema
+    ) -> TelegramMessagePayloadSchema:
+        return TelegramMessagePayloadSchema(
+            message_text=texts.CLASSROOM_EVENT_REPETITION_CANCELLED_V1_MESSAGE,
+            button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
+            button_link=self.build_student_classroom_schedule_focus_url(payload),
         )
 
     def adapt_custom_v1(

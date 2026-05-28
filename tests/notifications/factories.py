@@ -32,6 +32,18 @@ class RecipientInvoiceNotificationPayloadFactory(
     __model__ = notifications_sch.RecipientInvoiceNotificationPayloadSchema
 
 
+class ClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.ClassroomEventInstanceNotificationPayloadSchema]
+):
+    __model__ = notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
+
+
+class ClassroomScheduleFocusNotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.ClassroomScheduleFocusNotificationPayloadSchema]
+):
+    __model__ = notifications_sch.ClassroomScheduleFocusNotificationPayloadSchema
+
+
 class CustomNotificationPayloadFactory(
     BaseModelFactory[notifications_sch.CustomNotificationPayloadSchema]
 ):
