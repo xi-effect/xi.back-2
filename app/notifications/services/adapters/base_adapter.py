@@ -4,14 +4,15 @@ from urllib.parse import urlencode
 
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
-    ClassroomEventInstanceNotificationPayloadSchema,
     ClassroomNotificationPayloadSchema,
     ClassroomScheduleFocusNotificationPayloadSchema,
     CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
     NotificationKind,
+    PersistedClassroomEventInstanceNotificationPayloadSchema,
     RecipientInvoiceNotificationPayloadSchema,
+    RepeatedClassroomEventInstanceNotificationPayloadSchema,
 )
 from app.notifications.models.notifications_db import Notification
 
@@ -29,8 +30,8 @@ class BaseNotificationAdapter[T](ABC):
         )
         return f"{settings.frontend_app_base_url}{path}?{query_string}"
 
-    def build_student_classroom_event_instance_url(
-        self, payload: ClassroomEventInstanceNotificationPayloadSchema
+    def build_student_persisted_classroom_event_instance_url(
+        self, payload: PersistedClassroomEventInstanceNotificationPayloadSchema
     ) -> str:
         return self.build_url(
             path=f"/classrooms/{payload.classroom_id}",
@@ -38,6 +39,19 @@ class BaseNotificationAdapter[T](ABC):
                 "tab": "schedule",
                 "role": "student",
                 "event_instance_id": payload.event_instance_id,
+            },
+        )
+
+    def build_student_repeated_classroom_event_instance_url(
+        self, payload: RepeatedClassroomEventInstanceNotificationPayloadSchema
+    ) -> str:
+        return self.build_url(
+            path=f"/classrooms/{payload.classroom_id}",
+            params={
+                "tab": "schedule",
+                "role": "student",
+                "repetition_mode_id": payload.repetition_mode_id,
+                "instance_index": payload.instance_index,
             },
         )
 
@@ -98,21 +112,35 @@ class BaseNotificationAdapter[T](ABC):
     @abstractmethod
     def adapt_single_classroom_event_created_v1(
         self,
-        payload: ClassroomEventInstanceNotificationPayloadSchema,
+        payload: PersistedClassroomEventInstanceNotificationPayloadSchema,
     ) -> T:
         raise NotImplementedError
 
     @abstractmethod
     def adapt_classroom_event_instance_rescheduled_v1(
         self,
-        payload: ClassroomEventInstanceNotificationPayloadSchema,
+        payload: PersistedClassroomEventInstanceNotificationPayloadSchema,
     ) -> T:
         raise NotImplementedError
 
     @abstractmethod
     def adapt_classroom_event_instance_cancelled_v1(
         self,
-        payload: ClassroomEventInstanceNotificationPayloadSchema,
+        payload: PersistedClassroomEventInstanceNotificationPayloadSchema,
+    ) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
+    def adapt_persisted_classroom_event_instance_reminder_v1(
+        self,
+        payload: PersistedClassroomEventInstanceNotificationPayloadSchema,
+    ) -> T:
+        raise NotImplementedError
+
+    @abstractmethod
+    def adapt_repeated_classroom_event_instance_reminder_v1(
+        self,
+        payload: RepeatedClassroomEventInstanceNotificationPayloadSchema,
     ) -> T:
         raise NotImplementedError
 
@@ -174,15 +202,37 @@ class BaseNotificationAdapter[T](ABC):
                 )
             case NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1:
                 return self.adapt_single_classroom_event_created_v1(
-                    cast(ClassroomEventInstanceNotificationPayloadSchema, payload)
+                    cast(
+                        PersistedClassroomEventInstanceNotificationPayloadSchema,
+                        payload,
+                    )
                 )
             case NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1:
                 return self.adapt_classroom_event_instance_rescheduled_v1(
-                    cast(ClassroomEventInstanceNotificationPayloadSchema, payload)
+                    cast(
+                        PersistedClassroomEventInstanceNotificationPayloadSchema,
+                        payload,
+                    )
                 )
             case NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1:
                 return self.adapt_classroom_event_instance_cancelled_v1(
-                    cast(ClassroomEventInstanceNotificationPayloadSchema, payload)
+                    cast(
+                        PersistedClassroomEventInstanceNotificationPayloadSchema,
+                        payload,
+                    )
+                )
+            case NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1:
+                return self.adapt_persisted_classroom_event_instance_reminder_v1(
+                    cast(
+                        PersistedClassroomEventInstanceNotificationPayloadSchema,
+                        payload,
+                    )
+                )
+            case NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1:
+                return self.adapt_repeated_classroom_event_instance_reminder_v1(
+                    cast(
+                        RepeatedClassroomEventInstanceNotificationPayloadSchema, payload
+                    )
                 )
             case NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1:
                 return self.adapt_repeating_classroom_event_created_v1(

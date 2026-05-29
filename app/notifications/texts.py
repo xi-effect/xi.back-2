@@ -126,6 +126,22 @@ CLASSROOM_EVENT_INSTANCE_CANCELLED_V1_EMAIL_CONTENT = """
 Изменение касается только этого занятия. Перейдите по ссылке, чтобы узнать подробности.
 """
 
+CLASSROOM_EVENT_INSTANCE_REMINDER_V1_MESSAGE = """
+Занятие скоро начнётся. Перейдите по ссылке, чтобы узнать подробности
+"""
+CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_THEME = """
+Напоминание о занятии
+"""
+CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_PRE_HEADER = """
+Не забудьте присоединиться
+"""
+CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_HEADER = """
+Занятие скоро начнётся
+"""
+CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_CONTENT = """
+Перейдите по ссылке, чтобы узнать подробности.
+"""
+
 REPEATING_CLASSROOM_EVENT_CREATED_V1_MESSAGE = """
 В ваше расписание добавлены новые регулярные занятия. Перейдите по ссылке, чтобы узнать подробности
 """

@@ -32,10 +32,24 @@ class RecipientInvoiceNotificationPayloadFactory(
     __model__ = notifications_sch.RecipientInvoiceNotificationPayloadSchema
 
 
-class ClassroomEventInstanceNotificationPayloadFactory(
-    BaseModelFactory[notifications_sch.ClassroomEventInstanceNotificationPayloadSchema]
+class PersistedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ]
 ):
-    __model__ = notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
+    __model__ = (
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    )
+
+
+class RepeatedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    ]
+):
+    __model__ = (
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    )
 
 
 class ClassroomScheduleFocusNotificationPayloadFactory(
