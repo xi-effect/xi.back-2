@@ -10,11 +10,11 @@ from app.common.config_bdg import notifications_bridge
 from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
-    ClassroomEventInstanceNotificationPayloadSchema,
     ClassroomParticipantRecipientFilterSchema,
     ClassroomScheduleFocusNotificationPayloadSchema,
     NotificationInputV2Schema,
     NotificationKind,
+    PersistedClassroomEventInstanceNotificationPayloadSchema,
 )
 from app.scheduler.dependencies.classroom_events_dep import MyClassroomEventByIDs
 from app.scheduler.models.event_instances_db import (
@@ -100,7 +100,7 @@ async def create_classroom_event(
             )
             await notifications_bridge.send_notification(
                 NotificationInputV2Schema(
-                    payload=ClassroomEventInstanceNotificationPayloadSchema(
+                    payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                         kind=NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1,
                         classroom_id=classroom_event.classroom_id,
                         event_instance_id=sole_instance.id,

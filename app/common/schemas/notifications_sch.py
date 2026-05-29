@@ -19,12 +19,16 @@ class NotificationKind(StrEnum):
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
 
     SINGLE_CLASSROOM_EVENT_CREATED_V1 = auto()
-    CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1 = auto()  # TODO add `PERSISTED_` for V2
     CLASSROOM_EVENT_INSTANCE_CANCELLED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
 
     REPEATING_CLASSROOM_EVENT_CREATED_V1 = auto()
     CLASSROOM_EVENT_REPETITION_UPDATED_V1 = auto()
     CLASSROOM_EVENT_REPETITION_CANCELLED_V1 = auto()
+
+    PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
+    REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
 
     CUSTOM_V1 = auto()
 
@@ -62,15 +66,24 @@ class RecipientInvoiceNotificationPayloadSchema(BaseModel):
     recipient_invoice_id: int
 
 
-class ClassroomEventInstanceNotificationPayloadSchema(BaseModel):
+class PersistedClassroomEventInstanceNotificationPayloadSchema(BaseModel):
     kind: Literal[
         NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1,
         NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
         NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
+        NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,
     ]
 
     classroom_id: int
     event_instance_id: UUID
+
+
+class RepeatedClassroomEventInstanceNotificationPayloadSchema(BaseModel):
+    kind: Literal[NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,]
+
+    classroom_id: int
+    repetition_mode_id: UUID
+    instance_index: int
 
 
 class ClassroomScheduleFocusNotificationPayloadSchema(BaseModel):
@@ -100,7 +113,8 @@ AnyNotificationPayloadSchema = Annotated[
     | EnrollmentNotificationPayloadSchema
     | ClassroomNotificationPayloadSchema
     | RecipientInvoiceNotificationPayloadSchema
-    | ClassroomEventInstanceNotificationPayloadSchema
+    | PersistedClassroomEventInstanceNotificationPayloadSchema
+    | RepeatedClassroomEventInstanceNotificationPayloadSchema
     | ClassroomScheduleFocusNotificationPayloadSchema
     | CustomNotificationPayloadSchema,
     Field(discriminator="kind"),
