@@ -147,12 +147,17 @@ AnyRecipientFilterSchema = Annotated[
 ]
 
 
+IdempotencyKeyType = Annotated[str | None, Field(min_length=1, max_length=100)]
+
+
 class NotificationInputV2Schema(BaseModel):
     payload: AnyNotificationPayloadSchema
     recipient_filters: Annotated[
         list[AnyRecipientFilterSchema],
         Field(min_length=1, max_length=100),
     ]
+    idempotency_key: IdempotencyKeyType = None
+    idempotency_expires_at: AwareDatetime | None = None
 
 
 # TODO (?) add recipient logic to payload instead?

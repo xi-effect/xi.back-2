@@ -63,7 +63,7 @@ class DBController:
         result = list(await self.get_all(stmt.limit(limit)))
 
         if len(result) == limit:
-            logging.warning(
+            logging.error(
                 f"Reached the limit of {limit} in one query",
                 extra={"stmt": str(stmt)},
             )
