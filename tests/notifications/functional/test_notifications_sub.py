@@ -122,6 +122,8 @@ async def test_notification_send(
         assert notification is not None
         await notification.delete()
 
+    # TODO check nothing is captured by sentry_sdk
+
 
 @freeze_time()
 async def test_notification_send_no_recipients_found(
@@ -171,3 +173,8 @@ async def test_notification_send_no_recipients_found(
             list(await Notification.find_all_by_kwargs(created_at=datetime_utc_now())),
             [],
         )
+
+
+# TODO idempotency check failed
+
+# TODO (?) some operations failed
