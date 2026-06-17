@@ -102,10 +102,18 @@ class FastStreamDatabaseSessionMiddleware(BaseMiddleware):
         self,
         call_next: Callable[[Any], Awaitable[Any]],
         msg: StreamMessage[Any],
-    ) -> Any:
-        async with sessionmaker.begin() as session:
+    ) -> Any:  # pragma: no cover
+        async with sessionmaker() as session:
             session_context.set(session)
-            return await call_next(msg)
+            try:
+                result = await call_next(msg)
+                if session.in_transaction():
+                    await session.commit()
+                return result
+            except Exception:
+                if session.in_transaction():
+                    await session.rollback()
+                raise
 
 
 faststream = RedisRouter(
