@@ -59,6 +59,8 @@ async def send_notification(
     )
 
     await db.session.commit()
+    # TODO The commit is here to ensure idempotency, but that's not reliable
+    #   in future split this into multiple events (first save to db, then send)
 
     results = await asyncio.gather(
         *platform_notification_sender.PlatformNotificationSender(

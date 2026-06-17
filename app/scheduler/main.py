@@ -10,6 +10,7 @@ from app.scheduler.routes import (
     classroom_event_instances_rst,
     classroom_events_tutor_rst,
     classroom_schedules_rst,
+    event_reminders_int,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/scheduler-service")
@@ -31,6 +32,7 @@ internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
     prefix="/internal/scheduler-service",
 )
+internal_router.include_router(event_reminders_int.router)
 
 
 @asynccontextmanager
