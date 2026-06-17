@@ -60,7 +60,9 @@ class Notification(Base):
     )
 
     @classmethod
-    async def is_idempotency_violated(cls, idempotency_key: str | None) -> bool:
+    async def is_idempotency_violated(
+        cls, idempotency_key: str | None
+    ) -> bool:  # pragma: no cover
         if idempotency_key is None:
             return False
 

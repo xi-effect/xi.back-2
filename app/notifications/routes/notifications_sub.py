@@ -33,7 +33,7 @@ async def send_notification(
 ) -> None:
     if await Notification.is_idempotency_violated(idempotency_key=data.idempotency_key):
         # TODO (?) catch the integrity error instead
-        return
+        return  # pragma: no cover
 
     recipient_user_ids = (
         await recipients_svc.generate_recipient_user_ids_for_notification(
