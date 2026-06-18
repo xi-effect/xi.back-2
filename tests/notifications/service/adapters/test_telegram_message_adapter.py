@@ -242,7 +242,6 @@ async def test_single_classroom_event_created_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -270,7 +269,6 @@ async def test_classroom_event_instance_rescheduled_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -298,7 +296,6 @@ async def test_classroom_event_instance_cancelled_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -326,7 +323,6 @@ async def test_persisted_classroom_event_instance_reminder_v1_notification_adapt
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -354,7 +350,6 @@ async def test_repeated_classroom_event_instance_reminder_v1_notification_adapti
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "repetition_mode_id": [str(notification_payload.repetition_mode_id)],
             "instance_index": [str(notification_payload.instance_index)],
         },
@@ -383,7 +378,6 @@ async def test_repeating_classroom_event_created_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )
@@ -411,7 +405,6 @@ async def test_classroom_event_repetition_updated_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )
@@ -439,7 +432,6 @@ async def test_classroom_event_repetition_cancelled_v1_notification_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )

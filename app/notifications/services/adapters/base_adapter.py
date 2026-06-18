@@ -30,39 +30,36 @@ class BaseNotificationAdapter[T](ABC):
         )
         return f"{settings.frontend_app_base_url}{path}?{query_string}"
 
-    def build_student_persisted_classroom_event_instance_url(
+    def build_persisted_classroom_event_instance_url(
         self, payload: PersistedClassroomEventInstanceNotificationPayloadSchema
     ) -> str:
         return self.build_url(
             path=f"/classrooms/{payload.classroom_id}",
             params={
                 "tab": "schedule",
-                "role": "student",
                 "event_instance_id": payload.event_instance_id,
             },
         )
 
-    def build_student_repeated_classroom_event_instance_url(
+    def build_repeated_classroom_event_instance_url(
         self, payload: RepeatedClassroomEventInstanceNotificationPayloadSchema
     ) -> str:
         return self.build_url(
             path=f"/classrooms/{payload.classroom_id}",
             params={
                 "tab": "schedule",
-                "role": "student",
                 "repetition_mode_id": payload.repetition_mode_id,
                 "instance_index": payload.instance_index,
             },
         )
 
-    def build_student_classroom_schedule_focus_url(
+    def build_classroom_schedule_focus_url(
         self, payload: ClassroomScheduleFocusNotificationPayloadSchema
     ) -> str:
         return self.build_url(
             path=f"/classrooms/{payload.classroom_id}",
             params={
                 "tab": "schedule",
-                "role": "student",
                 "focused_at": payload.focused_at.isoformat(),
             },
         )
