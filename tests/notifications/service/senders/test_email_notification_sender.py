@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.common.schemas.pochta_sch import EmailMessageInputSchema
-from app.notifications.models.email_connections_db import EmailConnection
+from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.notifications_db import Notification
 from app.notifications.services.senders.email_notification_sender import (
     EmailNotificationSender,
@@ -26,7 +26,7 @@ async def test_email_notification_sending(
     active_session: ActiveSession,
     authorized_user_id: int,
     send_email_message_mock: AsyncMock,
-    email_connection: EmailConnection,
+    active_email_delivery_method: EmailDeliveryMethod,
     email_notification_sender: EmailNotificationSender,
 ) -> None:
     async with active_session():
@@ -37,12 +37,12 @@ async def test_email_notification_sending(
     send_email_message_mock.assert_awaited_once_with(
         EmailMessageInputSchema(
             payload=email_notification_sender.email_message_payload,
-            recipient_emails=[email_connection.email],
+            recipient_emails=[active_email_delivery_method.email],
         )
     )
 
 
-async def test_email_notification_sending_email_connection_not_found(
+async def test_email_notification_sending_email_delivery_method_not_found(
     active_session: ActiveSession,
     mock_stack: MockStack,
     authorized_user_id: int,
@@ -58,7 +58,7 @@ async def test_email_notification_sending_email_connection_not_found(
         )
 
     logging_error_mock.assert_called_once_with(
-        f"User {authorized_user_id} has no email connections",
+        f"User {authorized_user_id} has no email delivery methods",
         extra={
             "notification_id": notification.id,
             "recipient_user_id": authorized_user_id,

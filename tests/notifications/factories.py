@@ -4,11 +4,9 @@ from polyfactory import Use
 from pydantic import BaseModel
 
 from app.common.schemas import notifications_sch
-from app.notifications.models.email_connections_db import EmailConnection
-from app.notifications.models.telegram_connections_db import TelegramConnection
+from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.user_contacts_db import UserContact
-from app.notifications.routes.telegram_connections_mub import TelegramMessageSchema
-from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
+from tests.common.polyfactory_ext import BaseModelFactory
 
 
 class InvitationAcceptanceNotificationPayloadFactory(
@@ -102,24 +100,10 @@ class NotificationInputV2WithIdempotencyFactory(
     idempotency_expires_at = Use(BaseModelFactory.__faker__.future_datetime, tzinfo=UTC)
 
 
-class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):
-    __model__ = EmailConnection.InputSchema
-
-
-class TelegramConnectionInputMUBFactory(
-    BaseModelFactory[TelegramConnection.InputMUBSchema]
+class EmailDeliveryMethodInputFactory(
+    BaseModelFactory[EmailDeliveryMethod.InputSchema]
 ):
-    __model__ = TelegramConnection.InputMUBSchema
-
-
-class TelegramConnectionPatchMUBFactory(
-    BasePatchModelFactory[TelegramConnection.PatchMUBSchema]
-):
-    __model__ = TelegramConnection.PatchMUBSchema
-
-
-class TelegramMessageFactory(BaseModelFactory[TelegramMessageSchema]):
-    __model__ = TelegramMessageSchema
+    __model__ = EmailDeliveryMethod.InputSchema
 
 
 class UserContactInputFactory(BaseModelFactory[UserContact.InputSchema]):

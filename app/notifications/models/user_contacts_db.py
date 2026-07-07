@@ -28,15 +28,19 @@ class UserContact(Base):
     FullSchema = PublicSchema.extend(columns=[is_public])
 
     @classmethod
-    async def find_first_by_primary_key(
-        cls, user_id: int, kind: UserContactKind
-    ) -> Self | None:
-        return await cls.find_first_by_kwargs(user_id=user_id, kind=kind)
-
-    @classmethod
-    async def find_all_by_user(
-        cls, user_id: int, public_only: bool = False
+    async def find_all_by_user_id(
+        cls,
+        user_id: int,
+        public_only: bool = False,
     ) -> Sequence[Self]:
         if public_only:
             return await cls.find_all_by_kwargs(user_id=user_id, is_public=True)
         return await cls.find_all_by_kwargs(user_id=user_id)
+
+    @classmethod
+    async def find_first_by_primary_key(
+        cls,
+        user_id: int,
+        kind: UserContactKind,
+    ) -> Self | None:
+        return await cls.find_first_by_kwargs(user_id=user_id, kind=kind)

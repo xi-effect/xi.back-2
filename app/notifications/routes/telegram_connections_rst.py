@@ -1,14 +1,14 @@
 from aiogram.utils.deep_linking import create_deep_link
-from fastapi import Depends
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.notifications.config import telegram_app, telegram_deep_link_provider
-from app.notifications.dependencies.telegram_connections_dep import (
-    CurrentUserTelegramConnection,
-    check_telegram_connection_already_exists_for_current_user,
+from app.notifications.dependencies.delivery_methods_dep import (
+    DeliveryMethodResponses,
+    MissingTelegramDeliveryMethodDep,
 )
+from app.notifications.models.delivery_methods_db import TelegramDeliveryMethod
 from app.notifications.services import user_contacts_svc
 
 router = APIRouterExt(tags=["telegram connections"])
@@ -17,10 +17,13 @@ router = APIRouterExt(tags=["telegram connections"])
 @router.post(
     path="/users/current/telegram-connection-requests/",
     response_model=str,
-    summary="Generate a link for connecting telegram notifications for the current user",
-    dependencies=[Depends(check_telegram_connection_already_exists_for_current_user)],
+    summary="Use `POST /api/protected/notification-service/users/current/delivery-methods/telegram/connection-requests/` instead",
+    dependencies=[MissingTelegramDeliveryMethodDep],
+    deprecated=True,
 )
-async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str:
+async def generate_telegram_connection_link(
+    auth_data: AuthorizationData,
+) -> str:  # pragma: no cover
     return create_deep_link(
         username=telegram_app.bot_username,
         link_type="start",
@@ -33,12 +36,19 @@ async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str
 @router.delete(
     path="/users/current/telegram-connection/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Remove telegram connection for the current user",
+    responses=DeliveryMethodResponses.responses(),
+    summary="Use `DELETE /api/protected/notification-service/users/current/delivery-methods/{delivery_method_kind}/` instead",
+    deprecated=True,
 )
 async def remove_telegram_connection(
-    telegram_connection: CurrentUserTelegramConnection,
-) -> None:
-    await telegram_connection.delete()
+    auth_data: AuthorizationData,
+) -> None:  # pragma: no cover
+    delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
+        user_id=auth_data.user_id
+    )
+    if delivery_method is None:
+        raise DeliveryMethodResponses.DELIVERY_METHOD_NOT_FOUND
+    await delivery_method.delete()
     await user_contacts_svc.remove_personal_telegram_contact(
-        user_id=telegram_connection.user_id
+        user_id=delivery_method.peer_id
     )

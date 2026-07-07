@@ -83,7 +83,7 @@ async def confirm_email_change(token_payload: EmailChangeTokenPayload) -> None:
 
     user.email = token_payload.new_email
 
-    await notifications_bridge.create_or_update_email_connection(
+    await notifications_bridge.create_or_update_email_delivery_method(
         user_id=user.id,
         email=user.email,
     )

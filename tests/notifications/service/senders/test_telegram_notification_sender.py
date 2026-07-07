@@ -2,9 +2,6 @@ import pytest
 from aiogram.methods import SendMessage
 
 from app.notifications.models.notifications_db import Notification
-from app.notifications.models.telegram_connections_db import (
-    TelegramConnection,
-)
 from app.notifications.services.senders.telegram_notification_sender import (
     TelegramNotificationSender,
 )
@@ -21,12 +18,12 @@ async def telegram_notification_sender(
     return TelegramNotificationSender(notification=notification)
 
 
+@pytest.mark.usefixtures("active_telegram_delivery_method")
 async def test_telegram_notification_sending(
     active_session: ActiveSession,
     authorized_user_id: int,
     mocked_bot: MockedBot,
     tg_chat_id: int,
-    active_telegram_connection: TelegramConnection,
     telegram_notification_sender: TelegramNotificationSender,
 ) -> None:
     async with active_session():
@@ -54,11 +51,11 @@ async def test_telegram_notification_sending(
     mocked_bot.assert_no_more_api_calls()
 
 
-async def test_telegram_notification_sending_connection_is_not_active(
+@pytest.mark.usefixtures("inactive_telegram_delivery_method")
+async def test_telegram_notification_sending_delivery_method_is_not_active(
     active_session: ActiveSession,
     authorized_user_id: int,
     mocked_bot: MockedBot,
-    inactive_telegram_connection: TelegramConnection,
     telegram_notification_sender: TelegramNotificationSender,
 ) -> None:
     async with active_session():
@@ -69,7 +66,7 @@ async def test_telegram_notification_sending_connection_is_not_active(
     mocked_bot.assert_no_more_api_calls()
 
 
-async def test_telegram_notification_sending_telegram_connection_not_found(
+async def test_telegram_notification_sending_telegram_delivery_method_not_found(
     active_session: ActiveSession,
     authorized_user_id: int,
     mocked_bot: MockedBot,

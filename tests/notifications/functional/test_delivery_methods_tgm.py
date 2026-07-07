@@ -11,9 +11,9 @@ from pydantic_marshals.contains import assert_contains
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.notifications import texts
 from app.notifications.config import telegram_deep_link_provider
-from app.notifications.models.telegram_connections_db import (
-    TelegramConnection,
-    TelegramConnectionStatus,
+from app.notifications.models.delivery_methods_db import (
+    DeliveryMethodStatus,
+    TelegramDeliveryMethod,
 )
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
@@ -31,35 +31,35 @@ pytestmark = pytest.mark.anyio
 
 
 @pytest.mark.parametrize(
-    ("other_connection_status", "is_user_contact_removed", "expected_reply_text"),
+    ("other_delivery_method_status", "is_user_contact_removed", "expected_reply_text"),
     [
         pytest.param(
             None,
             False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
-            id="no_other_connections",
+            id="no_other_delivery_methods",
         ),
         pytest.param(
-            TelegramConnectionStatus.REPLACED,
+            DeliveryMethodStatus.REPLACED,
             False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
-            id="replaced_other_connection",
+            id="existing_replaces_delivery_method",
         ),
         pytest.param(
-            TelegramConnectionStatus.ACTIVE,
+            DeliveryMethodStatus.ACTIVE,
             True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
-            id="active_other_connection",
+            id="existing_active_delivery_method",
         ),
         pytest.param(
-            TelegramConnectionStatus.BLOCKED,
+            DeliveryMethodStatus.BLOCKED,
             True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
-            id="blocked_other_connection",
+            id="existing_blocked_delivery_method",
         ),
     ],
 )
-async def test_telegram_connection_creating(
+async def test_telegram_delivery_method_creating(
     faker: Faker,
     active_session: ActiveSession,
     mock_stack: MockStack,
@@ -69,17 +69,17 @@ async def test_telegram_connection_creating(
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
-    other_connection_status: TelegramConnectionStatus | None,
+    other_delivery_method_status: DeliveryMethodStatus | None,
     is_user_contact_removed: bool,
     expected_reply_text: str,
 ) -> None:
     other_user_id = id_provider.generate_id()
-    if other_connection_status is not None:
+    if other_delivery_method_status is not None:
         async with active_session():
-            other_telegram_connection = await TelegramConnection.create(
+            other_delivery_method = await TelegramDeliveryMethod.create(
                 user_id=other_user_id,
-                chat_id=tg_chat_id,
-                status=other_connection_status,
+                peer_id=tg_chat_id,
+                status=other_delivery_method_status,
             )
 
     signed_deep_link_content = telegram_deep_link_provider.create_signed_link_payload(
@@ -117,24 +117,24 @@ async def test_telegram_connection_creating(
         remove_personal_telegram_contact_mock.assert_not_called()
 
     async with active_session() as session:
-        telegram_connection = await TelegramConnection.find_first_by_id(
-            proxy_auth_data.user_id
+        delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
+            user_id=proxy_auth_data.user_id
         )
-        assert telegram_connection is not None
+        assert delivery_method is not None
         assert_contains(
-            telegram_connection,
+            delivery_method,
             {
-                "chat_id": tg_chat_id,
-                "status": TelegramConnectionStatus.ACTIVE,
+                "peer_id": tg_chat_id,
+                "status": DeliveryMethodStatus.ACTIVE,
             },
         )
-        await telegram_connection.delete()
+        await delivery_method.delete()
 
-        if other_connection_status is not None:
-            session.add(other_telegram_connection)
-            await session.refresh(other_telegram_connection)
-            assert other_telegram_connection.status is TelegramConnectionStatus.REPLACED
-            await other_telegram_connection.delete()
+        if other_delivery_method_status is not None:
+            session.add(other_delivery_method)
+            await session.refresh(other_delivery_method)
+            assert other_delivery_method.status is DeliveryMethodStatus.REPLACED
+            await other_delivery_method.delete()
 
     mocked_bot.assert_next_api_call(
         SendMessage,
@@ -162,7 +162,7 @@ async def test_telegram_connection_creating(
         ),
     ],
 )
-async def test_telegram_connection_creating_telegram_connection_already_exists(
+async def test_telegram_delivery_method_creating_delivery_method_already_exists(
     active_session: ActiveSession,
     id_provider: IDProvider,
     proxy_auth_data: ProxyAuthData,
@@ -174,10 +174,10 @@ async def test_telegram_connection_creating_telegram_connection_already_exists(
     expected_reply_text: str,
 ) -> None:
     async with active_session():
-        await TelegramConnection.create(
+        await TelegramDeliveryMethod.create(
             user_id=proxy_auth_data.user_id,
-            chat_id=tg_chat_id if has_same_chat_id else id_provider.generate_id(),
-            status=random.choice(list(TelegramConnectionStatus)),
+            peer_id=tg_chat_id if has_same_chat_id else id_provider.generate_id(),
+            status=random.choice(list(DeliveryMethodStatus)),
         )
 
     signed_deep_link_content = telegram_deep_link_provider.create_signed_link_payload(
@@ -195,7 +195,7 @@ async def test_telegram_connection_creating_telegram_connection_already_exists(
     )
 
     async with active_session():
-        await TelegramConnection.delete_by_kwargs(user_id=proxy_auth_data.user_id)
+        await TelegramDeliveryMethod.delete_by_kwargs(user_id=proxy_auth_data.user_id)
 
     mocked_bot.assert_next_api_call(
         SendMessage,
@@ -208,7 +208,7 @@ async def test_telegram_connection_creating_telegram_connection_already_exists(
     mocked_bot.assert_no_more_api_calls()
 
 
-async def test_telegram_connection_creating_invalid_token(
+async def test_telegram_delivery_method_creating_invalid_token(
     faker: Faker,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
@@ -238,7 +238,7 @@ async def test_telegram_connection_creating_invalid_token(
     mocked_bot.assert_no_more_api_calls()
 
 
-async def test_telegram_connection_blocking(
+async def test_telegram_delivery_method_blocking(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
@@ -248,10 +248,10 @@ async def test_telegram_connection_blocking(
     tg_user_id: int,
 ) -> None:
     async with active_session():
-        telegram_connection = await TelegramConnection.create(
+        delivery_method = await TelegramDeliveryMethod.create(
             user_id=proxy_auth_data.user_id,
-            chat_id=tg_chat_id,
-            status=TelegramConnectionStatus.ACTIVE,
+            peer_id=tg_chat_id,
+            status=DeliveryMethodStatus.ACTIVE,
         )
 
     notifications_bot_webhook_driver.feed_update(
@@ -273,26 +273,26 @@ async def test_telegram_connection_blocking(
     )
 
     async with active_session() as session:
-        session.add(telegram_connection)
-        await session.refresh(telegram_connection)
-        assert telegram_connection.status is TelegramConnectionStatus.BLOCKED
-        await telegram_connection.delete()
+        session.add(delivery_method)
+        await session.refresh(delivery_method)
+        assert delivery_method.status is DeliveryMethodStatus.BLOCKED
+        await delivery_method.delete()
 
     mocked_bot.assert_no_more_api_calls()
 
 
 @pytest.mark.parametrize(
-    "connection_status",
+    "delivery_method_status",
     [
-        pytest.param(None, id="no_connection"),
+        pytest.param(None, id="no_delivery_method"),
         *(
-            pytest.param(status, id=f"{status.value}_connection")
-            for status in TelegramConnectionStatus
-            if status is not TelegramConnectionStatus.ACTIVE
+            pytest.param(status, id=f"{status.value}_delivery_method")
+            for status in DeliveryMethodStatus
+            if status is not DeliveryMethodStatus.ACTIVE
         ),
     ],
 )
-async def test_telegram_connection_blocking_connection_is_not_active(
+async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
@@ -300,14 +300,14 @@ async def test_telegram_connection_blocking_connection_is_not_active(
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
-    connection_status: TelegramConnectionStatus | None,
+    delivery_method_status: DeliveryMethodStatus | None,
 ) -> None:
-    if connection_status is not None:
+    if delivery_method_status is not None:
         async with active_session():
-            await TelegramConnection.create(
+            await TelegramDeliveryMethod.create(
                 user_id=proxy_auth_data.user_id,
-                chat_id=tg_chat_id,
-                status=connection_status,
+                peer_id=tg_chat_id,
+                status=delivery_method_status,
             )
 
     notifications_bot_webhook_driver.feed_update(
@@ -329,20 +329,20 @@ async def test_telegram_connection_blocking_connection_is_not_active(
     )
 
     async with active_session():
-        telegram_connection = await TelegramConnection.find_first_by_id(
-            proxy_auth_data.user_id
+        delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
+            user_id=proxy_auth_data.user_id
         )
-        if connection_status is None:
-            assert telegram_connection is None
+        if delivery_method_status is None:
+            assert delivery_method is None
         else:
-            assert telegram_connection is not None
-            assert telegram_connection.status is connection_status
-            await telegram_connection.delete()
+            assert delivery_method is not None
+            assert delivery_method.status is delivery_method_status
+            await delivery_method.delete()
 
     mocked_bot.assert_no_more_api_calls()
 
 
-async def test_telegram_connection_unblocking(
+async def test_telegram_delivery_method_unblocking(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
@@ -352,10 +352,10 @@ async def test_telegram_connection_unblocking(
     tg_user_id: int,
 ) -> None:
     async with active_session():
-        telegram_connection = await TelegramConnection.create(
+        delivery_method = await TelegramDeliveryMethod.create(
             user_id=proxy_auth_data.user_id,
-            chat_id=tg_chat_id,
-            status=TelegramConnectionStatus.BLOCKED,
+            peer_id=tg_chat_id,
+            status=DeliveryMethodStatus.BLOCKED,
         )
 
     notifications_bot_webhook_driver.feed_update(
@@ -369,10 +369,10 @@ async def test_telegram_connection_unblocking(
     )
 
     async with active_session() as session:
-        session.add(telegram_connection)
-        await session.refresh(telegram_connection)
-        assert telegram_connection.status is TelegramConnectionStatus.ACTIVE
-        await telegram_connection.delete()
+        session.add(delivery_method)
+        await session.refresh(delivery_method)
+        assert delivery_method.status is DeliveryMethodStatus.ACTIVE
+        await delivery_method.delete()
 
     mocked_bot.assert_next_api_call(
         SendMessage,
@@ -386,13 +386,13 @@ async def test_telegram_connection_unblocking(
 
 
 @pytest.mark.parametrize(
-    "connection_status",
+    "delivery_method_status",
     [
-        pytest.param(None, id="no_connection"),
+        pytest.param(None, id="no_delivery_method"),
         *(
-            pytest.param(status, id=f"{status.value}_connection")
-            for status in TelegramConnectionStatus
-            if status is not TelegramConnectionStatus.BLOCKED
+            pytest.param(status, id=f"{status.value}_delivery_method")
+            for status in DeliveryMethodStatus
+            if status is not DeliveryMethodStatus.BLOCKED
         ),
     ],
 )
@@ -403,14 +403,14 @@ async def test_starting_without_deep_link(
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
-    connection_status: TelegramConnectionStatus | None,
+    delivery_method_status: DeliveryMethodStatus | None,
 ) -> None:
-    if connection_status is not None:
+    if delivery_method_status is not None:
         async with active_session():
-            await TelegramConnection.create(
+            await TelegramDeliveryMethod.create(
                 user_id=proxy_auth_data.user_id,
-                chat_id=tg_chat_id,
-                status=connection_status,
+                peer_id=tg_chat_id,
+                status=delivery_method_status,
             )
 
     notifications_bot_webhook_driver.feed_update(
@@ -424,15 +424,15 @@ async def test_starting_without_deep_link(
     )
 
     async with active_session():
-        telegram_connection = await TelegramConnection.find_first_by_id(
-            proxy_auth_data.user_id
+        delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
+            user_id=proxy_auth_data.user_id
         )
-        if connection_status is None:
-            assert telegram_connection is None
+        if delivery_method_status is None:
+            assert delivery_method is None
         else:
-            assert telegram_connection is not None
-            assert telegram_connection.status is connection_status
-            await telegram_connection.delete()
+            assert delivery_method is not None
+            assert delivery_method.status is delivery_method_status
+            await delivery_method.delete()
 
     mocked_bot.assert_next_api_call(
         SendMessage,

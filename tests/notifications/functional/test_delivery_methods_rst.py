@@ -7,8 +7,11 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.notifications.config import telegram_deep_link_provider
-from app.notifications.models.telegram_connections_db import TelegramConnection
+from app.notifications.models.delivery_methods_db import (
+    TelegramDeliveryMethod,
+)
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -28,7 +31,8 @@ async def test_telegram_connection_link_generation(
 ) -> None:
     telegram_connection_link: str = assert_response(
         authorized_client.post(
-            "/api/protected/notification-service/users/current/telegram-connection-requests/"
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.TELEGRAM}/connection-requests/"
         ),
         expected_json=str,
     ).json()
@@ -45,21 +49,22 @@ async def test_telegram_connection_link_generation(
     assert actual_decoded_user_id == proxy_auth_data.user_id
 
 
-@pytest.mark.usefixtures("telegram_connection")
-async def test_telegram_connection_link_generation_telegram_connection_already_exists(
+@pytest.mark.usefixtures("parametrized_telegram_delivery_method")
+async def test_telegram_connection_link_generation_delivery_method_already_exists(
     authorized_client: TestClient,
 ) -> None:
     assert_response(
         authorized_client.post(
-            "/api/protected/notification-service/users/current/telegram-connection-requests/"
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.TELEGRAM}/connection-requests/"
         ),
         expected_code=status.HTTP_409_CONFLICT,
-        expected_json={"detail": "Telegram connection already exists"},
+        expected_json={"detail": "Delivery method already exists"},
     )
 
 
-@pytest.mark.usefixtures("telegram_connection")
-async def test_telegram_connection_removing(
+@pytest.mark.usefixtures("parametrized_telegram_delivery_method")
+async def test_delivery_method_removing(
     active_session: ActiveSession,
     mock_stack: MockStack,
     proxy_auth_data: ProxyAuthData,
@@ -71,7 +76,8 @@ async def test_telegram_connection_removing(
 
     assert_nodata_response(
         authorized_client.delete(
-            "/api/protected/notification-service/users/current/telegram-connection/"
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.TELEGRAM}/"  # TODO parametrize for all kinds
         ),
     )
 
@@ -81,17 +87,20 @@ async def test_telegram_connection_removing(
 
     async with active_session():
         assert (
-            await TelegramConnection.find_first_by_id(proxy_auth_data.user_id)
+            await TelegramDeliveryMethod.find_first_by_user_id(
+                user_id=proxy_auth_data.user_id
+            )
         ) is None
 
 
-async def test_telegram_connection_removing_telegram_connection_not_found(
+async def test_delivery_method_removing_delivery_method_not_found(
     authorized_client: TestClient,
 ) -> None:
     assert_response(
         authorized_client.delete(
-            "/api/protected/notification-service/users/current/telegram-connection/"
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.TELEGRAM}/"  # TODO parametrize for all kinds
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
-        expected_json={"detail": "Telegram connection not found"},
+        expected_json={"detail": "Delivery method not found"},
     )

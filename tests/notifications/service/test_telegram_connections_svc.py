@@ -4,7 +4,6 @@ from aiogram.types import ChatMemberMember
 from faker import Faker
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.notifications.models.telegram_connections_db import TelegramConnection
 from app.notifications.services import telegram_connections_svc
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_factories import UserFactory
@@ -13,6 +12,7 @@ from tests.common.mock_stack import MockStack
 pytestmark = pytest.mark.anyio
 
 
+@pytest.mark.usefixtures("active_telegram_delivery_method")
 @pytest.mark.parametrize(
     "has_username_in_telegram",
     [
@@ -28,7 +28,6 @@ async def test_retrieving_telegram_username_by_user_id(
     bot_id: int,
     bot: Bot,
     tg_chat_id: int,
-    active_telegram_connection: TelegramConnection,
     has_username_in_telegram: bool,
 ) -> None:
     expected_new_username = faker.user_name() if has_username_in_telegram else None
@@ -54,11 +53,25 @@ async def test_retrieving_telegram_username_by_user_id(
     )
 
 
-async def test_retrieving_telegram_username_by_user_id_connection_is_not_active(
+@pytest.mark.usefixtures("inactive_telegram_delivery_method")
+async def test_retrieving_telegram_username_by_user_id_telegram_delivery_method_is_not_active(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
     tg_chat_id: int,
-    inactive_telegram_connection: TelegramConnection,
+) -> None:
+    async with active_session():
+        new_username = (
+            await telegram_connections_svc.retrieve_telegram_username_by_user_id(
+                user_id=proxy_auth_data.user_id
+            )
+        )
+        assert new_username is None
+
+
+async def test_retrieving_telegram_username_by_user_id_telegram_delivery_method_not_found(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    tg_chat_id: int,
 ) -> None:
     async with active_session():
         new_username = (
