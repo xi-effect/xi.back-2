@@ -11,9 +11,10 @@ from tests.subscriptions import factories
 async def promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
     async with active_session():
         return await Promocode.create(
-            **factories.LimitedPromocodeInputFactory.build_python(
-                code=faker.pystr(min_chars=10, max_chars=10),
-            )
+            **{
+                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
+            }
         )
 
 
@@ -26,9 +27,10 @@ async def promocode_data(promocode: Promocode) -> AnyJSON:
 async def other_promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
     async with active_session():
         return await Promocode.create(
-            **factories.LimitedPromocodeInputFactory.build_python(
-                code=faker.pystr(min_chars=9, max_chars=9),
-            )
+            **{
+                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
+            }
         )
 
 

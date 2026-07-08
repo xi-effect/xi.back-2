@@ -2,6 +2,7 @@ from typing import Any
 
 import pytest
 from freezegun import freeze_time
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -19,39 +20,43 @@ from tests.subscriptions import factories
 
 pytestmark = pytest.mark.anyio
 
-
-promocode_body_factory_parametrization = pytest.mark.parametrize(
-    "body_factory",
+promocode_validity_period_factory_parametrization = pytest.mark.parametrize(
+    "validity_period_factory",
     [
         pytest.param(
-            factories.LimitedPromocodeInputFactory,
-            id="limited_promocode",
+            factories.LimitedPromocodeValidityPeriodInputFactory,
+            id="limited_validity_period",
         ),
         pytest.param(
-            factories.UnlimitedPromocodeInputFactory,
-            id="unlimited_promocode",
+            factories.UnlimitedPromocodeValidityPeriodInputFactory,
+            id="unlimited_validity_period",
         ),
     ],
 )
 
 
-@promocode_body_factory_parametrization
+@promocode_validity_period_factory_parametrization
 @freeze_time()
 async def test_promocode_creation(
     active_session: ActiveSession,
     mub_client: TestClient,
-    body_factory: type[BaseModelFactory[Any]],
+    validity_period_factory: type[BaseModelFactory[Any]],
 ) -> None:
-    promocode_input_data: AnyJSON = body_factory.build_json()
+    promocode_input_data: AnyJSON = factories.PromocodeWithCodeInputFactory.build_json()
+    validity_period_data: AnyJSON = validity_period_factory.build_json()
 
     promocode_id: int = assert_response(
         mub_client.post(
             "/mub/subscription-service/promocodes/",
-            json=promocode_input_data,
+            json={
+                **promocode_input_data,
+                **validity_period_data,
+            },
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **promocode_input_data,
+            **validity_period_data,
             "id": int,
             "created_at": datetime_utc_now(),
             "updated_at": datetime_utc_now(),
@@ -64,13 +69,52 @@ async def test_promocode_creation(
         await promocode.delete()
 
 
+@promocode_validity_period_factory_parametrization
+@freeze_time()
+async def test_promocode_creation_with_generated_code(
+    active_session: ActiveSession,
+    mub_client: TestClient,
+    validity_period_factory: type[BaseModelFactory[Any]],
+) -> None:
+    promocode_input_data: AnyJSON = factories.PromocodeNoCodeInputFactory.build_json()
+    validity_period_data: AnyJSON = validity_period_factory.build_json()
+
+    promocode_data: AnyJSON = assert_response(
+        mub_client.post(
+            "/mub/subscription-service/promocodes/",
+            json={
+                **promocode_input_data,
+                **validity_period_data,
+            },
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            **promocode_input_data,
+            **validity_period_data,
+            "id": int,
+            "code": str,
+            "created_at": datetime_utc_now(),
+            "updated_at": datetime_utc_now(),
+        },
+    ).json()
+
+    async with active_session():
+        promocode = await Promocode.find_first_by_id(promocode_data["id"])
+        assert promocode is not None
+        assert_contains(promocode, {"code": promocode_data["code"]})
+        await promocode.delete()
+
+
 async def test_promocode_creation_invalid_period(
     mub_client: TestClient,
 ) -> None:
     assert_response(
         mub_client.post(
             "/mub/subscription-service/promocodes/",
-            json=factories.InvalidPeriodPromocodeInputFactory.build_json(),
+            json={
+                **factories.PromocodeWithCodeInputFactory.build_json(),
+                **factories.InvalidPromocodeValidityPeriodInputFactory.build_json(),
+            },
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
@@ -92,9 +136,11 @@ async def test_promocode_creation_promocode_already_exists(
     assert_response(
         mub_client.post(
             "/mub/subscription-service/promocodes/",
-            json=factories.LimitedPromocodeInputFactory.build_json(
-                code=other_promocode.code
-            ),
+            json={
+                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.LimitedPromocodeValidityPeriodInputFactory.build_json(),
+                "code": other_promocode.code,
+            },
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Promocode already exists"},
@@ -127,50 +173,29 @@ async def test_promocode_retrieving(
     )
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        pytest.param(
-            lfc(lambda deleted_promocode: f"by-id/{deleted_promocode.id}/"),
-            id="by_id",
-        ),
-        pytest.param(
-            lfc(lambda deleted_promocode: f"by-code/{deleted_promocode.code}/"),
-            id="by_code",
-        ),
-    ],
-)
-async def test_promocode_retrieving_promocode_not_found(
-    mub_client: TestClient,
-    path: str,
-) -> None:
-    assert_response(
-        mub_client.get(
-            f"/mub/subscription-service/promocodes/{path}",
-        ),
-        expected_code=status.HTTP_404_NOT_FOUND,
-        expected_json={"detail": "Promocode not found"},
-    )
-
-
-@promocode_body_factory_parametrization
+@promocode_validity_period_factory_parametrization
 @freeze_time()
 async def test_promocode_updating(
     mub_client: TestClient,
     promocode: Promocode,
     promocode_data: AnyJSON,
-    body_factory: type[BaseModelFactory[Any]],
+    validity_period_factory: type[BaseModelFactory[Any]],
 ) -> None:
-    promocode_put_data = body_factory.build_json()
+    promocode_put_data: AnyJSON = factories.PromocodeUpdateFactory.build_json()
+    validity_period_data: AnyJSON = validity_period_factory.build_json()
 
     assert_response(
         mub_client.put(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
-            json=promocode_put_data,
+            json={
+                **promocode_put_data,
+                **validity_period_data,
+            },
         ),
         expected_json={
             **promocode_data,
             **promocode_put_data,
+            **validity_period_data,
             "updated_at": datetime_utc_now(),
         },
     )
@@ -183,7 +208,10 @@ async def test_promocode_updating_invalid_period(
     assert_response(
         mub_client.put(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
-            json=factories.InvalidPeriodPromocodeInputFactory.build_json(),
+            json={
+                **factories.PromocodeUpdateFactory.build_json(),
+                **factories.InvalidPromocodeValidityPeriodInputFactory.build_json(),
+            },
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
@@ -206,9 +234,11 @@ async def test_promocode_updating_promocode_already_exists(
     assert_response(
         mub_client.put(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
-            json=factories.LimitedPromocodeInputFactory.build_json(
-                code=other_promocode.code
-            ),
+            json={
+                **factories.PromocodeUpdateFactory.build_json(),
+                **factories.LimitedPromocodeValidityPeriodInputFactory.build_json(),
+                "code": other_promocode.code,
+            },
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Promocode already exists"},
@@ -229,22 +259,44 @@ async def test_promocode_deleting(
 
 
 @pytest.mark.parametrize(
-    ("method", "body_factory"),
+    ("method", "path", "body_factory"),
     [
-        pytest.param("PUT", factories.LimitedPromocodeInputFactory, id="put"),
-        pytest.param("DELETE", None, id="delete"),
+        pytest.param(
+            "GET",
+            lfc(lambda deleted_promocode: f"by-id/{deleted_promocode.id}/"),
+            None,
+            id="retrieve_by_id",
+        ),
+        pytest.param(
+            "GET",
+            lfc(lambda deleted_promocode: f"by-code/{deleted_promocode.code}/"),
+            None,
+            id="retrieve_by_code",
+        ),
+        pytest.param(
+            "PUT",
+            lfc(lambda deleted_promocode: f"{deleted_promocode.id}/"),
+            factories.PromocodeNoCodeInputFactory,
+            id="put",
+        ),
+        pytest.param(
+            "DELETE",
+            lfc(lambda deleted_promocode: f"{deleted_promocode.id}/"),
+            None,
+            id="delete",
+        ),
     ],
 )
 async def test_promocode_not_finding(
     mub_client: TestClient,
-    deleted_promocode: Promocode,
     method: str,
+    path: str,
     body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         mub_client.request(
             method,
-            f"/mub/subscription-service/promocodes/{deleted_promocode.id}/",
+            f"/mub/subscription-service/promocodes/{path}",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,

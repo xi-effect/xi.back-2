@@ -7,7 +7,7 @@ from starlette.testclient import TestClient
 from app.subscriptions.models.promocodes_db import Promocode
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
-from tests.subscriptions.factories import LimitedPromocodeInputFactory
+from tests.subscriptions import factories
 
 pytestmark = pytest.mark.anyio
 
@@ -23,11 +23,9 @@ async def promocodes(
     async with active_session():
         promocodes: list[Promocode] = [
             await Promocode.create(
-                **LimitedPromocodeInputFactory.build_python(
-                    code=faker.pystr(min_chars=i + 1, max_chars=i + 1)
-                )
+                **factories.PromocodeNoCodeInputFactory.build_json(),
             )
-            for i in range(PROMOCODES_LIST_SIZE)
+            for _ in range(PROMOCODES_LIST_SIZE)
         ]
 
     promocodes.sort(
