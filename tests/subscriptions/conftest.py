@@ -1,5 +1,4 @@
 import pytest
-from faker import Faker
 
 from app.subscriptions.models.promocodes_db import Promocode
 from tests.common.active_session import ActiveSession
@@ -8,11 +7,11 @@ from tests.subscriptions import factories
 
 
 @pytest.fixture()
-async def promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
+async def promocode(active_session: ActiveSession) -> Promocode:
     async with active_session():
         return await Promocode.create(
             **{
-                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.PromocodeNoCodeInputFactory.build_python(),
                 **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
             }
         )
@@ -24,11 +23,11 @@ async def promocode_data(promocode: Promocode) -> AnyJSON:
 
 
 @pytest.fixture()
-async def other_promocode(active_session: ActiveSession, faker: Faker) -> Promocode:
+async def other_promocode(active_session: ActiveSession) -> Promocode:
     async with active_session():
         return await Promocode.create(
             **{
-                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.PromocodeNoCodeInputFactory.build_python(),
                 **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
             }
         )

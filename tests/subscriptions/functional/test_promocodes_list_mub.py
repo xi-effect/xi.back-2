@@ -1,7 +1,6 @@
 from collections.abc import AsyncIterator
 
 import pytest
-from faker import Faker
 from starlette.testclient import TestClient
 
 from app.subscriptions.models.promocodes_db import Promocode
@@ -17,13 +16,12 @@ MAX_CODE_CHAR = 10
 
 @pytest.fixture()
 async def promocodes(
-    faker: Faker,
     active_session: ActiveSession,
 ) -> AsyncIterator[list[Promocode]]:
     async with active_session():
         promocodes: list[Promocode] = [
             await Promocode.create(
-                **factories.PromocodeNoCodeInputFactory.build_json(),
+                **factories.PromocodeNoCodeInputFactory.build_python(),
             )
             for _ in range(PROMOCODES_LIST_SIZE)
         ]
