@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Query
-from pydantic import AfterValidator
+from pydantic import AfterValidator, BaseModel, Field
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -35,6 +35,41 @@ def validate_promocode_validity_period[T: Promocode.ValidityPeriodInputSchema](
     ) and data.valid_from >= data.valid_until:
         raise ValueError("the end date cannot be earlier than the start date")
     return data
+
+
+class PromocodeBatchGenerationRequestSchema(BaseModel):
+    validity_period: Annotated[
+        Promocode.ValidityPeriodInputSchema,
+        AfterValidator(validate_promocode_validity_period),
+    ]
+    title_template: Annotated[
+        str,
+        Field(
+            pattern=r"\{index\}",
+            examples=["Promocode #{index}"],
+            max_length=105,
+        ),
+    ]
+    batch_size: Annotated[int, Field(gt=0, le=100)]
+
+
+@router.post(
+    "/promocode-batch-generation-requests/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a batch of new promocodes with common settings",
+)
+async def generate_promocode_batch(
+    data: PromocodeBatchGenerationRequestSchema,
+) -> list[str]:
+    return [
+        (
+            await Promocode.create(
+                title=data.title_template.format(index=index),
+                **data.validity_period.model_dump(),
+            )
+        ).code
+        for index in range(data.batch_size)
+    ]
 
 
 class PromocodeConflictResponses(Responses):

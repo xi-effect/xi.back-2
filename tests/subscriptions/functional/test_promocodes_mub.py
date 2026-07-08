@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from faker import Faker
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lfc
@@ -9,6 +10,9 @@ from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.models.promocodes_db import Promocode
+from app.subscriptions.routes.promocodes_mub import (
+    PromocodeBatchGenerationRequestSchema,
+)
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import (
     assert_nodata_response,
@@ -33,6 +37,70 @@ promocode_validity_period_factory_parametrization = pytest.mark.parametrize(
         ),
     ],
 )
+
+
+@promocode_validity_period_factory_parametrization
+@freeze_time()
+async def test_promocode_batch_generation(
+    faker: Faker,
+    active_session: ActiveSession,
+    mub_client: TestClient,
+    validity_period_factory: type[BaseModelFactory[Any]],
+) -> None:
+    data: PromocodeBatchGenerationRequestSchema = (
+        factories.PromocodeBatchGenerationRequestFactory.build(
+            validity_period=validity_period_factory.build()
+        )
+    )
+
+    response_json: list[str] = assert_response(
+        mub_client.post(
+            "/mub/subscription-service/promocode-batch-generation-requests/",
+            json=data.model_dump(mode="json"),
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json=[str for _ in range(data.batch_size)],
+    ).json()
+
+    async with active_session():
+        for index, code in enumerate(response_json):
+            promocode = await Promocode.find_first_by_kwargs(code=code)
+            assert promocode is not None
+            assert_contains(
+                promocode,
+                {
+                    **data.validity_period.model_dump(),
+                    "id": int,
+                    "title": data.title_template.format(index=index),
+                    "created_at": datetime_utc_now(),
+                    "updated_at": datetime_utc_now(),
+                },
+            )
+            await promocode.delete()
+
+
+async def test_promocode_batch_generation_invalid_period(
+    mub_client: TestClient,
+) -> None:
+    assert_response(
+        mub_client.post(
+            "/mub/subscription-service/promocode-batch-generation-requests/",
+            json=factories.PromocodeBatchGenerationRequestFactory.build_json(
+                factory_use_construct=True,
+                validity_period=factories.InvalidPromocodeValidityPeriodInputFactory.build(),
+            ),
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "validity_period"],
+                    "msg": "Value error, the end date cannot be earlier than the start date",
+                }
+            ]
+        },
+    )
 
 
 @promocode_validity_period_factory_parametrization
