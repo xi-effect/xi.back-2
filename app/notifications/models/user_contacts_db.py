@@ -1,12 +1,13 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Self
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import Enum, String, Text
+from sqlalchemy import Enum, String, Text, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
 from app.common.schemas.user_contacts_sch import UserContactKind
+from app.common.sqlalchemy_ext import db
 
 
 class UserContact(Base):
@@ -26,6 +27,16 @@ class UserContact(Base):
     PublicSchema = MappedModel.create(columns=[kind, link, title])
     ResponseSchema = InputSchema.extend()
     FullSchema = PublicSchema.extend(columns=[is_public])
+
+    @classmethod
+    async def find_all_by_user_id_and_kinds(
+        cls,
+        user_id: int,
+        allowed_kinds: Iterable[UserContactKind],
+    ) -> Sequence[Self]:
+        return await db.get_all(
+            select(cls).filter_by(user_id=user_id).filter(cls.kind.in_(allowed_kinds))
+        )
 
     @classmethod
     async def find_all_by_user_id(

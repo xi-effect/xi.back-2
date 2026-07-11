@@ -23,7 +23,7 @@ router = APIRouterExt(tags=["telegram connections"])
 )
 async def generate_telegram_connection_link(
     auth_data: AuthorizationData,
-) -> str:  # pragma: no cover
+) -> str:
     return create_deep_link(
         username=telegram_app.bot_username,
         link_type="start",
@@ -42,7 +42,7 @@ async def generate_telegram_connection_link(
 )
 async def remove_telegram_connection(
     auth_data: AuthorizationData,
-) -> None:  # pragma: no cover
+) -> None:
     delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
         user_id=auth_data.user_id
     )

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from enum import StrEnum, auto
 from typing import Self
 
@@ -33,6 +34,10 @@ class DeliveryMethod(Base):
     }
 
     ResponseSchema = MappedModel.create(columns=[status])
+
+    @classmethod
+    async def find_all_by_user_id(cls, user_id: int) -> Sequence[Self]:
+        return await cls.find_all_by_kwargs(user_id=user_id)
 
     @classmethod
     async def find_first_by_primary_key(

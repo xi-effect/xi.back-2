@@ -39,12 +39,13 @@ class NotificationSettingsSchema(BaseModel):
 @router.get(
     path="/users/current/notification-settings/",
     response_model=NotificationSettingsSchema,
-    summary="Retrieve notification settings for the current user",
+    summary="Use `GET /api/protected/notification-service/users/current/delivery-methods/` instead",
     deprecated=True,
 )
 async def retrieve_notification_settings(
     auth_data: AuthorizationData,
 ) -> NotificationSettingsPreSchema:
+    # TODO delete after frontend switches
     delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
         auth_data.user_id
     )

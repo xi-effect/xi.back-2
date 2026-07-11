@@ -142,6 +142,30 @@ async def active_email_delivery_method(
         await delivery_method.delete()
 
 
+@pytest.fixture(
+    params=[
+        pytest.param(status, id=f"{status.value}_email")
+        for status in DeliveryMethodStatus
+    ]
+)
+async def parametrized_email_delivery_method(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    request: PytestRequest[DeliveryMethodStatus],
+) -> AsyncIterator[EmailDeliveryMethod]:
+    async with active_session():
+        delivery_method = await EmailDeliveryMethod.create(
+            user_id=proxy_auth_data.user_id,
+            status=request.param,
+            **factories.EmailDeliveryMethodInputFactory.build_python(),
+        )
+
+    yield delivery_method
+
+    async with active_session():
+        await delivery_method.delete()
+
+
 @pytest.fixture()
 async def active_telegram_delivery_method(
     active_session: ActiveSession,
@@ -163,7 +187,7 @@ async def active_telegram_delivery_method(
 
 @pytest.fixture(
     params=[
-        pytest.param(status, id=status.value)
+        pytest.param(status, id=f"{status.value}_telegram")
         for status in DeliveryMethodStatus
         if status is not DeliveryMethodStatus.ACTIVE
     ]
@@ -188,7 +212,10 @@ async def inactive_telegram_delivery_method(
 
 
 @pytest.fixture(
-    params=[pytest.param(status, id=status.value) for status in DeliveryMethodStatus]
+    params=[
+        pytest.param(status, id=f"{status.value}_telegram")
+        for status in DeliveryMethodStatus
+    ]
 )
 async def parametrized_telegram_delivery_method(
     active_session: ActiveSession,
@@ -234,6 +261,27 @@ async def user_contact(
         await UserContact.delete_by_kwargs(
             user_id=proxy_auth_data.user_id,
             kind=random_contact_kind,
+        )
+
+
+@pytest.fixture()
+async def personal_telegram_user_contact(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+) -> AsyncIterator[UserContact]:
+    async with active_session():
+        user_contact = await UserContact.create(
+            user_id=proxy_auth_data.user_id,
+            kind=UserContactKind.PERSONAL_TELEGRAM,
+            **factories.UserContactInputFactory.build_python(),
+        )
+
+    yield user_contact
+
+    async with active_session():
+        await UserContact.delete_by_kwargs(
+            user_id=proxy_auth_data.user_id,
+            kind=UserContactKind.PERSONAL_TELEGRAM,
         )
 
 
