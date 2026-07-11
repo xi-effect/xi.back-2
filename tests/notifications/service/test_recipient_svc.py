@@ -54,7 +54,7 @@ async def test_iter_recipient_user_ids_from_classroom_participant_filter(
     classroom_id: int,
     role: ClassroomRole | None,
 ) -> None:
-    recipient_user_ids = random.choices(list(range(100)), k=faker.random_int(2, 5))
+    recipient_user_ids = random.sample(list(range(100)), k=faker.random_int(2, 5))
 
     classroom_bridge_mock = classrooms_respx_mock.get(
         path=f"/classrooms/{classroom_id}/participant-ids/",
@@ -86,7 +86,7 @@ async def test_generate_recipient_user_ids_for_v2_notification(
     faker: Faker,
     mock_stack: MockStack,
 ) -> None:
-    recipient_user_ids = random.choices(list(range(100)), k=faker.random_int(2, 5))
+    recipient_user_ids = random.sample(list(range(100)), k=faker.random_int(2, 5))
 
     async def iter_recipient_user_ids(**_: Any) -> AsyncIterator[int]:
         for recipient_user_id in recipient_user_ids:

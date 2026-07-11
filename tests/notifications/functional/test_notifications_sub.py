@@ -95,7 +95,7 @@ async def test_notification_send(
     notification_data: NotificationInputV2Schema,
     existing_notification: Notification | None,
 ) -> None:
-    recipient_user_ids = random.choices(list(range(100)), k=faker.random_int(2, 5))
+    recipient_user_ids = random.sample(list(range(100)), k=faker.random_int(2, 5))
 
     generate_recipient_user_ids_for_notification_mock = mock_stack.enter_async_mock(
         recipients_svc,
