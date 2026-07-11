@@ -8,7 +8,6 @@ from aiogram.types import Chat, ChatMemberBanned, ChatMemberMember
 from faker import Faker
 from pydantic_marshals.contains import assert_contains
 
-from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.notifications import texts
 from app.notifications.config import telegram_deep_link_provider
 from app.notifications.models.delivery_methods_db import (
@@ -64,7 +63,7 @@ async def test_telegram_delivery_method_creating(
     active_session: ActiveSession,
     mock_stack: MockStack,
     id_provider: IDProvider,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     tg_chat_id: int,
@@ -83,7 +82,7 @@ async def test_telegram_delivery_method_creating(
             )
 
     signed_deep_link_content = telegram_deep_link_provider.create_signed_link_payload(
-        user_id=proxy_auth_data.user_id
+        user_id=authorized_user_id
     )
 
     # Specific cases for user_contacts_svc are tested in service/test_user_contacts_svc
@@ -106,7 +105,7 @@ async def test_telegram_delivery_method_creating(
     )
 
     sync_personal_telegram_contact_mock.assert_awaited_once_with(
-        user_id=proxy_auth_data.user_id,
+        user_id=authorized_user_id,
         new_username=new_username,
     )
     if is_user_contact_removed:
@@ -118,7 +117,7 @@ async def test_telegram_delivery_method_creating(
 
     async with active_session() as session:
         delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
-            user_id=proxy_auth_data.user_id
+            user_id=authorized_user_id
         )
         assert delivery_method is not None
         assert_contains(
@@ -165,7 +164,7 @@ async def test_telegram_delivery_method_creating(
 async def test_telegram_delivery_method_creating_delivery_method_already_exists(
     active_session: ActiveSession,
     id_provider: IDProvider,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     tg_chat_id: int,
@@ -175,13 +174,13 @@ async def test_telegram_delivery_method_creating_delivery_method_already_exists(
 ) -> None:
     async with active_session():
         await TelegramDeliveryMethod.create(
-            user_id=proxy_auth_data.user_id,
+            user_id=authorized_user_id,
             peer_id=tg_chat_id if has_same_chat_id else id_provider.generate_id(),
             status=random.choice(list(DeliveryMethodStatus)),
         )
 
     signed_deep_link_content = telegram_deep_link_provider.create_signed_link_payload(
-        user_id=proxy_auth_data.user_id
+        user_id=authorized_user_id
     )
 
     notifications_bot_webhook_driver.feed_update(
@@ -195,7 +194,7 @@ async def test_telegram_delivery_method_creating_delivery_method_already_exists(
     )
 
     async with active_session():
-        await TelegramDeliveryMethod.delete_by_kwargs(user_id=proxy_auth_data.user_id)
+        await TelegramDeliveryMethod.delete_by_kwargs(user_id=authorized_user_id)
 
     mocked_bot.assert_next_api_call(
         SendMessage,
@@ -240,7 +239,7 @@ async def test_telegram_delivery_method_creating_invalid_token(
 
 async def test_telegram_delivery_method_blocking(
     active_session: ActiveSession,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     bot_id: int,
     mocked_bot: MockedBot,
@@ -249,7 +248,7 @@ async def test_telegram_delivery_method_blocking(
 ) -> None:
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.create(
-            user_id=proxy_auth_data.user_id,
+            user_id=authorized_user_id,
             peer_id=tg_chat_id,
             status=DeliveryMethodStatus.ACTIVE,
         )
@@ -294,7 +293,7 @@ async def test_telegram_delivery_method_blocking(
 )
 async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
     active_session: ActiveSession,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     bot_id: int,
     mocked_bot: MockedBot,
@@ -305,7 +304,7 @@ async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
     if delivery_method_status is not None:
         async with active_session():
             await TelegramDeliveryMethod.create(
-                user_id=proxy_auth_data.user_id,
+                user_id=authorized_user_id,
                 peer_id=tg_chat_id,
                 status=delivery_method_status,
             )
@@ -330,7 +329,7 @@ async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
 
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
-            user_id=proxy_auth_data.user_id
+            user_id=authorized_user_id
         )
         if delivery_method_status is None:
             assert delivery_method is None
@@ -344,7 +343,7 @@ async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
 
 async def test_telegram_delivery_method_unblocking(
     active_session: ActiveSession,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     bot_id: int,
     mocked_bot: MockedBot,
@@ -353,7 +352,7 @@ async def test_telegram_delivery_method_unblocking(
 ) -> None:
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.create(
-            user_id=proxy_auth_data.user_id,
+            user_id=authorized_user_id,
             peer_id=tg_chat_id,
             status=DeliveryMethodStatus.BLOCKED,
         )
@@ -398,7 +397,7 @@ async def test_telegram_delivery_method_unblocking(
 )
 async def test_starting_without_deep_link(
     active_session: ActiveSession,
-    proxy_auth_data: ProxyAuthData,
+    authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     tg_chat_id: int,
@@ -408,7 +407,7 @@ async def test_starting_without_deep_link(
     if delivery_method_status is not None:
         async with active_session():
             await TelegramDeliveryMethod.create(
-                user_id=proxy_auth_data.user_id,
+                user_id=authorized_user_id,
                 peer_id=tg_chat_id,
                 status=delivery_method_status,
             )
@@ -425,7 +424,7 @@ async def test_starting_without_deep_link(
 
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
-            user_id=proxy_auth_data.user_id
+            user_id=authorized_user_id
         )
         if delivery_method_status is None:
             assert delivery_method is None

@@ -1,4 +1,5 @@
 from datetime import UTC
+from typing import Any
 
 from polyfactory import Use
 from pydantic import BaseModel
@@ -63,6 +64,27 @@ class CustomNotificationPayloadFactory(
     BaseModelFactory[notifications_sch.CustomNotificationPayloadSchema]
 ):
     __model__ = notifications_sch.CustomNotificationPayloadSchema
+
+
+NOTIFICATION_KIND_TO_PAYLOAD_FACTORY: dict[
+    notifications_sch.NotificationKind, type[BaseModelFactory[Any]]
+] = {
+    notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1: InvitationAcceptanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V1: InvitationAcceptanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.ENROLLMENT_CREATED_V1: EnrollmentNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1: ClassroomNotificationPayloadFactory,
+    notifications_sch.NotificationKind.RECIPIENT_INVOICE_CREATED_V1: RecipientInvoiceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1: RecipientInvoiceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: RepeatedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CUSTOM_V1: CustomNotificationPayloadFactory,
+}
 
 
 class NotificationSimpleInputSchema(BaseModel):

@@ -4,9 +4,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.schemas.notifications_sch import DeliveryMethodKind
-from app.notifications.models.delivery_methods_db import (
-    EmailDeliveryMethod,
-)
+from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response
 from tests.notifications import factories

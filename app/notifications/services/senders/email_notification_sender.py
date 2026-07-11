@@ -21,13 +21,14 @@ class EmailNotificationSender(BaseNotificationSender):
         ).adapt()
 
     async def send_notification(self, recipient_user_id: int) -> None:
-        delivery_method = await EmailDeliveryMethod.find_first_by_user_id(
-            user_id=recipient_user_id
+        delivery_method = await EmailDeliveryMethod.find_first_active_by_delivery_route(
+            user_id=recipient_user_id,
+            notification_category=self.notification_category,
         )
 
         if delivery_method is None:
             logging.error(
-                f"User {recipient_user_id} has no email delivery methods",
+                f"User {recipient_user_id} has no active email delivery methods",
                 extra={
                     "notification_id": self.notification.id,
                     "recipient_user_id": recipient_user_id,

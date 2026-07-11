@@ -9,6 +9,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.common.config import Base
 from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.common.sqlalchemy_ext import db
+from app.notifications.models.disabled_delivery_routes_db import (
+    DisabledDeliveryRoute,
+    NotificationCategory,
+)
 
 
 class DeliveryMethodStatus(StrEnum):
@@ -66,6 +70,32 @@ class DeliveryMethod(Base):
             .filter_by(user_id=user_id)
             .filter(cls.status.in_(allowed_statuses))
         )
+        return await db.get_first(stmt)
+
+    @classmethod
+    async def find_first_active_by_delivery_route(
+        cls,
+        user_id: int,
+        notification_category: NotificationCategory | None,
+    ) -> Self | None:
+        if cls is DeliveryMethod:
+            raise NotImplementedError
+
+        stmt = select(cls).filter_by(
+            user_id=user_id,
+            status=DeliveryMethodStatus.ACTIVE,
+        )
+        if notification_category is not None:
+            stmt = stmt.filter(
+                ~select(DisabledDeliveryRoute)
+                .filter(
+                    DisabledDeliveryRoute.delivery_method_kind == cls.kind,
+                    DisabledDeliveryRoute.user_id == cls.user_id,
+                    DisabledDeliveryRoute.notification_category
+                    == notification_category,
+                )
+                .exists()
+            )
         return await db.get_first(stmt)
 
 

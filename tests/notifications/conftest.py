@@ -11,6 +11,7 @@ from app.common.aiogram_ext import TelegramApp
 from app.common.config import TelegramBotSettings, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
+from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import telegram_app
 from app.notifications.models.delivery_methods_db import (
@@ -18,6 +19,7 @@ from app.notifications.models.delivery_methods_db import (
     EmailDeliveryMethod,
     TelegramDeliveryMethod,
 )
+from app.notifications.models.disabled_delivery_routes_db import NotificationCategory
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.models.user_contacts_db import UserContact
@@ -86,6 +88,12 @@ def initialized_telegram_app(
 
 
 @pytest.fixture()
+async def random_notification_category() -> NotificationCategory:
+    # mypy gets confused, the real type is NotificationCategory
+    return cast(NotificationCategory, random.choice(list(NotificationCategory)))
+
+
+@pytest.fixture()
 async def notification(active_session: ActiveSession) -> Notification:
     async with active_session():
         return await Notification.create(
@@ -125,6 +133,12 @@ async def deleted_recipient_notification_id(
 
 
 @pytest.fixture()
+async def random_delivery_method_kind() -> DeliveryMethodKind:
+    # mypy gets confused, the real type is DeliveryMethodKind
+    return cast(DeliveryMethodKind, random.choice(list(DeliveryMethodKind)))
+
+
+@pytest.fixture()
 async def active_email_delivery_method(
     active_session: ActiveSession,
     proxy_auth_data: ProxyAuthData,
@@ -133,6 +147,31 @@ async def active_email_delivery_method(
         delivery_method = await EmailDeliveryMethod.create(
             user_id=proxy_auth_data.user_id,
             status=DeliveryMethodStatus.ACTIVE,
+            **factories.EmailDeliveryMethodInputFactory.build_python(),
+        )
+
+    yield delivery_method
+
+    async with active_session():
+        await delivery_method.delete()
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(status, id=f"{status.value}_email")
+        for status in DeliveryMethodStatus
+        if status is not DeliveryMethodStatus.ACTIVE
+    ]
+)
+async def inactive_email_delivery_method(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    request: PytestRequest[DeliveryMethodStatus],
+) -> AsyncIterator[EmailDeliveryMethod]:
+    async with active_session():
+        delivery_method = await EmailDeliveryMethod.create(
+            user_id=proxy_auth_data.user_id,
+            status=request.param,
             **factories.EmailDeliveryMethodInputFactory.build_python(),
         )
 

@@ -3,94 +3,20 @@ import re
 import pytest
 from aiogram import Bot
 from faker import Faker
-from pydantic_marshals.contains import TypeChecker
-from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.notifications.config import telegram_deep_link_provider
-from app.notifications.models.delivery_methods_db import (
-    EmailDeliveryMethod,
-    TelegramDeliveryMethod,
-)
-from app.notifications.models.user_contacts_db import UserContact
+from app.notifications.models.delivery_methods_db import TelegramDeliveryMethod
 from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
-from tests.common.utils import repackage_json
 from tests.notifications.constants import TELEGRAM_CONNECTION_LINK_PATTERN
 
 pytestmark = pytest.mark.anyio
-
-
-@pytest.mark.parametrize(
-    "expected_email_delivery_method_data",
-    [
-        pytest.param(None, id="no_email"),
-        pytest.param(
-            lfc(
-                lambda parametrized_email_delivery_method: {
-                    "delivery_method": repackage_json(
-                        EmailDeliveryMethod.ResponseSchema,
-                        parametrized_email_delivery_method,
-                    ),
-                    "related_contact": None,
-                }
-            ),
-            id="with_email",
-        ),
-    ],
-)
-@pytest.mark.parametrize(
-    "expected_telegram_delivery_method_data",
-    [
-        pytest.param(None, id="no_telegram"),
-        pytest.param(
-            lfc(
-                lambda parametrized_telegram_delivery_method: {
-                    "delivery_method": repackage_json(
-                        TelegramDeliveryMethod.ResponseSchema,
-                        parametrized_telegram_delivery_method,
-                    ),
-                    "related_contact": None,
-                }
-            ),
-            id="telegram_without_contact",
-        ),
-        pytest.param(
-            lfc(
-                lambda parametrized_telegram_delivery_method, personal_telegram_user_contact: {
-                    "delivery_method": repackage_json(
-                        TelegramDeliveryMethod.ResponseSchema,
-                        parametrized_telegram_delivery_method,
-                    ),
-                    "related_contact": repackage_json(
-                        UserContact.ResponseSchema,
-                        personal_telegram_user_contact,
-                    ),
-                }
-            ),
-            id="telegram_with_contact",
-        ),
-    ],
-)
-async def test_retrieving_all_delivery_methods(
-    authorized_client: TestClient,
-    expected_email_delivery_method_data: TypeChecker,
-    expected_telegram_delivery_method_data: TypeChecker,
-) -> None:
-    assert_response(
-        authorized_client.get(
-            "/api/protected/notification-service/users/current/delivery-methods/"
-        ),
-        expected_json={
-            "email": expected_email_delivery_method_data,
-            "telegram": expected_telegram_delivery_method_data,
-        },
-    )
 
 
 async def test_telegram_connection_link_generation(

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from collections.abc import Sequence
 from typing import Literal
 
@@ -22,6 +23,10 @@ from app.notifications.models.delivery_methods_db import (
     EmailDeliveryMethod,
     TelegramDeliveryMethod,
 )
+from app.notifications.models.disabled_delivery_routes_db import (
+    DisabledDeliveryRoute,
+    NotificationCategory,
+)
 from app.notifications.models.user_contacts_db import UserContact
 from app.notifications.services import user_contacts_svc
 
@@ -37,6 +42,7 @@ class DeliveryMethodEnrichedPreSchema(BaseModel):
 
     delivery_method: DeliveryMethod
     related_contact: UserContact | None
+    enabled_notification_categories: set[NotificationCategory]
 
 
 class DeliveryMethodsResponsePreSchema(BaseModel):
@@ -49,6 +55,7 @@ class DeliveryMethodsResponsePreSchema(BaseModel):
 class DeliveryMethodEnrichedSchema[DeliveryMethodSchema: BaseModel](BaseModel):
     delivery_method: DeliveryMethodSchema
     related_contact: UserContact.ResponseSchema | None
+    enabled_notification_categories: list[NotificationCategory]
 
 
 class DeliveryMethodsResponseSchema(BaseModel):
@@ -66,6 +73,7 @@ class DeliveryMethodsSchemaAdapter:
         self,
         delivery_methods: Sequence[DeliveryMethod],
         user_contacts: Sequence[UserContact],
+        disabled_delivery_routes: Sequence[DisabledDeliveryRoute],
     ) -> None:
         self.delivery_methods_by_kind = {
             delivery_method.kind: delivery_method
@@ -75,6 +83,13 @@ class DeliveryMethodsSchemaAdapter:
             USER_CONTACT_KIND_TO_DELIVERY_METHOD_KIND[user_contact.kind]: user_contact
             for user_contact in user_contacts
         }
+        self.enabled_notification_categories_by_delivery_method_kind: dict[
+            DeliveryMethodKind, set[NotificationCategory]
+        ] = defaultdict(lambda: set(NotificationCategory))
+        for disabled_delivery_route in disabled_delivery_routes:
+            self.enabled_notification_categories_by_delivery_method_kind[
+                disabled_delivery_route.delivery_method_kind
+            ].remove(disabled_delivery_route.notification_category)
 
     def adapt_delivery_method(
         self,
@@ -87,6 +102,11 @@ class DeliveryMethodsSchemaAdapter:
             delivery_method=delivery_method,
             related_contact=self.user_contacts_by_delivery_method_kind.get(
                 delivery_method_kind
+            ),
+            enabled_notification_categories=(
+                self.enabled_notification_categories_by_delivery_method_kind[
+                    delivery_method_kind
+                ]
             ),
         )
 
@@ -112,6 +132,9 @@ async def retrieve_all_delivery_methods(
         user_contacts=await UserContact.find_all_by_user_id_and_kinds(
             user_id=auth_data.user_id,
             allowed_kinds=USER_CONTACT_KIND_TO_DELIVERY_METHOD_KIND.keys(),
+        ),
+        disabled_delivery_routes=await DisabledDeliveryRoute.find_all_by_user_id(
+            user_id=auth_data.user_id,
         ),
     )
     return adapter.adapt()
