@@ -62,11 +62,11 @@ async def lifespan(_: Any) -> AsyncIterator[None]:
     try:
         await telegram_app.maybe_initialize_from_config(
             bot_name="notifications bot",
-            bot_settings=settings.notifications_bot,
+            bot_settings=settings.telegram_notifications_bot,
             webhook_prefix=outside_router.prefix,
         )
     except Exception as e:  # pragma: no cover  # setup-level safety
-        logging.error("Notifications bot initialization failed", exc_info=e)
+        logging.error("Telegram notifications bot initialization failed", exc_info=e)
     yield
 
 

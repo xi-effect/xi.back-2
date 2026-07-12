@@ -15,7 +15,7 @@ async def test_feeding_updates_from_telegram_missing_configuration(
     client: TestClient,
     notifications_bot_webhook_url: str,
 ) -> None:
-    mock_stack.enter_patch(settings, "notifications_bot", new=None)
+    mock_stack.enter_patch(settings, "telegram_notifications_bot", new=None)
 
     assert_response(
         client.post(notifications_bot_webhook_url),

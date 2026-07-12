@@ -4,8 +4,8 @@ from starlette import status
 from app.common.config import settings
 from app.common.dependencies.telegram_auth_dep import (
     TelegramWebhookTokenHeader,
-    WebhookTokenResponses,
 )
+from app.common.dependencies.webhooks_dep import WebhookTokenResponses
 from app.common.fastapi_ext import APIRouterExt
 from app.supbot.config import telegram_app
 

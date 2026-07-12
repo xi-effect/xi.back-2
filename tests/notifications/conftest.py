@@ -54,11 +54,11 @@ def notifications_bot_settings(
     bot_token: str,
     notifications_bot_webhook_token: str,
 ) -> TelegramBotSettings:
-    settings.notifications_bot = TelegramBotSettings(
+    settings.telegram_notifications_bot = TelegramBotSettings(
         token=bot_token,
         webhook_token=notifications_bot_webhook_token,
     )
-    return settings.notifications_bot
+    return settings.telegram_notifications_bot
 
 
 @pytest.fixture(scope="session")
