@@ -53,8 +53,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - type: bind
-        source: ./alembic
-        target: /backend/alembic
+        source: ./migrations
+        target: /backend/migrations
       - type: bind
         source: ./alembic.ini
         target: /backend/alembic.ini

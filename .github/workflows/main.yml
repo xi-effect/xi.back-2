@@ -111,7 +111,7 @@ jobs:
         if: ${{ inputs.check_migrations }}
         run: |
           alembic revision --autogenerate -m 'test' --rev-id 0
-          lines=$(cat ./alembic/versions/0_test.py | wc -l)
+          lines=$(cat ./migrations/versions/0_test.py | wc -l)
           echo $lines
           if [ $lines -ne 30 ]; then
             exit 1

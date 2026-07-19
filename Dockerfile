@@ -7,7 +7,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-interaction --no-ansi --only main
 
 COPY ./alembic.ini /backend/alembic.ini
-COPY ./alembic /backend/alembic
+COPY migrations /backend/migrations
 COPY ./app /backend/app
 COPY ./static /backend/static
 
