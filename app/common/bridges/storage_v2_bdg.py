@@ -2,7 +2,7 @@ from httpx import Response
 from pydantic import BaseModel, TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
-from app.common.bridges.utils import validate_external_json_response
+from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
 
 
@@ -15,6 +15,9 @@ class YDocMetaSchema(BaseModel):
     id: str
 
 
+access_group_meta_type_adapter = TypeAdapter(AccessGroupMetaSchema)
+
+
 class StorageV2Bridge(BaseBridge):
     def __init__(self) -> None:
         super().__init__(
@@ -22,16 +25,27 @@ class StorageV2Bridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_external_json_response(TypeAdapter(AccessGroupMetaSchema))
-    async def create_access_group(self) -> Response:
-        return await self.client.post("/access-groups/")
-
-    @validate_external_json_response(TypeAdapter(AccessGroupMetaSchema))
-    async def duplicate_access_group(self, source_access_group_id: str) -> Response:
-        return await self.client.post(
-            f"/access-groups/{source_access_group_id}/duplicates/"
+    async def create_access_group(self) -> AccessGroupMetaSchema:
+        return (
+            await ResponsePipelineBuilder.initialize_from_request(
+                self.client.post("/access-groups/")
+            )
+            .validate_status_code()
+            .validate_json(access_group_meta_type_adapter)
         )
 
-    @validate_external_json_response()
+    async def duplicate_access_group(
+        self, source_access_group_id: str
+    ) -> AccessGroupMetaSchema:
+        return (
+            await ResponsePipelineBuilder.initialize_from_request(
+                self.client.post(f"/access-groups/{source_access_group_id}/duplicates/")
+            )
+            .validate_status_code()
+            .validate_json(access_group_meta_type_adapter)
+        )
+
     async def delete_access_group(self, access_group_id: str) -> Response:
-        return await self.client.delete(f"/access-groups/{access_group_id}/")
+        return await ResponsePipelineBuilder.initialize_from_request(
+            self.client.delete(f"/access-groups/{access_group_id}/")
+        ).validate_status_code()

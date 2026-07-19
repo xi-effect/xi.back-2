@@ -1,51 +1,55 @@
-from collections.abc import Awaitable, Callable
-from functools import wraps
-from typing import Any, Literal, overload
+from collections.abc import Awaitable
+from typing import Self
 
 import sentry_sdk
 from httpx import Response
 from pydantic import TypeAdapter
 
-
-def set_extra_from_external_response(response: Response) -> None:
-    sentry_sdk.set_extra("response", response)
-    sentry_sdk.set_extra("response_headers", response.headers)
-    sentry_sdk.set_extra("response_content", response.content[:1000])
-
-
-@overload
-def validate_external_json_response[**P, R](
-    type_adapter: TypeAdapter[R],
-) -> Callable[[Callable[P, Awaitable[Response]]], Callable[P, Awaitable[R]]]:
-    pass
+from app.common.generic_fluid_interface import (
+    PipelineBuilder,
+    Transformer,
+    Validator,
+)
 
 
-@overload
-def validate_external_json_response[**P](
-    type_adapter: Literal[None] = None,
-) -> Callable[[Callable[P, Awaitable[Response]]], Callable[P, Awaitable[Response]]]:
-    pass
+class SentryExtraSetter(Validator[Response]):
+    async def validate(self, data: Response) -> None:
+        sentry_sdk.set_extra("response", data)
+        sentry_sdk.set_extra("response_headers", data.headers)
+        sentry_sdk.set_extra("response_content", data.content[:1000])
 
 
-def validate_external_json_response[**P](
-    type_adapter: TypeAdapter[Any] | None = None,
-) -> Callable[[Callable[P, Awaitable[Response]]], Callable[P, Awaitable[Any]]]:
-    def validate_external_json_response_wrapper(
-        function: Callable[P, Awaitable[Response]],
-    ) -> Callable[P, Awaitable[Any]]:
-        @wraps(function)
-        async def validate_external_json_response_inner(
-            *args: P.args, **kwargs: P.kwargs
-        ) -> Any:
-            with sentry_sdk.new_scope():
-                response = await function(*args, **kwargs)
-                set_extra_from_external_response(response=response)
+class ResponseStatusValidator(Validator[Response]):
+    async def validate(self, data: Response) -> None:
+        data.raise_for_status()
 
-                response.raise_for_status()
-                if type_adapter is None:
-                    return response
-                return type_adapter.validate_python(response.json())
 
-        return validate_external_json_response_inner
+class JSONResponseParser[OutputType](Transformer[Response, OutputType]):
+    def __init__(self, type_adapter: TypeAdapter[OutputType]) -> None:
+        self.type_adapter = type_adapter
 
-    return validate_external_json_response_wrapper
+    async def transform(self, data: Response) -> OutputType:
+        return self.type_adapter.validate_json(data.content)
+
+
+class ResponsePipelineBuilder(PipelineBuilder[Response]):
+    def set_extra_for_sentry(self) -> Self:
+        return self.validate(SentryExtraSetter())
+
+    def validate_status_code(self) -> Self:
+        return self.validate(ResponseStatusValidator())
+
+    def validate_json[OutputType](
+        self, type_adapter: TypeAdapter[OutputType]
+    ) -> PipelineBuilder[OutputType]:
+        return self.transform(JSONResponseParser(type_adapter))
+
+    @classmethod
+    def initialize_from_request(cls, data: Awaitable[Response]) -> Self:
+        return (
+            PipelineBuilder.initialize(data)
+            .enter_context(sentry_sdk.new_scope())
+            .await_coroutine()
+            .swap_builder_type(cls)
+            .set_extra_for_sentry()
+        )
