@@ -7,6 +7,9 @@ from uuid import UUID, uuid4
 
 import pytest
 from faker import Faker
+from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ignore[import-untyped]
+    PilPdfGenerator,
+)
 from PIL import Image
 from pytest_lazy_fixtures import lf
 from starlette.responses import FileResponse
@@ -197,11 +200,33 @@ def png_image_file_input_data(
     )
 
 
+@pytest.fixture()
+def pdf_document_file_content(faker: Faker) -> bytes:
+    return faker.pdf_file(  # type: ignore[no-any-return]
+        pdf_generator_cls=PilPdfGenerator,
+        raw=True,
+    )
+
+
+@pytest.fixture()
+def pdf_document_file_input_data(
+    faker: Faker, pdf_document_file_content: bytes
+) -> FileInputData:
+    return FileInputData(
+        kind=FileKind.DOCUMENT,
+        name=faker.file_name(extension="pdf"),
+        input_content=pdf_document_file_content,
+        processed_content=pdf_document_file_content,
+        content_type="application/pdf",
+    )
+
+
 @pytest.fixture(
     params=[
         pytest.param(lf("uncategorized_file_input_data"), id="uncategorized"),
         pytest.param(lf("webp_image_file_input_data"), id="webp_image"),
         pytest.param(lf("png_image_file_input_data"), id="png_image"),
+        pytest.param(lf("pdf_document_file_input_data"), id="pdf_document"),
     ],
 )
 def parametrized_file_input_data(
