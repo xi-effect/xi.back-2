@@ -165,3 +165,4 @@ class NotificationInputV2Schema(BaseModel):
 class DeliveryMethodKind(StrEnum):
     EMAIL = auto()
     TELEGRAM = auto()
+    VK = auto()

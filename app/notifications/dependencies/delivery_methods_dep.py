@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 
 from fastapi import Depends, Path
 from fastapi.params import Depends as DependsType
@@ -19,10 +19,13 @@ class DeliveryMethodResponses(Responses):
     )
 
 
+EditableDeliveryMethodKind = Literal[DeliveryMethodKind.TELEGRAM, DeliveryMethodKind.VK]
+
+
 @with_responses(DeliveryMethodResponses)
-async def get_my_delivery_method_by_kind(
+async def get_my_editable_delivery_method_by_kind(
     auth_data: AuthorizationData,
-    delivery_method_kind: Annotated[DeliveryMethodKind, Path()],
+    delivery_method_kind: Annotated[EditableDeliveryMethodKind, Path()],
 ) -> DeliveryMethod:
     delivery_method = await DeliveryMethod.find_first_by_primary_key(
         user_id=auth_data.user_id,
@@ -33,8 +36,8 @@ async def get_my_delivery_method_by_kind(
     return delivery_method
 
 
-MyDeliveryMethodByKind = Annotated[
-    DeliveryMethod, Depends(get_my_delivery_method_by_kind)
+MyEditableDeliveryMethodByKind = Annotated[
+    DeliveryMethod, Depends(get_my_editable_delivery_method_by_kind)
 ]
 
 
