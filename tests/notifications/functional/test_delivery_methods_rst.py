@@ -7,9 +7,13 @@ from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.config import VKBotSettings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.notifications_sch import DeliveryMethodKind
-from app.notifications.config import telegram_deep_link_provider
+from app.notifications.config import (
+    telegram_deep_link_provider,
+    vk_connection_key_provider,
+)
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethod,
     TelegramDeliveryMethod,
@@ -59,6 +63,44 @@ async def test_telegram_connection_link_generation_delivery_method_already_exist
         authorized_client.post(
             "/api/protected/notification-service/users/current"
             f"/delivery-methods/{DeliveryMethodKind.TELEGRAM}/connection-requests/"
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Delivery method already exists"},
+    )
+
+
+async def test_vk_connection_data_generation(
+    proxy_auth_data: ProxyAuthData,
+    authorized_client: TestClient,
+    vk_notifications_bot_settings: VKBotSettings,
+) -> None:
+    vk_connection_key: str = assert_response(
+        authorized_client.post(
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.VK}/connection-requests/"
+        ),
+        expected_json={
+            "group_id": vk_notifications_bot_settings.group_id,
+            "key": str,
+        },
+    ).json()["key"]
+
+    assert (
+        vk_connection_key_provider.verify_and_decode_signed_link_payload(
+            vk_connection_key
+        )
+        == proxy_auth_data.user_id
+    )
+
+
+@pytest.mark.usefixtures("parametrized_vk_delivery_method")
+async def test_vk_connection_data_generation_delivery_method_already_exists(
+    authorized_client: TestClient,
+) -> None:
+    assert_response(
+        authorized_client.post(
+            "/api/protected/notification-service/users/current"
+            f"/delivery-methods/{DeliveryMethodKind.VK}/connection-requests/"
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Delivery method already exists"},

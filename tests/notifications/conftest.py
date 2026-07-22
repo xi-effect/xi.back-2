@@ -5,15 +5,16 @@ from uuid import UUID
 
 import pytest
 from faker import Faker
+from respx import MockRouter, Route
 from starlette.testclient import TestClient
 
 from app.common.aiogram_ext import TelegramApp
-from app.common.config import TelegramBotSettings, settings
+from app.common.config import TelegramBotSettings, VKBotSettings, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.dependencies.telegram_auth_dep import TELEGRAM_WEBHOOK_TOKEN_HEADER_NAME
 from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.common.schemas.user_contacts_sch import UserContactKind
-from app.notifications.config import telegram_app
+from app.notifications.config import telegram_app, vk_app
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     EmailDeliveryMethod,
@@ -24,6 +25,8 @@ from app.notifications.models.disabled_delivery_routes_db import NotificationCat
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.models.user_contacts_db import UserContact
+from app.notifications.utils.vk_app import VKApp
+from app.notifications.utils.vk_client import VKClient
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_testing import (
     TelegramAppInitializer,
@@ -89,9 +92,66 @@ def initialized_telegram_app(
     )
 
 
+@pytest.fixture(scope="session")
+def vk_notifications_bot_webhook_url() -> str:
+    return "/api/public/notification-service/vk-updates/"
+
+
+@pytest.fixture(scope="session")
+def vk_notifications_bot_confirmation_code(faker: Faker) -> str:
+    return faker.password(length=20, special_chars=False)
+
+
+@pytest.fixture(scope="session")
+def vk_notifications_bot_webhook_secret_key(faker: Faker) -> str:
+    return faker.password(length=20, special_chars=False)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def vk_notifications_bot_settings(
+    faker: Faker,
+    vk_notifications_bot_confirmation_code: str,
+    vk_notifications_bot_webhook_secret_key: str,
+) -> VKBotSettings:
+    settings.vk_notifications_bot = VKBotSettings(
+        api_token=faker.password(length=20, special_chars=False),
+        confirmation_code=vk_notifications_bot_confirmation_code,
+        webhook_secret_key=vk_notifications_bot_webhook_secret_key,
+        group_id=faker.random_int(),
+    )
+    return settings.vk_notifications_bot
+
+
+@pytest.fixture(autouse=True, scope="session")
+async def initialized_vk_app(
+    vk_notifications_bot_settings: VKBotSettings,
+) -> AsyncIterator[VKApp]:
+    async with VKClient(
+        base_url=settings.vk_server_base_url,
+        api_token=vk_notifications_bot_settings.api_token,
+        group_id=vk_notifications_bot_settings.group_id,
+    ) as vk_client:
+        await vk_app.initialize(client=vk_client)
+        yield vk_app
+
+
 @pytest.fixture()
 def vk_peer_id(id_provider: IDProvider) -> int:
     return id_provider.generate_id()
+
+
+@pytest.fixture()
+def vk_send_message_mock(vk_peer_id: int, vk_respx_mock: MockRouter) -> Route:
+    return vk_respx_mock.post(path="/messages.send").respond(
+        json={
+            "response": [
+                factories.MessageSendResponseItemFactory.build_json(
+                    peer_id=vk_peer_id,
+                    error=None,
+                )
+            ]
+        }
+    )
 
 
 @pytest.fixture()

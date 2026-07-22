@@ -12,9 +12,12 @@ from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import (
     telegram_app,
     telegram_deep_link_provider,
+    vk_app,
+    vk_connection_key_provider,
 )
 from app.notifications.dependencies.delivery_methods_dep import (
     MissingTelegramDeliveryMethodDep,
+    MissingVKDeliveryMethodDep,
     MyEditableDeliveryMethodByKind,
 )
 from app.notifications.models.delivery_methods_db import (
@@ -154,6 +157,27 @@ async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str
         username=telegram_app.bot_username,
         link_type="start",
         payload=telegram_deep_link_provider.create_signed_link_payload(
+            user_id=auth_data.user_id,
+        ),
+    )
+
+
+class VKConnectionStartResponseSchema(BaseModel):
+    group_id: int
+    key: str
+
+
+@router.post(
+    path=f"/users/current/delivery-methods/{DeliveryMethodKind.VK}/connection-requests/",
+    dependencies=[MissingVKDeliveryMethodDep],
+    summary="Generate data for connecting vk notifications for the current user",
+)
+async def generate_vk_connection_data(
+    auth_data: AuthorizationData,
+) -> VKConnectionStartResponseSchema:
+    return VKConnectionStartResponseSchema(
+        group_id=vk_app.client.group_id,
+        key=vk_connection_key_provider.create_signed_link_payload(
             user_id=auth_data.user_id,
         ),
     )

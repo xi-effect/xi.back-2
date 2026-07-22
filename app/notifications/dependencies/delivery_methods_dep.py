@@ -66,3 +66,6 @@ def build_delivery_method_is_missing_dependency(
 MissingTelegramDeliveryMethodDep = build_delivery_method_is_missing_dependency(
     DeliveryMethodKind.TELEGRAM
 )
+MissingVKDeliveryMethodDep = build_delivery_method_is_missing_dependency(
+    DeliveryMethodKind.VK
+)
