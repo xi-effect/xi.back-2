@@ -48,13 +48,13 @@ async def test_regular_telegram_notification_sending(
         SendMessage,
         {
             "chat_id": active_telegram_delivery_method.peer_id,
-            "text": telegram_notification_sender.telegram_message_payload.message_text,
+            "text": telegram_notification_sender.message_payload.message_text,
             "reply_markup": {
                 "inline_keyboard": [
                     [
                         {
-                            "text": telegram_notification_sender.telegram_message_payload.button_text,
-                            "url": telegram_notification_sender.telegram_message_payload.button_link,
+                            "text": telegram_notification_sender.message_payload.button_text,
+                            "url": telegram_notification_sender.message_payload.button_link,
                         }
                     ]
                 ]
@@ -128,13 +128,13 @@ async def test_system_telegram_notification_sending(
         SendMessage,
         {
             "chat_id": active_telegram_delivery_method.peer_id,
-            "text": telegram_notification_sender.telegram_message_payload.message_text,
+            "text": telegram_notification_sender.message_payload.message_text,
             "reply_markup": {
                 "inline_keyboard": [
                     [
                         {
-                            "text": telegram_notification_sender.telegram_message_payload.button_text,
-                            "url": telegram_notification_sender.telegram_message_payload.button_link,
+                            "text": telegram_notification_sender.message_payload.button_text,
+                            "url": telegram_notification_sender.message_payload.button_link,
                         }
                     ]
                 ]

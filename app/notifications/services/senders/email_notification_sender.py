@@ -2,8 +2,8 @@ from app.common.config_bdg import pochta_bridge
 from app.common.schemas.pochta_sch import EmailMessageInputSchema
 from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.notifications_db import Notification
-from app.notifications.services.adapters.email_message_adapter import (
-    NotificationToEmailMessageAdapter,
+from app.notifications.services.adapters.email_notification_adapter import (
+    EmailNotificationAdapter,
 )
 from app.notifications.services.senders.base_notification_sender import (
     BaseNotificationSender,
@@ -15,7 +15,7 @@ class EmailNotificationSender(BaseNotificationSender):
     def __init__(self, notification: Notification) -> None:
         super().__init__(notification=notification)
 
-        self.email_message_payload = NotificationToEmailMessageAdapter(
+        self.email_message_payload = EmailNotificationAdapter(
             notification=self.notification
         ).adapt()
 
