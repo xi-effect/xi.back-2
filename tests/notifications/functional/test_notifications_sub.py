@@ -28,6 +28,9 @@ from app.notifications.services.senders.platform_notification_sender import (
 from app.notifications.services.senders.telegram_notification_sender import (
     TelegramNotificationSender,
 )
+from app.notifications.services.senders.vk_notification_sender import (
+    VKNotificationSender,
+)
 from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
 from tests.common.tmexio_testing import TMEXIOListenerFactory
@@ -117,6 +120,9 @@ async def test_notification_send(
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
         TelegramNotificationSender, "send_notification"
     )
+    vk_notification_sender_mock = mock_stack.enter_async_mock(
+        VKNotificationSender, "send_notification"
+    )
 
     send_notification.mock.reset_mock()
 
@@ -149,6 +155,7 @@ async def test_notification_send(
     ]
     email_notification_sender_mock.assert_has_calls(sender_calls, any_order=True)
     telegram_notification_sender_mock.assert_has_calls(sender_calls, any_order=True)
+    vk_notification_sender_mock.assert_has_calls(sender_calls, any_order=True)
 
     send_notification.mock.assert_called_once_with(
         notification_data.model_dump(mode="json")
@@ -231,6 +238,9 @@ async def test_notification_send_no_recipients_found(
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
         TelegramNotificationSender, "send_notification"
     )
+    vk_notification_sender_mock = mock_stack.enter_async_mock(
+        VKNotificationSender, "send_notification"
+    )
 
     send_notification.mock.reset_mock()
 
@@ -243,6 +253,7 @@ async def test_notification_send_no_recipients_found(
     platform_notification_sender_mock.assert_not_called()
     email_notification_sender_mock.assert_not_called()
     telegram_notification_sender_mock.assert_not_called()
+    vk_notification_sender_mock.assert_not_called()
 
     generate_recipient_user_ids_for_notification_mock.assert_awaited_once_with(
         notification_data=notification_data,
@@ -298,6 +309,9 @@ async def test_notification_send_idempotency_violated(
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
         TelegramNotificationSender, "send_notification"
     )
+    vk_notification_sender_mock = mock_stack.enter_async_mock(
+        VKNotificationSender, "send_notification"
+    )
 
     send_notification.mock.reset_mock()
 
@@ -310,6 +324,7 @@ async def test_notification_send_idempotency_violated(
     platform_notification_sender_mock.assert_not_called()
     email_notification_sender_mock.assert_not_called()
     telegram_notification_sender_mock.assert_not_called()
+    vk_notification_sender_mock.assert_not_called()
 
     generate_recipient_user_ids_for_notification_mock.assert_not_called()
 

@@ -14,7 +14,6 @@ from app.notifications.schemas.vk.vk_base_sch import (
 )
 from app.notifications.schemas.vk.vk_messages_sch import (
     MessageSendInputSchema,
-    MessageSendResponseItemSchema,
     send_message_response_type_adapter,
 )
 
@@ -69,7 +68,7 @@ class VKClient(AsyncClient):
     async def send_message(
         self,
         data: MessageSendInputSchema,
-    ) -> list[MessageSendResponseItemSchema]:
+    ) -> int:
         return (
             await VKResponsePipelineBuilder.initialize_from_request(
                 self.post(

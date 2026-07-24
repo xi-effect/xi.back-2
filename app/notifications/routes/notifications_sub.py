@@ -15,6 +15,7 @@ from app.notifications.services.senders import (
     email_notification_sender,
     platform_notification_sender,
     telegram_notification_sender,
+    vk_notification_sender,
 )
 
 router = RedisRouter()
@@ -71,6 +72,9 @@ async def send_notification(
             notification=notification
         ).generate_tasks(recipient_user_ids=recipient_user_ids),
         *telegram_notification_sender.TelegramNotificationSender(
+            notification=notification,
+        ).generate_tasks(recipient_user_ids=recipient_user_ids),
+        *vk_notification_sender.VKNotificationSender(
             notification=notification,
         ).generate_tasks(recipient_user_ids=recipient_user_ids),
         return_exceptions=True,

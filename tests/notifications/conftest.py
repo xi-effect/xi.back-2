@@ -141,16 +141,9 @@ def vk_peer_id(id_provider: IDProvider) -> int:
 
 
 @pytest.fixture()
-def vk_send_message_mock(vk_peer_id: int, vk_respx_mock: MockRouter) -> Route:
+def vk_send_message_mock(faker: Faker, vk_respx_mock: MockRouter) -> Route:
     return vk_respx_mock.post(path="/messages.send").respond(
-        json={
-            "response": [
-                factories.MessageSendResponseItemFactory.build_json(
-                    peer_id=vk_peer_id,
-                    error=None,
-                )
-            ]
-        }
+        json={"response": faker.random_int()}
     )
 
 
@@ -356,6 +349,35 @@ async def active_vk_delivery_method(
             user_id=proxy_auth_data.user_id,
             peer_id=vk_peer_id,
             status=DeliveryMethodStatus.ACTIVE,
+        )
+
+    yield delivery_method
+
+    async with active_session():
+        await VKDeliveryMethod.delete_by_kwargs(
+            user_id=proxy_auth_data.user_id,
+            kind=DeliveryMethodKind.VK,
+        )
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(status, id=f"{status.value}_vk")
+        for status in DeliveryMethodStatus
+        if status is not DeliveryMethodStatus.ACTIVE
+    ]
+)
+async def inactive_vk_delivery_method(
+    active_session: ActiveSession,
+    proxy_auth_data: ProxyAuthData,
+    vk_peer_id: int,
+    request: PytestRequest[DeliveryMethodStatus],
+) -> AsyncIterator[VKDeliveryMethod]:
+    async with active_session():
+        delivery_method = await VKDeliveryMethod.create(
+            user_id=proxy_auth_data.user_id,
+            peer_id=vk_peer_id,
+            status=request.param,
         )
 
     yield delivery_method

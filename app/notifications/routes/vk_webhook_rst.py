@@ -12,10 +12,7 @@ from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     VKDeliveryMethod,
 )
-from app.notifications.schemas.vk.vk_messages_sch import (
-    MessageSendInputSchema,
-    MessageSendResponseItemSchema,
-)
+from app.notifications.schemas.vk.vk_messages_sch import MessageSendInputSchema
 from app.notifications.schemas.vk.vk_updates_sch import (
     AllowMessagesUpdateSchema,
     ConfirmationUpdateSchema,
@@ -27,65 +24,17 @@ from app.notifications.utils.deep_links import DeepLinkException
 router = APIRouterExt()
 
 
-class SendMessageException(Exception):
-    pass
-
-
-class UnexpectedMessageCountException(SendMessageException):
-    def __init__(self, messages: list[MessageSendResponseItemSchema]) -> None:
-        self.messages = messages
-
-
-class MessageDeliveryFailedException(SendMessageException):
-    def __init__(self, message: MessageSendResponseItemSchema) -> None:
-        self.message = message
-
-
-class MessageReceiverMismatchException(SendMessageException):
-    def __init__(
-        self,
-        message: MessageSendResponseItemSchema,
-        expected_peer_id: int,
-    ) -> None:
-        self.message = message
-        self.expected_peer_id = expected_peer_id
-
-
-async def reply_with_text(peer_id: int, text: str) -> MessageSendResponseItemSchema:
-    messages = await vk_app.client.send_message(
-        data=MessageSendInputSchema(
-            peer_ids=[peer_id],
-            message=text,
-        )
-    )
-
-    if len(messages) != 1:
-        raise UnexpectedMessageCountException(messages=messages)
-
-    message = messages[0]
-
-    if message.error is not None:
-        # TODO: `message.error.code == 901` means the bot is blocked
-        raise MessageDeliveryFailedException(message=message)
-
-    if message.peer_id != peer_id:
-        raise MessageReceiverMismatchException(
-            message=message,
-            expected_peer_id=peer_id,
-        )
-
-    return message
-
-
 async def reactivate_existing_delivery_method(
     delivery_method: VKDeliveryMethod,
 ) -> None:
     if delivery_method.status is DeliveryMethodStatus.BLOCKED:
         delivery_method.status = DeliveryMethodStatus.ACTIVE
         # TODO update vk contact for `user_id`
-        await reply_with_text(
-            peer_id=delivery_method.peer_id,
-            text=texts.NOTIFICATIONS_RECONNECTED_MESSAGE,
+        await vk_app.client.send_message(
+            data=MessageSendInputSchema(
+                peer_id=delivery_method.peer_id,
+                message=texts.NOTIFICATIONS_RECONNECTED_MESSAGE,
+            ),
         )
 
 
@@ -98,9 +47,11 @@ async def handle_unbanning(peer_id: int) -> None:
         ],
     )
     if current_delivery_method is None:
-        await reply_with_text(
-            peer_id=peer_id,
-            text=texts.START_WITHOUT_DEEP_LINK_MESSAGE,
+        await vk_app.client.send_message(
+            data=MessageSendInputSchema(
+                peer_id=peer_id,
+                message=texts.START_WITHOUT_DEEP_LINK_MESSAGE,
+            )
         )
         return
 
@@ -119,7 +70,12 @@ async def handle_allow_messages(update: AllowMessagesUpdateSchema) -> None:
             link_payload=update.object.key
         )
     except DeepLinkException:
-        await reply_with_text(peer_id=peer_id, text=texts.INVALID_TOKEN_MESSAGE)
+        await vk_app.client.send_message(
+            data=MessageSendInputSchema(
+                peer_id=peer_id,
+                message=texts.INVALID_TOKEN_MESSAGE,
+            )
+        )
         return
 
     current_delivery_method = await VKDeliveryMethod.find_first_by_user_id(
@@ -128,9 +84,11 @@ async def handle_allow_messages(update: AllowMessagesUpdateSchema) -> None:
 
     if current_delivery_method is not None:
         if current_delivery_method.peer_id != peer_id:
-            await reply_with_text(
-                peer_id=peer_id,
-                text=texts.TOKEN_ALREADY_USED_MESSAGE,
+            await vk_app.client.send_message(
+                data=MessageSendInputSchema(
+                    peer_id=peer_id,
+                    message=texts.TOKEN_ALREADY_USED_MESSAGE,
+                )
             )
             return
 
@@ -161,13 +119,15 @@ async def handle_allow_messages(update: AllowMessagesUpdateSchema) -> None:
     )
     # TODO update vk contact for `user_id`
 
-    await reply_with_text(
-        peer_id=peer_id,
-        text=(
-            texts.NOTIFICATIONS_REPLACES_MESSAGE
-            if is_replacing_another_connection
-            else texts.NOTIFICATIONS_CONNECTED_MESSAGE
-        ),
+    await vk_app.client.send_message(
+        data=MessageSendInputSchema(
+            peer_id=peer_id,
+            message=(
+                texts.NOTIFICATIONS_REPLACES_MESSAGE
+                if is_replacing_another_connection
+                else texts.NOTIFICATIONS_CONNECTED_MESSAGE
+            ),
+        )
     )
 
 

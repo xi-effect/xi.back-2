@@ -33,7 +33,7 @@ async def test_message_sending_error_response(
     with pytest.raises(VKResponseWithErrorException) as exc_info:
         await vk_app.client.send_message(
             data=MessageSendInputSchema(
-                peer_ids=[vk_peer_id],
+                peer_id=vk_peer_id,
                 message=message_text,
             )
         )
@@ -46,7 +46,7 @@ async def test_message_sending_error_response(
             "Authorization": f"Bearer {vk_notifications_bot_settings.api_token}"
         },
         expected_data={
-            "peer_ids": [str(vk_peer_id)],
+            "peer_id": [str(vk_peer_id)],
             "message": [message_text],
         },
     )
@@ -65,7 +65,7 @@ async def test_message_sending_empty_response(
     with pytest.raises(VKResponseWithoutResponseException):
         await vk_app.client.send_message(
             data=MessageSendInputSchema(
-                peer_ids=[vk_peer_id],
+                peer_id=vk_peer_id,
                 message=message_text,
             )
         )
@@ -76,7 +76,7 @@ async def test_message_sending_empty_response(
             "Authorization": f"Bearer {vk_notifications_bot_settings.api_token}"
         },
         expected_data={
-            "peer_ids": [str(vk_peer_id)],
+            "peer_id": [str(vk_peer_id)],
             "message": [message_text],
         },
     )

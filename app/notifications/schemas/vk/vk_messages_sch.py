@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, NonNegativeInt, TypeAdapter
+from pydantic import BaseModel, Field, TypeAdapter, field_serializer
 
 from app.notifications.schemas.vk.vk_base_sch import ResponseWrapperSchema
 
@@ -11,7 +11,7 @@ from app.notifications.schemas.vk.vk_base_sch import ResponseWrapperSchema
 
 
 class KeyboardLinkButtonActionSchema(BaseModel):
-    type: Literal["open_link"]
+    type: Literal["open_link"] = "open_link"
     link: str
     label: str
 
@@ -32,30 +32,18 @@ class KeyboardSchema(BaseModel):
 class MessageSendInputSchema(BaseModel):
     # https://dev.vk.com/en/method/messages.send
 
-    peer_ids: list[int]
+    peer_id: int
 
     random_id: int = 0
     message: str = Field(max_length=9000)
 
     keyboard: KeyboardSchema | None = None
 
-
-class MessageSendPeerErrorSchema(BaseModel):
-    code: int
-    description: str
-
-
-class MessageSendResponseItemSchema(BaseModel):
-    # https://dev.vk.com/en/method/messages.send
-
-    peer_id: int
-
-    message_id: NonNegativeInt
-    conversation_message_id: NonNegativeInt
-
-    error: MessageSendPeerErrorSchema | None = None
+    @field_serializer("keyboard")
+    def serialize_keyboard(self, data: KeyboardSchema | None) -> str | None:
+        if data is None:
+            return None
+        return data.model_dump_json()
 
 
-send_message_response_type_adapter = TypeAdapter(
-    ResponseWrapperSchema[list[MessageSendResponseItemSchema]]
-)
+send_message_response_type_adapter = TypeAdapter(ResponseWrapperSchema[int])

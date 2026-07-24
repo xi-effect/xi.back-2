@@ -15,11 +15,6 @@ from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     VKDeliveryMethod,
 )
-from app.notifications.routes.vk_webhook_rst import (
-    MessageDeliveryFailedException,
-    MessageReceiverMismatchException,
-    UnexpectedMessageCountException,
-)
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.id_provider import IDProvider
@@ -57,7 +52,7 @@ def assert_vk_message_sent(
     assert_last_httpx_request(
         vk_send_message_mock,
         expected_data={
-            "peer_ids": [str(expected_peer_id)],
+            "peer_id": [str(expected_peer_id)],
             "message": [expected_message],
         },
     )
@@ -456,91 +451,6 @@ async def test_handling_update_from_vk_deny_messages_delivery_method_is_not_acti
             assert delivery_method is not None
             assert delivery_method.status is delivery_method_status
             await delivery_method.delete()
-
-
-async def test_handling_update_from_vk_unexpected_message_count(
-    client: TestClient,
-    vk_notifications_bot_webhook_url: str,
-    vk_notifications_bot_webhook_secret_key: str,
-    vk_peer_id: int,
-    vk_respx_mock: MockRouter,
-) -> None:
-    vk_respx_mock.post(path="/messages.send").respond(json={"response": []})
-
-    with pytest.raises(UnexpectedMessageCountException):
-        client.post(
-            vk_notifications_bot_webhook_url,
-            json=factories.AllowMessagesUpdateFactory.build_json(
-                secret=vk_notifications_bot_webhook_secret_key,
-                object=factories.AllowMessagesObjectFactory.build(
-                    user_id=vk_peer_id,
-                    key="",
-                ),
-            ),
-        )
-
-
-async def test_handling_update_from_vk_message_delivery_failed(
-    client: TestClient,
-    vk_notifications_bot_webhook_url: str,
-    vk_notifications_bot_webhook_secret_key: str,
-    vk_peer_id: int,
-    vk_respx_mock: MockRouter,
-) -> None:
-    vk_respx_mock.post(path="/messages.send").respond(
-        json={
-            "response": [
-                factories.MessageSendResponseItemFactory.build_json(
-                    peer_id=vk_peer_id,
-                    error=factories.MessageSendPeerErrorFactory.build(),
-                )
-            ]
-        }
-    )
-
-    with pytest.raises(MessageDeliveryFailedException):
-        client.post(
-            vk_notifications_bot_webhook_url,
-            json=factories.AllowMessagesUpdateFactory.build_json(
-                secret=vk_notifications_bot_webhook_secret_key,
-                object=factories.AllowMessagesObjectFactory.build(
-                    user_id=vk_peer_id,
-                    key="",
-                ),
-            ),
-        )
-
-
-async def test_handling_update_from_vk_message_receiver_mismatch(
-    id_provider: IDProvider,
-    client: TestClient,
-    vk_notifications_bot_webhook_url: str,
-    vk_notifications_bot_webhook_secret_key: str,
-    vk_peer_id: int,
-    vk_respx_mock: MockRouter,
-) -> None:
-    vk_respx_mock.post(path="/messages.send").respond(
-        json={
-            "response": [
-                factories.MessageSendResponseItemFactory.build_json(
-                    peer_id=id_provider.generate_id(),
-                    error=None,
-                )
-            ]
-        }
-    )
-
-    with pytest.raises(MessageReceiverMismatchException):
-        client.post(
-            vk_notifications_bot_webhook_url,
-            json=factories.AllowMessagesUpdateFactory.build_json(
-                secret=vk_notifications_bot_webhook_secret_key,
-                object=factories.AllowMessagesObjectFactory.build(
-                    user_id=vk_peer_id,
-                    key="",
-                ),
-            ),
-        )
 
 
 @pytest.mark.parametrize(
