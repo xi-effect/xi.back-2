@@ -1,5 +1,7 @@
 from aiogram.types import BotCommand, KeyboardButton
 
+from app.common.config import settings
+
 COMMAND_DESCRIPTIONS = {
     "/support": "Обращение в поддержку",
     "/vacancy": "Посмотреть вакансии",
@@ -53,9 +55,8 @@ BACK_BUTTON_TEXT = "Назад"
 SKIP_BUTTON_TEXT = "Пропустить"
 
 # Vacancy Form Start
-VACANCIES_WEBSITE_URL = "https://vacancy.xieffect.ru/vacancy"
 STARTING_VACANCY_FORM_MESSAGE = f"""
-Наши вакансии размещены на сайте: {VACANCIES_WEBSITE_URL}
+Наши вакансии размещены на сайте: {settings.frontend_vacancies_base_url}
 Вы можете отправить отклик там же или через бота
 """
 CHOOSE_VACANCY_MESSAGE = "Выберите вакансию или введите свою:"

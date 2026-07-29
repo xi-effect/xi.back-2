@@ -1,10 +1,13 @@
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from io import BytesIO
 from os import stat
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 import pytest
 from faker import Faker
+from PIL import Image
 from pytest_lazy_fixtures import lf
 from starlette.responses import FileResponse
 from starlette.testclient import TestClient
@@ -72,15 +75,29 @@ def outsider_internal_client(
 
 
 @pytest.fixture()
-async def ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
+async def ydoc(faker: Faker, active_session: ActiveSession) -> AsyncIterator[YDoc]:
     async with active_session():
-        return await YDoc.create(content=faker.binary(length=64))
+        ydoc = await YDoc.create(content=faker.binary(length=64))
+
+    yield ydoc
+
+    async with active_session() as session:
+        session.add(ydoc)
+        await ydoc.delete()
 
 
 @pytest.fixture()
-async def other_ydoc(faker: Faker, active_session: ActiveSession) -> YDoc:
+async def other_ydoc(
+    faker: Faker, active_session: ActiveSession
+) -> AsyncIterator[YDoc]:
     async with active_session():
-        return await YDoc.create(content=faker.binary(length=64))
+        ydoc = await YDoc.create(content=faker.binary(length=64))
+
+    yield ydoc
+
+    async with active_session() as session:
+        session.add(ydoc)
+        await ydoc.delete()
 
 
 @pytest.fixture()
@@ -89,9 +106,18 @@ def missing_ydoc_id() -> UUID:
 
 
 @pytest.fixture()
-async def access_group(active_session: ActiveSession, ydoc: YDoc) -> AccessGroup:
+async def access_group(
+    active_session: ActiveSession,
+    ydoc: YDoc,
+) -> AsyncIterator[AccessGroup]:
     async with active_session():
-        return await AccessGroup.create(main_ydoc_id=ydoc.id)
+        access_group = await AccessGroup.create(main_ydoc_id=ydoc.id)
+
+    yield access_group
+
+    async with active_session() as session:
+        session.add(access_group)
+        await access_group.delete()
 
 
 @pytest.fixture()
@@ -104,45 +130,78 @@ def uncategorized_file_content(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
 
 
+def process_image_content(image_content: bytes) -> bytes:
+    image = Image.open(BytesIO(image_content))
+    processed_image_buffer = BytesIO()
+    image.save(processed_image_buffer, format="webp")
+    processed_image_buffer.seek(0)
+    return processed_image_buffer.read()
+
+
 @pytest.fixture()
-def image_file_content(faker: Faker) -> bytes:
+def webp_image_file_content(faker: Faker) -> bytes:
     return faker.graphic_webp_file(raw=True)  # type: ignore[no-any-return]
+
+
+@pytest.fixture()
+def png_image_file_content(faker: Faker) -> bytes:
+    return faker.graphic_png_file(raw=True)  # type: ignore[no-any-return]
 
 
 @dataclass
 class FileInputData:
     kind: FileKind
     name: str
-    content: bytes
     content_type: str
+    input_content: bytes
+    processed_content: bytes
 
 
 @pytest.fixture()
 def uncategorized_file_input_data(
-    faker: Faker, uncategorized_file_content: bytes
+    faker: Faker,
+    uncategorized_file_content: bytes,
 ) -> FileInputData:
     return FileInputData(
         kind=FileKind.UNCATEGORIZED,
         name=faker.file_name(),
-        content=uncategorized_file_content,
-        content_type=faker.mime_type(),
+        input_content=uncategorized_file_content,
+        processed_content=uncategorized_file_content,
+        content_type=faker.mime_type(category="application"),
     )
 
 
 @pytest.fixture()
-def image_file_input_data(faker: Faker, image_file_content: bytes) -> FileInputData:
+def webp_image_file_input_data(
+    faker: Faker, webp_image_file_content: bytes
+) -> FileInputData:
     return FileInputData(
         kind=FileKind.IMAGE,
         name=faker.file_name(extension="webp"),
-        content=image_file_content,
+        input_content=webp_image_file_content,
+        processed_content=process_image_content(webp_image_file_content),
         content_type="image/webp",
+    )
+
+
+@pytest.fixture()
+def png_image_file_input_data(
+    faker: Faker, png_image_file_content: bytes
+) -> FileInputData:
+    return FileInputData(
+        kind=FileKind.IMAGE,
+        name=faker.file_name(extension="png"),
+        input_content=png_image_file_content,
+        processed_content=process_image_content(png_image_file_content),
+        content_type="image/png",
     )
 
 
 @pytest.fixture(
     params=[
         pytest.param(lf("uncategorized_file_input_data"), id="uncategorized"),
-        pytest.param(lf("image_file_input_data"), id="image"),
+        pytest.param(lf("webp_image_file_input_data"), id="webp_image"),
+        pytest.param(lf("png_image_file_input_data"), id="png_image"),
     ],
 )
 def parametrized_file_input_data(
@@ -155,7 +214,7 @@ def parametrized_file_input_data(
 async def file(
     active_session: ActiveSession,
     parametrized_file_input_data: FileInputData,
-) -> File:
+) -> AsyncIterator[File]:
     async with active_session():
         file = await File.create(
             name=parametrized_file_input_data.name,
@@ -163,9 +222,13 @@ async def file(
         )
 
     with file.path.open("wb") as f:
-        f.write(parametrized_file_input_data.content)
+        f.write(parametrized_file_input_data.processed_content)
 
-    return file
+    yield file
+
+    async with active_session() as session:
+        session.add(file)
+        await file.delete()
 
 
 @pytest.fixture()
@@ -180,12 +243,18 @@ async def access_group_file(
     active_session: ActiveSession,
     access_group: AccessGroup,
     file: File,
-) -> AccessGroupFile:
+) -> AsyncIterator[AccessGroupFile]:
     async with active_session():
-        return await AccessGroupFile.create(
+        access_group_file = await AccessGroupFile.create(
             access_group_id=access_group.id,
             file_id=file.id,
         )
+
+    yield access_group_file
+
+    async with active_session() as session:
+        session.add(access_group_file)
+        await access_group_file.delete()
 
 
 @pytest.fixture()

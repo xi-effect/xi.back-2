@@ -19,6 +19,7 @@ GLOBAL_TEMPLATE_VARIABLES: dict[str, str] = {
 }
 
 KIND_TO_TEMPLATE_ID: dict[EmailMessageKind, str] = {
+    EmailMessageKind.CUSTOM_V1: "228a8576-b802-11f0-bca7-d2544595dc68",
     EmailMessageKind.EMAIL_CONFIRMATION_V2: "05b83984-bd89-11f0-81f1-122da0a24080",
     EmailMessageKind.EMAIL_CHANGE_V2: "a25aced8-bd88-11f0-b8e4-122da0a24080",
     EmailMessageKind.PASSWORD_RESET_V2: "3b5242e2-bd89-11f0-8132-025779db5bd3",

@@ -4,6 +4,8 @@ from asyncio import create_task
 from typing import Any
 
 from aiogram import Bot, Dispatcher, Router
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import TelegramAPIServer
 from aiogram.filters import CommandObject
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.methods import GetUpdates
@@ -101,7 +103,18 @@ class TelegramApp:
             return
 
         await self.initialize(
-            bot=Bot(bot_settings.token),
+            bot=Bot(
+                bot_settings.token,
+                session=(
+                    None
+                    if settings.telegram_server_base_url is None
+                    else AiohttpSession(
+                        api=TelegramAPIServer.from_base(
+                            settings.telegram_server_base_url
+                        )
+                    )
+                ),
+            ),
             dispatcher=Dispatcher(
                 storage=None if redis_dsn is None else RedisStorage.from_url(redis_dsn),
                 **dispatcher_kwargs,

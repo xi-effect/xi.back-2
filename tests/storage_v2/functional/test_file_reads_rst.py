@@ -79,7 +79,7 @@ async def test_file_reading(
         },
         expected_json=None,
     )
-    assert response.content == parametrized_file_input_data.content
+    assert response.content == parametrized_file_input_data.processed_content
 
 
 async def test_file_reading_not_modified_by_etag(

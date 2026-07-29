@@ -7,6 +7,7 @@ from app.common.config import storage_token_provider
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
+from app.storage_v2.models.access_groups_db import AccessGroup
 
 
 class StorageTokenResponses(Responses):
@@ -35,4 +36,25 @@ def validate_and_deserialize_storage_token(
 
 StorageTokenPayload = Annotated[
     StorageTokenPayloadSchema, Depends(validate_and_deserialize_storage_token)
+]
+
+
+@with_responses(StorageTokenResponses)
+async def validate_upload_permissions(
+    storage_token_payload: StorageTokenPayload,
+) -> StorageTokenPayloadSchema:
+    if not storage_token_payload.can_upload_files:
+        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
+
+    access_group = await AccessGroup.find_first_by_id(
+        storage_token_payload.access_group_id
+    )
+    if access_group is None:
+        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
+
+    return storage_token_payload
+
+
+UploadAllowedStorageTokenPayload = Annotated[
+    StorageTokenPayloadSchema, Depends(validate_upload_permissions)
 ]

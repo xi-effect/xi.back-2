@@ -3,15 +3,20 @@ from unittest.mock import AsyncMock
 
 import pytest
 from google.protobuf.message import Message
-from livekit.api.twirp_client import TwirpClient
+from livekit.api.twirp_client import TwirpClient, TwirpError
 
 from tests.common.mock_stack import MockStack
 
 
 class LiveKitRouteMock:
-    def __init__(self, response_data: Message) -> None:
+    def __init__(
+        self,
+        response_data: Message | None = None,
+        side_effect: TwirpError | None = None,
+    ) -> None:
         self.request_data: Message | None = None
         self.response_data = response_data
+        self.side_effect = side_effect
 
     def request(
         self,
@@ -19,8 +24,10 @@ class LiveKitRouteMock:
         response_class: type[Message],
     ) -> Message:
         assert self.request_data is None, "LiveKit mock has been called before"
-        assert isinstance(self.response_data, response_class)
         self.request_data = request_data
+        if self.side_effect is not None:
+            raise self.side_effect
+        assert isinstance(self.response_data, response_class)
         return self.response_data
 
     def assert_requested_once_with(self, expected_data: Message) -> None:
@@ -33,9 +40,13 @@ class LiveKitMock:
         self.route_mocks: dict[tuple[str, str], LiveKitRouteMock] = {}
 
     def route(
-        self, service: str, method: str, response_data: Message
+        self,
+        service: str,
+        method: str,
+        response_data: Message | None = None,
+        side_effect: TwirpError | None = None,
     ) -> LiveKitRouteMock:
-        route_mock = LiveKitRouteMock(response_data)
+        route_mock = LiveKitRouteMock(response_data, side_effect)
         self.route_mocks[(service, method)] = route_mock
         return route_mock
 

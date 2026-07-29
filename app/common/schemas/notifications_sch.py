@@ -15,6 +15,8 @@ class NotificationKind(StrEnum):
     RECIPIENT_INVOICE_CREATED_V1 = auto()
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
 
+    CUSTOM_V1 = auto()
+
 
 class InvitationAcceptanceNotificationPayloadSchema(BaseModel):
     kind: Literal[
@@ -49,11 +51,23 @@ class RecipientInvoiceNotificationPayloadSchema(BaseModel):
     recipient_invoice_id: int
 
 
+class CustomNotificationPayloadSchema(BaseModel):
+    kind: Literal[NotificationKind.CUSTOM_V1]
+
+    theme: str
+    pre_header: str
+    header: str
+    content: str
+    button_text: str
+    button_link: str
+
+
 AnyNotificationPayloadSchema = Annotated[
     InvitationAcceptanceNotificationPayloadSchema
     | EnrollmentNotificationPayloadSchema
     | ClassroomNotificationPayloadSchema
-    | RecipientInvoiceNotificationPayloadSchema,
+    | RecipientInvoiceNotificationPayloadSchema
+    | CustomNotificationPayloadSchema,
     Field(discriminator="kind"),
 ]
 

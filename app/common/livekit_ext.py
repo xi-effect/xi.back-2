@@ -9,6 +9,8 @@ from livekit.protocol.room import (
     CreateRoomRequest,
     ListParticipantsRequest,
     ListRoomsRequest,
+    UpdateParticipantRequest,
+    UpdateRoomMetadataRequest,
 )
 
 
@@ -50,23 +52,57 @@ class LiveKit:
     def room(self) -> RoomService:
         return self.api.room
 
-    def generate_access_token(self, identity: str, name: str, room_name: str) -> str:
+    def generate_access_token(
+        self,
+        room_name: str,
+        identity: str,
+        name: str,
+        metadata: str = "",
+    ) -> str:
         return (
             AccessToken(self.api_key, self.api_secret)
             .with_identity(identity=identity)
             .with_name(name=name)
             .with_grants(VideoGrants(room_join=True, room=room_name))
+            .with_metadata(metadata=metadata)
         ).to_jwt()
 
     async def list_rooms(self, room_names: list[str]) -> Iterator[Room]:
         response = await self.room.list_rooms(ListRoomsRequest(names=room_names))
         return (room for room in response.rooms)
 
-    async def find_or_create_room(self, room_name: str) -> Room:
-        return await self.room.create_room(CreateRoomRequest(name=room_name))
+    async def find_or_create_room(self, room_name: str, metadata: str) -> Room:
+        return await self.room.create_room(
+            CreateRoomRequest(
+                name=room_name,
+                metadata=metadata,
+            )
+        )
+
+    async def update_room_metadata(self, room_name: str, metadata: str) -> Room:
+        return await self.room.update_room_metadata(
+            UpdateRoomMetadataRequest(
+                room=room_name,
+                metadata=metadata,
+            )
+        )
 
     async def list_room_participants(self, room_name: str) -> Iterator[ParticipantInfo]:
         response = await self.room.list_participants(
             ListParticipantsRequest(room=room_name)
         )
         return (participant for participant in response.participants)
+
+    async def update_participant_metadata(
+        self,
+        room_name: str,
+        identity: str,
+        metadata: str,
+    ) -> ParticipantInfo:
+        return await self.room.update_participant(
+            UpdateParticipantRequest(
+                room=room_name,
+                identity=identity,
+                metadata=metadata,
+            )
+        )

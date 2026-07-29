@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Self
+from typing import Annotated, ClassVar, Self
 
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
 from pydantic import AfterValidator, AwareDatetime, StringConstraints
@@ -29,6 +29,8 @@ class OnboardingStage(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
+
+    avatar_shape: ClassVar[tuple[int, int]] = 128, 128
 
     @staticmethod
     def generate_hash(password: str) -> str:

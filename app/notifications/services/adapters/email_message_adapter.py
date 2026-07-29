@@ -1,5 +1,6 @@
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
+    CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
     RecipientInvoiceNotificationPayloadSchema,
@@ -7,6 +8,7 @@ from app.common.schemas.notifications_sch import (
 from app.common.schemas.pochta_sch import (
     AnyEmailMessagePayload,
     ClassroomNotificationEmailMessagePayloadSchema,
+    CustomEmailMessagePayloadSchema,
     EmailMessageKind,
     RecipientInvoiceNotificationEmailMessagePayloadSchema,
 )
@@ -74,4 +76,17 @@ class NotificationToEmailMessageAdapter(
             kind=EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
             recipient_invoice_id=payload.recipient_invoice_id,
             notification_id=self.notification.id,
+        )
+
+    def adapt_custom_v1(
+        self, payload: CustomNotificationPayloadSchema
+    ) -> CustomEmailMessagePayloadSchema:
+        return CustomEmailMessagePayloadSchema(
+            kind=EmailMessageKind.CUSTOM_V1,
+            theme=payload.theme,
+            pre_header=payload.pre_header,
+            header=payload.header,
+            content=payload.content,
+            button_text=payload.button_text,
+            button_link=payload.button_link,
         )

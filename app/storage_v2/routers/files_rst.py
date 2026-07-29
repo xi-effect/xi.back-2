@@ -1,8 +1,10 @@
 from datetime import datetime
+from io import BytesIO
 from os import stat
 from typing import Annotated
 
 from fastapi import Header, UploadFile
+from PIL import Image
 from starlette import status
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
@@ -13,9 +15,10 @@ from app.storage_v2.dependencies.files_dep import MyFileByID
 from app.storage_v2.dependencies.storage_token_dep import (
     StorageTokenPayload,
     StorageTokenResponses,
+    UploadAllowedStorageTokenPayload,
 )
 from app.storage_v2.dependencies.uploads_dep import ValidatedImageUpload
-from app.storage_v2.models.access_groups_db import AccessGroup, AccessGroupFile
+from app.storage_v2.models.access_groups_db import AccessGroupFile
 from app.storage_v2.models.files_db import File, FileKind
 
 router = APIRouterExt(tags=["files"])
@@ -23,21 +26,13 @@ router = APIRouterExt(tags=["files"])
 
 async def upload_file(
     storage_token_payload: StorageTokenPayloadSchema,
-    upload: UploadFile,
+    upload_content: bytes,
+    upload_filename: str | None,
     file_kind: FileKind,
 ) -> File:
-    if not storage_token_payload.can_upload_files:
-        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
-
-    access_group = await AccessGroup.find_first_by_id(
-        storage_token_payload.access_group_id
-    )
-    if access_group is None:
-        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
-
     file = await File.create_with_content(
-        content=upload.file,
-        filename=upload.filename,
+        content=upload_content,
+        filename=upload_filename or "upload",
         file_kind=file_kind,
     )
 
@@ -56,12 +51,13 @@ async def upload_file(
     summary="Upload a new uncategorized file",
 )
 async def upload_uncategorized_file(
-    storage_token_payload: StorageTokenPayload,
+    storage_token_payload: UploadAllowedStorageTokenPayload,
     upload: UploadFile,
 ) -> File:
     return await upload_file(
         storage_token_payload=storage_token_payload,
-        upload=upload,
+        upload_content=await upload.read(),
+        upload_filename=upload.filename,
         file_kind=FileKind.UNCATEGORIZED,
     )
 
@@ -73,12 +69,18 @@ async def upload_uncategorized_file(
     summary="Upload a new image file",
 )
 async def upload_image_file(
-    storage_token_payload: StorageTokenPayload,
+    storage_token_payload: UploadAllowedStorageTokenPayload,
     upload: ValidatedImageUpload,
 ) -> File:
+    image = Image.open(BytesIO(await upload.read()))
+    processed_image = BytesIO()
+    image.save(processed_image, format="webp")
+    processed_image.seek(0)
+
     return await upload_file(
         storage_token_payload=storage_token_payload,
-        upload=upload,
+        upload_content=processed_image.read(),
+        upload_filename=upload.filename,
         file_kind=FileKind.IMAGE,
     )
 

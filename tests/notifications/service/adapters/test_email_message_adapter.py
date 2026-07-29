@@ -154,3 +154,31 @@ async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapt
             notification_id=notification_mock.id,
         ).model_dump(),
     )
+
+
+async def test_custom_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.CustomNotificationPayloadSchema = (
+        factories.CustomNotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.CUSTOM_V1
+        )
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = NotificationToEmailMessageAdapter(
+        notification=notification_mock
+    )
+
+    assert_contains(
+        email_notification_adapter.adapt(),
+        pochta_sch.CustomEmailMessagePayloadSchema(
+            kind=pochta_sch.EmailMessageKind.CUSTOM_V1,
+            theme=notification_payload.theme,
+            pre_header=notification_payload.pre_header,
+            header=notification_payload.header,
+            content=notification_payload.content,
+            button_text=notification_payload.button_text,
+            button_link=notification_payload.button_link,
+        ).model_dump(),
+    )

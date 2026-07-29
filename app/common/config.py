@@ -92,6 +92,7 @@ class Settings(BaseSettings):
 
     cookie_domain: str = "localhost"
     frontend_app_base_url: str = "https://app.sovlium.ru"
+    frontend_vacancies_base_url: str = "https://vacancy.sovlium.ru/vacancy"
 
     password_reset_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 60)
     email_confirmation_keys: FernetSettings = FernetSettings(
@@ -191,6 +192,7 @@ class Settings(BaseSettings):
 
     supbot: SupbotSettings | None = None
     notifications_bot: TelegramBotSettings | None = None
+    telegram_server_base_url: str | None = None
     telegram_webhook_base_url: str | None = None
 
     sentry_dsn: str | None = None
@@ -208,9 +210,13 @@ if not settings.is_testing_mode and settings.sentry_dsn is not None:
             FaststreamIntegration(),
             # other integrations are automatic
         ],
+        before_breadcrumb=before_breadcrumb,
         traces_sample_rate=0,
         profiles_sample_rate=0,
-        before_breadcrumb=before_breadcrumb,
+        send_default_pii=True,
+        max_request_body_size="always",
+        send_client_reports=False,
+        auto_session_tracking=False,
     )
 
 
