@@ -1,10 +1,8 @@
 import re
 from random import randint
-from time import time
 from uuid import uuid4
 
 import pytest
-from freezegun import freeze_time
 
 from app.notifications.config import telegram_deep_link_provider
 from app.notifications.utils import deep_links
@@ -42,15 +40,22 @@ def test_payload_decoding(
     assert actual_decoded_user_id == user_id_for_deep_link
 
 
-@freeze_time()
 def test_payload_decoding_expired_deep_link(
     mock_stack: MockStack,
     deep_link_payload: str,
 ) -> None:
+    _, encoded_timestamp, _ = telegram_deep_link_provider.parse_link_payload(
+        link_payload=deep_link_payload
+    )
+    creation_timestamp = telegram_deep_link_provider.urlsafe_b32decode_int(
+        encoded_timestamp
+    )
     mock_stack.enter_mock(
         telegram_deep_link_provider,
         "get_current_timestamp",
-        return_value=time() + telegram_deep_link_provider.ttl + randint(60, 120),
+        return_value=creation_timestamp
+        + telegram_deep_link_provider.ttl
+        + randint(60, 120),
     )
     with pytest.raises(deep_links.ExpiredDeepLinkException):
         telegram_deep_link_provider.verify_and_decode_signed_link_payload(
