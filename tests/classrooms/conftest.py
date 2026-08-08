@@ -73,12 +73,22 @@ def outsider_client(
 @pytest.fixture()
 async def tutorship(
     active_session: ActiveSession, tutor_user_id: int, student_user_id: int
-) -> Tutorship:
+) -> AsyncIterator[Tutorship]:
     async with active_session():
-        return await Tutorship.create(
+        tutorship: Tutorship = await Tutorship.create(
             tutor_id=tutor_user_id,
             student_id=student_user_id,
         )
+
+    yield tutorship
+
+    async with active_session():
+        existing = await Tutorship.find_first_by_kwargs(
+            tutor_id=tutorship.tutor_id,
+            student_id=tutorship.student_id,
+        )
+        if existing is not None:
+            await existing.delete()
 
 
 @pytest.fixture()
