@@ -139,12 +139,7 @@ async def tutor_tutorships(
 
     async with active_session():
         for tutorship in tutorships:
-            existing = await Tutorship.find_first_by_kwargs(
-                tutor_id=tutorship.tutor_id,
-                student_id=tutorship.student_id,
-            )
-            if existing is not None:
-                await existing.delete()
+            await tutorship.delete()
 
 
 @pytest.fixture()
@@ -169,12 +164,7 @@ async def student_tutorships(
 
     async with active_session():
         for tutorship in tutorships:
-            existing = await Tutorship.find_first_by_kwargs(
-                tutor_id=tutorship.tutor_id,
-                student_id=tutorship.student_id,
-            )
-            if existing is not None:
-                await existing.delete()
+            await tutorship.delete()
 
 
 @pytest.fixture()
