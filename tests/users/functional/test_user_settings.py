@@ -23,6 +23,9 @@ pytestmark = pytest.mark.anyio
 )
 @pytest.mark.parametrize("pass_theme", [False, True], ids=["no_theme", "with_theme"])
 @pytest.mark.parametrize(
+    "pass_language", [False, True], ids=["no_language", "with_language"]
+)
+@pytest.mark.parametrize(
     "pass_default_layout",
     [False, True],
     ids=["no_default_layout", "with_default_layout"],
@@ -34,6 +37,7 @@ async def test_user_settings_updating(
     pass_username: bool,
     pass_display_name: bool,
     pass_theme: bool,
+    pass_language: bool,
     pass_default_layout: bool,
 ) -> None:
     update_data: AnyJSON = {}
@@ -43,6 +47,8 @@ async def test_user_settings_updating(
         update_data["display_name"] = faker.name()
     if pass_theme:
         update_data["theme"] = "new_theme"
+    if pass_language:
+        update_data["language"] = "en"
     if pass_default_layout:
         update_data["default_layout"] = "tutor"
 

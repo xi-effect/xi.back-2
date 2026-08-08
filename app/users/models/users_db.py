@@ -55,6 +55,7 @@ class User(Base):
 
     default_layout: Mapped[str | None] = mapped_column(String(10), default=None)
     theme: Mapped[str] = mapped_column(String(10), default="system")
+    language: Mapped[str] = mapped_column(String(10), default="ru")
 
     onboarding_stage: Mapped[OnboardingStage] = mapped_column(
         Enum(OnboardingStage, name="onboarding_stage_3"),
@@ -105,6 +106,7 @@ class User(Base):
             (display_name, DisplayNameType),
             default_layout,
             theme,
+            language,
         ]
     )
     SettingsPatchSchema = SettingsSchema.as_patch()
@@ -119,7 +121,7 @@ class User(Base):
         ]
     )
     PatchMUBSchema = InputSchema.extend(
-        columns=[(display_name, DisplayNameType), theme, onboarding_stage]
+        columns=[(display_name, DisplayNameType), theme, language, onboarding_stage]
     ).as_patch()
 
     @classmethod
