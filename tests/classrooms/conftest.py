@@ -72,7 +72,9 @@ def outsider_client(
 
 @pytest.fixture()
 async def tutorship(
-    active_session: ActiveSession, tutor_user_id: int, student_user_id: int
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    student_user_id: int,
 ) -> AsyncIterator[Tutorship]:
     async with active_session():
         tutorship: Tutorship = await Tutorship.create(
@@ -137,7 +139,12 @@ async def tutor_tutorships(
 
     async with active_session():
         for tutorship in tutorships:
-            await tutorship.delete()
+            existing = await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id,
+                student_id=tutorship.student_id,
+            )
+            if existing is not None:
+                await existing.delete()
 
 
 @pytest.fixture()
@@ -162,7 +169,12 @@ async def student_tutorships(
 
     async with active_session():
         for tutorship in tutorships:
-            await tutorship.delete()
+            existing = await Tutorship.find_first_by_kwargs(
+                tutor_id=tutorship.tutor_id,
+                student_id=tutorship.student_id,
+            )
+            if existing is not None:
+                await existing.delete()
 
 
 @pytest.fixture()

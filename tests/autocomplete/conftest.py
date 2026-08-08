@@ -43,7 +43,8 @@ def outsider_client(
 
 @pytest.fixture()
 async def subject(
-    active_session: ActiveSession, tutor_user_id: int
+    active_session: ActiveSession,
+    tutor_user_id: int,
 ) -> AsyncIterator[Subject]:
     async with active_session():
         subject: Subject = await Subject.create(
