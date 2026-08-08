@@ -22,7 +22,10 @@ async def list_invoices(
     limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> Sequence[Invoice]:
     return await Invoice.find_paginated_by_kwargs(
-        tutor_id=tutor_id, offset=offset, limit=limit
+        offset,
+        limit,
+        Invoice.created_at.asc(),
+        tutor_id=tutor_id,
     )
 
 
