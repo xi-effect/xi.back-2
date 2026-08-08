@@ -55,9 +55,7 @@ async def subject(
     yield subject
 
     async with active_session():
-        existing = await Subject.find_first_by_id(subject.id)
-        if existing is not None:
-            await existing.delete()
+        await subject.delete()
 
 
 @pytest.fixture()
@@ -71,8 +69,15 @@ async def subject_data(subject: Subject) -> AnyJSON:
 
 
 @pytest.fixture()
-async def deleted_subject_id(active_session: ActiveSession, subject: Subject) -> int:
+async def deleted_subject_id(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+) -> int:
     async with active_session():
+        subject: Subject = await Subject.create(
+            **factories.SubjectInputFactory.build_python(),
+            tutor_id=tutor_user_id,
+        )
         await subject.delete()
     return subject.id
 

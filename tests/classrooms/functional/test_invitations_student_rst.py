@@ -177,7 +177,8 @@ async def test_individual_invitation_accepting(
                 ),
             },
         )
-        await tutorship.delete()
+        if existing_tutorship is None:
+            await tutorship.delete()
 
         classroom = await IndividualClassroom.find_first_by_id(classroom_id)
         assert classroom is not None
@@ -340,7 +341,8 @@ async def test_group_invitation_accepting(
                 ),
             },
         )
-        await tutorship.delete()
+        if existing_tutorship is None:
+            await tutorship.delete()
 
         enrollment = await Enrollment.find_first_by_kwargs(
             group_classroom_id=group_invitation.group_classroom_id,
