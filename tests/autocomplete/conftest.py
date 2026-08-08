@@ -42,12 +42,20 @@ def outsider_client(
 
 
 @pytest.fixture()
-async def subject(active_session: ActiveSession, tutor_user_id: int) -> Subject:
+async def subject(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+) -> AsyncIterator[Subject]:
     async with active_session():
-        return await Subject.create(
+        subject: Subject = await Subject.create(
             **factories.SubjectInputFactory.build_python(),
             tutor_id=tutor_user_id,
         )
+
+    yield subject
+
+    async with active_session():
+        await Subject.delete_by_kwargs(id=subject.id)
 
 
 @pytest.fixture()
