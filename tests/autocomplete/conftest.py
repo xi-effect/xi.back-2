@@ -107,12 +107,13 @@ def generate_subject_name(
     faker: Faker,
     prefix: str,
     suffix: str,
+    unique_letter: str,
 ) -> str:
     random_part: str = faker.bothify(
         "?" * faker.random_int(min=0, max=90),
         letters=quarter_of_ascii_letters_any_case(3),
     )
-    return prefix + random_part + suffix
+    return prefix + random_part + unique_letter + suffix
 
 
 @pytest.fixture()
@@ -125,6 +126,7 @@ async def subjects(
     odd_subject_name_suffix: str,
 ) -> AsyncIterator[list[Subject]]:
     subjects: list[Subject] = []
+    unique_letters = quarter_of_ascii_letters_any_case(3)
     async with active_session():
         for i in range(SUBJECT_LIST_SIZE):
             subjects.append(
@@ -137,6 +139,7 @@ async def subjects(
                             if i % 2 == 0
                             else odd_subject_name_suffix
                         ),
+                        unique_letter=unique_letters[i],
                     ),
                     tutor_id=None if i % 2 == 0 else tutor_user_id,
                 )
