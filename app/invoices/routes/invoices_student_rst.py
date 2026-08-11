@@ -6,9 +6,10 @@ from app.common.config_bdg import notifications_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.notifications_sch import (
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
     RecipientInvoiceNotificationPayloadSchema,
+    SingleUserRecipientFilterSchema,
 )
 from app.invoices.dependencies.recipient_invoices_dep import (
     PaymentStatusResponses,
@@ -91,11 +92,13 @@ async def confirm_student_recipient_invoice_payment_with_payment_type(
     recipient_invoice.status = PaymentStatus.WF_RECEIVER_CONFIRMATION
 
     await notifications_bridge.send_notification(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=RecipientInvoiceNotificationPayloadSchema(
                 kind=NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
                 recipient_invoice_id=recipient_invoice.id,
             ),
-            recipient_user_ids=[recipient_invoice.tutor_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=recipient_invoice.tutor_id),
+            ],
         )
     )

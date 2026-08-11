@@ -3,12 +3,14 @@ from typing import Annotated
 from fastapi import Path
 from starlette import status
 
-from app.common.config_bdg import classrooms_bridge, notifications_bridge
+from app.common.config_bdg import notifications_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
-    NotificationInputSchema,
+    ClassroomParticipantRecipientFilterSchema,
+    NotificationInputV2Schema,
     NotificationKind,
 )
 from app.conferences.dependencies.conferences_dep import (
@@ -36,20 +38,18 @@ async def reactivate_classroom_conference(
 ) -> None:
     await conferences_svc.reactivate_room(livekit_room_name=livekit_room_name)
 
-    # TODO: make notifications service know classrooms instead
-    classroom_student_ids = await classrooms_bridge.list_classroom_student_ids(
-        classroom_id=classroom_id
-    )
-    if len(classroom_student_ids) == 0:
-        return
-
     await notifications_bridge.send_notification(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=ClassroomNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1,
                 classroom_id=classroom_id,
             ),
-            recipient_user_ids=classroom_student_ids,
+            recipient_filters=[
+                ClassroomParticipantRecipientFilterSchema(
+                    classroom_id=classroom_id,
+                    role=ClassroomRole.STUDENT,
+                )
+            ],
         )
     )
 

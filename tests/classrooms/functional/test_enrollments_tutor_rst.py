@@ -13,8 +13,9 @@ from app.classrooms.models.tutorships_db import Tutorship
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
     EnrollmentNotificationPayloadSchema,
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
+    SingleUserRecipientFilterSchema,
 )
 from app.common.utils.datetime import datetime_utc_now
 from tests.common.active_session import ActiveSession
@@ -110,13 +111,15 @@ async def test_adding_classroom_student(
         )
 
     send_notification_mock.assert_awaited_once_with(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=EnrollmentNotificationPayloadSchema(
                 kind=NotificationKind.ENROLLMENT_CREATED_V1,
                 classroom_id=group_classroom.id,
                 student_id=tutorship.student_id,
             ),
-            recipient_user_ids=[tutorship.student_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=tutorship.student_id),
+            ],
         )
     )
 
