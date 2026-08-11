@@ -1,7 +1,8 @@
 from enum import StrEnum, auto
 from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 
 from app.common.schemas.classrooms_sch import ClassroomRole
 
@@ -16,6 +17,14 @@ class NotificationKind(StrEnum):
 
     RECIPIENT_INVOICE_CREATED_V1 = auto()
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
+
+    SINGLE_CLASSROOM_EVENT_CREATED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_CANCELLED_V1 = auto()
+
+    REPEATING_CLASSROOM_EVENT_CREATED_V1 = auto()
+    CLASSROOM_EVENT_REPETITION_UPDATED_V1 = auto()
+    CLASSROOM_EVENT_REPETITION_CANCELLED_V1 = auto()
 
     CUSTOM_V1 = auto()
 
@@ -53,6 +62,28 @@ class RecipientInvoiceNotificationPayloadSchema(BaseModel):
     recipient_invoice_id: int
 
 
+class ClassroomEventInstanceNotificationPayloadSchema(BaseModel):
+    kind: Literal[
+        NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1,
+        NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
+        NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
+    ]
+
+    classroom_id: int
+    event_instance_id: UUID
+
+
+class ClassroomScheduleFocusNotificationPayloadSchema(BaseModel):
+    kind: Literal[
+        NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1,
+        NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1,
+        NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1,
+    ]
+
+    classroom_id: int
+    focused_at: AwareDatetime
+
+
 class CustomNotificationPayloadSchema(BaseModel):
     kind: Literal[NotificationKind.CUSTOM_V1]
 
@@ -69,6 +100,8 @@ AnyNotificationPayloadSchema = Annotated[
     | EnrollmentNotificationPayloadSchema
     | ClassroomNotificationPayloadSchema
     | RecipientInvoiceNotificationPayloadSchema
+    | ClassroomEventInstanceNotificationPayloadSchema
+    | ClassroomScheduleFocusNotificationPayloadSchema
     | CustomNotificationPayloadSchema,
     Field(discriminator="kind"),
 ]
@@ -106,3 +139,6 @@ class NotificationInputV2Schema(BaseModel):
         list[AnyRecipientFilterSchema],
         Field(min_length=1, max_length=100),
     ]
+
+
+# TODO (?) add recipient logic to payload instead?

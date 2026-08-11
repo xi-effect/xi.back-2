@@ -22,6 +22,8 @@ class EmailMessageKind(StrEnum):
     RECIPIENT_INVOICE_CREATED_V1 = auto()
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
 
+    UNIVERSAL_V3 = auto()
+
 
 class CustomEmailMessagePayloadSchema(BaseModel):
     kind: Literal[EmailMessageKind.CUSTOM_V1]
@@ -72,11 +74,23 @@ class RecipientInvoiceNotificationEmailMessagePayloadSchema(
     recipient_invoice_id: int
 
 
+class UniversalEmailMessagePayloadSchema(BaseModel):
+    kind: Literal[EmailMessageKind.UNIVERSAL_V3] = EmailMessageKind.UNIVERSAL_V3
+
+    theme: str
+    pre_header: str
+    header: str
+    content: str
+    button_text: str
+    button_link: str
+
+
 AnyEmailMessagePayload = Annotated[
     CustomEmailMessagePayloadSchema
     | TokenEmailMessagePayloadSchema
     | ClassroomNotificationEmailMessagePayloadSchema
-    | RecipientInvoiceNotificationEmailMessagePayloadSchema,
+    | RecipientInvoiceNotificationEmailMessagePayloadSchema
+    | UniversalEmailMessagePayloadSchema,
     Field(discriminator="kind"),
 ]
 
