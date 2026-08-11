@@ -125,6 +125,33 @@ async def test_individual_classroom_updating(
     )
 
 
+async def test_individual_classroom_name_override_clearing(
+    mock_stack: MockStack,
+    tutor_client: TestClient,
+    individual_classroom: IndividualClassroom,
+    individual_classroom_tutor_data: AnyJSON,
+) -> None:
+    mock_stack.enter_async_mock(
+        "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
+    )
+
+    assert_response(
+        tutor_client.patch(
+            f"/api/protected/classroom-service/roles/tutor/individual-classrooms/{individual_classroom.id}/",
+            json={"name_override": "Vasya"},
+        ),
+        expected_json={**individual_classroom_tutor_data, "name_override": "Vasya"},
+    )
+
+    assert_response(
+        tutor_client.patch(
+            f"/api/protected/classroom-service/roles/tutor/individual-classrooms/{individual_classroom.id}/",
+            json={"name_override": None},
+        ),
+        expected_json=individual_classroom_tutor_data,
+    )
+
+
 async def test_group_classroom_updating(
     mock_stack: MockStack,
     tutor_client: TestClient,
