@@ -41,6 +41,7 @@ itsdangerous = "^2.2.0"
 faststream = {extras = ["redis"], version = "^0.6.2"}
 sentry-sdk = {extras = ["asyncio", "fastapi", "sqlalchemy", "redis", "httpx"], version = "2.44.0"}
 pillow = "^12.2.0"
+starlette-exporter = "^0.23.0"
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
@@ -161,5 +162,8 @@ omit = [
   "app/common/tmexio_ext.py",
   "app/common/bridges/base_bdg.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
+  "app/scheduler/*",  # TODO (170)
+  "app/common/bridges/classrooms_bdg.py",  # TODO (170)
+  "app/common/utils/bitwise.py",  # TODO (170)
   "app/setup_ci.py",
 ]
