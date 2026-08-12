@@ -1,14 +1,13 @@
 from datetime import UTC
+from typing import Any
 
 from polyfactory import Use
 from pydantic import BaseModel
 
 from app.common.schemas import notifications_sch
-from app.notifications.models.email_connections_db import EmailConnection
-from app.notifications.models.telegram_connections_db import TelegramConnection
+from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.user_contacts_db import UserContact
-from app.notifications.routes.telegram_connections_mub import TelegramMessageSchema
-from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
+from tests.common.polyfactory_ext import BaseModelFactory
 
 
 class InvitationAcceptanceNotificationPayloadFactory(
@@ -67,6 +66,27 @@ class CustomNotificationPayloadFactory(
     __model__ = notifications_sch.CustomNotificationPayloadSchema
 
 
+NOTIFICATION_KIND_TO_PAYLOAD_FACTORY: dict[
+    notifications_sch.NotificationKind, type[BaseModelFactory[Any]]
+] = {
+    notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1: InvitationAcceptanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V1: InvitationAcceptanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.ENROLLMENT_CREATED_V1: EnrollmentNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1: ClassroomNotificationPayloadFactory,
+    notifications_sch.NotificationKind.RECIPIENT_INVOICE_CREATED_V1: RecipientInvoiceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1: RecipientInvoiceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: PersistedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: RepeatedClassroomEventInstanceNotificationPayloadFactory,
+    notifications_sch.NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
+    notifications_sch.NotificationKind.CUSTOM_V1: CustomNotificationPayloadFactory,
+}
+
+
 class NotificationSimpleInputSchema(BaseModel):
     payload: notifications_sch.AnyNotificationPayloadSchema
 
@@ -102,24 +122,10 @@ class NotificationInputV2WithIdempotencyFactory(
     idempotency_expires_at = Use(BaseModelFactory.__faker__.future_datetime, tzinfo=UTC)
 
 
-class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):
-    __model__ = EmailConnection.InputSchema
-
-
-class TelegramConnectionInputMUBFactory(
-    BaseModelFactory[TelegramConnection.InputMUBSchema]
+class EmailDeliveryMethodInputFactory(
+    BaseModelFactory[EmailDeliveryMethod.InputSchema]
 ):
-    __model__ = TelegramConnection.InputMUBSchema
-
-
-class TelegramConnectionPatchMUBFactory(
-    BasePatchModelFactory[TelegramConnection.PatchMUBSchema]
-):
-    __model__ = TelegramConnection.PatchMUBSchema
-
-
-class TelegramMessageFactory(BaseModelFactory[TelegramMessageSchema]):
-    __model__ = TelegramMessageSchema
+    __model__ = EmailDeliveryMethod.InputSchema
 
 
 class UserContactInputFactory(BaseModelFactory[UserContact.InputSchema]):

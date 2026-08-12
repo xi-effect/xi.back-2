@@ -4,7 +4,10 @@ from pydantic import TypeAdapter
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import validate_external_json_response
 from app.common.config import settings
-from app.common.schemas.notifications_sch import NotificationInputV2Schema
+from app.common.schemas.notifications_sch import (
+    DeliveryMethodKind,
+    NotificationInputV2Schema,
+)
 from app.common.schemas.user_contacts_sch import UserContactSchema
 
 
@@ -27,13 +30,13 @@ class NotificationsBridge(BaseBridge):
         )
 
     @validate_external_json_response()
-    async def create_or_update_email_connection(
+    async def create_or_update_email_delivery_method(
         self,
         user_id: int,
         email: str,
     ) -> Response:
         return await self.client.put(
-            f"/users/{user_id}/email-connection/",
+            f"/users/{user_id}/delivery-methods/{DeliveryMethodKind.EMAIL}/",
             json={"email": email},
         )
 

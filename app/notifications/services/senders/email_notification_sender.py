@@ -2,7 +2,7 @@ import logging
 
 from app.common.config_bdg import pochta_bridge
 from app.common.schemas.pochta_sch import EmailMessageInputSchema
-from app.notifications.models.email_connections_db import EmailConnection
+from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.notifications_db import Notification
 from app.notifications.services.adapters.email_message_adapter import (
     NotificationToEmailMessageAdapter,
@@ -21,11 +21,14 @@ class EmailNotificationSender(BaseNotificationSender):
         ).adapt()
 
     async def send_notification(self, recipient_user_id: int) -> None:
-        email_connection = await EmailConnection.find_first_by_id(recipient_user_id)
+        delivery_method = await EmailDeliveryMethod.find_first_active_by_delivery_route(
+            user_id=recipient_user_id,
+            notification_category=self.notification_category,
+        )
 
-        if email_connection is None:
+        if delivery_method is None:
             logging.error(
-                f"User {recipient_user_id} has no email connections",
+                f"User {recipient_user_id} has no active email delivery methods",
                 extra={
                     "notification_id": self.notification.id,
                     "recipient_user_id": recipient_user_id,
@@ -36,6 +39,6 @@ class EmailNotificationSender(BaseNotificationSender):
         await pochta_bridge.send_email_message(
             EmailMessageInputSchema(
                 payload=self.email_message_payload,
-                recipient_emails=[email_connection.email],
+                recipient_emails=[delivery_method.email],
             )
         )

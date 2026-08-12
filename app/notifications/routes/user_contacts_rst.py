@@ -19,7 +19,7 @@ router = APIRouterExt(tags=["user contacts"])
     summary="List all contacts for the current user",
 )
 async def list_user_contacts(auth_data: AuthorizationData) -> Sequence[UserContact]:
-    return await UserContact.find_all_by_user(user_id=auth_data.user_id)
+    return await UserContact.find_all_by_user_id(user_id=auth_data.user_id)
 
 
 @router.put(

@@ -1,11 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.notifications.config import telegram_app
+from app.notifications.models.delivery_methods_db import TelegramDeliveryMethod
 from app.notifications.models.notifications_db import Notification
-from app.notifications.models.telegram_connections_db import (
-    TelegramConnection,
-    TelegramConnectionStatus,
-)
 from app.notifications.services.adapters.telegram_message_adapter import (
     NotificationToTelegramMessageAdapter,
 )
@@ -23,15 +20,17 @@ class TelegramNotificationSender(BaseNotificationSender):
         ).adapt()
 
     async def send_notification(self, recipient_user_id: int) -> None:
-        telegram_connection = await TelegramConnection.find_first_by_user_id_and_status(
-            user_id=recipient_user_id,
-            allowed_statuses=[TelegramConnectionStatus.ACTIVE],
+        delivery_method = (
+            await TelegramDeliveryMethod.find_first_active_by_delivery_route(
+                user_id=recipient_user_id,
+                notification_category=self.notification_category,
+            )
         )
-        if telegram_connection is None:
+        if delivery_method is None:
             return
 
         await telegram_app.bot.send_message(
-            chat_id=telegram_connection.chat_id,
+            chat_id=delivery_method.peer_id,
             text=self.telegram_message_payload.message_text,
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
