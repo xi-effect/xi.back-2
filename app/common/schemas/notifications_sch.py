@@ -1,7 +1,10 @@
 from enum import StrEnum, auto
 from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
+
+from app.common.schemas.classrooms_sch import ClassroomRole
 
 
 class NotificationKind(StrEnum):
@@ -14,6 +17,18 @@ class NotificationKind(StrEnum):
 
     RECIPIENT_INVOICE_CREATED_V1 = auto()
     STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1 = auto()
+
+    SINGLE_CLASSROOM_EVENT_CREATED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1 = auto()  # TODO add `PERSISTED_` for V2
+    CLASSROOM_EVENT_INSTANCE_CANCELLED_V1 = auto()
+    CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
+
+    REPEATING_CLASSROOM_EVENT_CREATED_V1 = auto()
+    CLASSROOM_EVENT_REPETITION_UPDATED_V1 = auto()
+    CLASSROOM_EVENT_REPETITION_CANCELLED_V1 = auto()
+
+    PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
+    REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
 
     CUSTOM_V1 = auto()
 
@@ -51,6 +66,37 @@ class RecipientInvoiceNotificationPayloadSchema(BaseModel):
     recipient_invoice_id: int
 
 
+class PersistedClassroomEventInstanceNotificationPayloadSchema(BaseModel):
+    kind: Literal[
+        NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1,
+        NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
+        NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
+        NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,
+    ]
+
+    classroom_id: int
+    event_instance_id: UUID
+
+
+class RepeatedClassroomEventInstanceNotificationPayloadSchema(BaseModel):
+    kind: Literal[NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,]
+
+    classroom_id: int
+    repetition_mode_id: UUID
+    instance_index: int
+
+
+class ClassroomScheduleFocusNotificationPayloadSchema(BaseModel):
+    kind: Literal[
+        NotificationKind.REPEATING_CLASSROOM_EVENT_CREATED_V1,
+        NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1,
+        NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1,
+    ]
+
+    classroom_id: int
+    focused_at: AwareDatetime
+
+
 class CustomNotificationPayloadSchema(BaseModel):
     kind: Literal[NotificationKind.CUSTOM_V1]
 
@@ -67,11 +113,51 @@ AnyNotificationPayloadSchema = Annotated[
     | EnrollmentNotificationPayloadSchema
     | ClassroomNotificationPayloadSchema
     | RecipientInvoiceNotificationPayloadSchema
+    | PersistedClassroomEventInstanceNotificationPayloadSchema
+    | RepeatedClassroomEventInstanceNotificationPayloadSchema
+    | ClassroomScheduleFocusNotificationPayloadSchema
     | CustomNotificationPayloadSchema,
     Field(discriminator="kind"),
 ]
 
 
-class NotificationInputSchema(BaseModel):
+class RecipientKind(StrEnum):
+    SINGLE_USER = auto()
+    CLASSROOM_PARTICIPANT = auto()
+
+
+class SingleUserRecipientFilterSchema(BaseModel):
+    kind: Literal[RecipientKind.SINGLE_USER] = RecipientKind.SINGLE_USER
+
+    user_id: int
+
+
+class ClassroomParticipantRecipientFilterSchema(BaseModel):
+    kind: Literal[RecipientKind.CLASSROOM_PARTICIPANT] = (
+        RecipientKind.CLASSROOM_PARTICIPANT
+    )
+
+    classroom_id: int
+    role: ClassroomRole | None
+
+
+AnyRecipientFilterSchema = Annotated[
+    SingleUserRecipientFilterSchema | ClassroomParticipantRecipientFilterSchema,
+    Field(discriminator="kind"),
+]
+
+
+IdempotencyKeyType = Annotated[str | None, Field(min_length=1, max_length=100)]
+
+
+class NotificationInputV2Schema(BaseModel):
     payload: AnyNotificationPayloadSchema
-    recipient_user_ids: Annotated[list[int], Field(min_length=1, max_length=100)]
+    recipient_filters: Annotated[
+        list[AnyRecipientFilterSchema],
+        Field(min_length=1, max_length=100),
+    ]
+    idempotency_key: IdempotencyKeyType = None
+    idempotency_expires_at: AwareDatetime | None = None
+
+
+# TODO (?) add recipient logic to payload instead?

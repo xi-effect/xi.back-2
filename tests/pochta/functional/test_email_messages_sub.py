@@ -79,6 +79,11 @@ pytestmark = pytest.mark.anyio
             factories.RecipientInvoiceNotificationEmailMessagePayloadFactory,
             id="student_recipient_invoice_payment_confirmed_v1",
         ),
+        pytest.param(
+            EmailMessageKind.UNIVERSAL_V3,
+            factories.UniversalEmailMessagePayloadFactory,
+            id="universal_v3",
+        ),
     ],
 )
 async def test_email_message_sending(

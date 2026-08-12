@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field, TypeAdapter
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime
+from sqlalchemy import DateTime, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -36,6 +36,21 @@ class Notification(Base):
         PydanticJSONType(TypeAdapter(AnyNotificationPayloadSchema))
     )
 
+    idempotency_key: Mapped[str | None] = mapped_column(String(100))
+    idempotency_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
+
+    __table_args__ = (
+        Index(
+            "unique_index_notifications_idempotency",
+            idempotency_key,
+            unique=True,
+            postgresql_where=idempotency_key.is_not(None),
+        ),
+    )
+
     ResponseSchema = MappedModel.create(
         columns=[
             id,
@@ -43,3 +58,22 @@ class Notification(Base):
             (payload, AnyNotificationPayloadSchema),
         ]
     )
+
+    @classmethod
+    async def is_idempotency_violated(cls, idempotency_key: str | None) -> bool:
+        if idempotency_key is None:
+            return False
+
+        result = await cls.find_first_by_kwargs(idempotency_key=idempotency_key)
+        if result is None:
+            return False
+
+        if (
+            result.idempotency_expires_at is not None
+            and result.idempotency_expires_at < datetime_utc_now()
+        ):
+            result.idempotency_key = None
+            result.idempotency_expires_at = None
+            return False
+
+        return True

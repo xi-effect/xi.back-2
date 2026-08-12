@@ -9,10 +9,12 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
     RecipientInvoiceNotificationPayloadSchema,
+    SingleUserRecipientFilterSchema,
 )
 from app.common.utils.datetime import datetime_utc_now
 from app.invoices.models.invoice_items_db import InvoiceItem
@@ -63,7 +65,8 @@ async def test_invoice_creation(
     )
 
     classroom_bridge_mock = classrooms_respx_mock.get(
-        path=f"/classrooms/{classroom_id}/students/"
+        path=f"/classrooms/{classroom_id}/participant-ids/",
+        params={"role": ClassroomRole.STUDENT},
     ).respond(json=[student_id, other_student_id])
 
     invoice_id: int = assert_response(
@@ -123,12 +126,16 @@ async def test_invoice_creation(
     send_notification_mock.assert_has_awaits(
         [
             call(
-                NotificationInputSchema(
+                NotificationInputV2Schema(
                     payload=RecipientInvoiceNotificationPayloadSchema(
                         kind=NotificationKind.RECIPIENT_INVOICE_CREATED_V1,
                         recipient_invoice_id=recipient_invoice.id,
                     ),
-                    recipient_user_ids=[recipient_invoice.student_id],
+                    recipient_filters=[
+                        SingleUserRecipientFilterSchema(
+                            user_id=recipient_invoice.student_id
+                        ),
+                    ],
                 )
             )
             for recipient_invoice in student_id_to_recipient_invoice.values()
@@ -148,7 +155,8 @@ async def test_invoice_creation_student_not_found(
     classroom_id: int,
 ) -> None:
     classroom_bridge_mock = classrooms_respx_mock.get(
-        path=f"/classrooms/{classroom_id}/students/"
+        path=f"/classrooms/{classroom_id}/participant-ids/",
+        params={"role": ClassroomRole.STUDENT},
     ).respond(json=[])
 
     assert_response(

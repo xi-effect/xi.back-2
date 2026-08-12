@@ -1,13 +1,16 @@
 import asyncio
 
+import sentry_sdk
 from faststream.redis import RedisRouter
 
 from app.common.config import settings
 from app.common.faststream_ext import build_stream_sub
-from app.common.schemas.notifications_sch import NotificationInputSchema
+from app.common.schemas.notifications_sch import NotificationInputV2Schema
+from app.common.sqlalchemy_ext import db
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sio import NewNotificationEmitter
+from app.notifications.services import recipients_svc
 from app.notifications.services.senders import (
     email_notification_sender,
     platform_notification_sender,
@@ -22,15 +25,30 @@ router = RedisRouter()
         stream_name=settings.notifications_send_stream_name,
         service_name="notification-service",
     ),
-    # TODO handle exceptions (retry?)
+    # TODO (197) handle exceptions
 )
 async def send_notification(
     emitter: NewNotificationEmitter,
-    data: NotificationInputSchema,
+    data: NotificationInputV2Schema,
 ) -> None:
-    recipient_user_ids = list(set(data.recipient_user_ids))
+    if await Notification.is_idempotency_violated(idempotency_key=data.idempotency_key):
+        # TODO (197) catch the integrity error instead
+        return
 
-    notification = await Notification.create(payload=data.payload)
+    recipient_user_ids = (
+        await recipients_svc.generate_recipient_user_ids_for_notification(
+            notification_data=data,
+        )
+    )
+
+    if len(recipient_user_ids) == 0:
+        return
+
+    notification = await Notification.create(
+        payload=data.payload,
+        idempotency_key=data.idempotency_key,
+        idempotency_expires_at=data.idempotency_expires_at,
+    )
 
     await RecipientNotification.create_batch(
         {
@@ -40,7 +58,11 @@ async def send_notification(
         for recipient_user_id in recipient_user_ids
     )
 
-    await asyncio.gather(
+    await db.session.commit()
+    # TODO (197) the commit is here to ensure idempotency, but that's not reliable
+    #   in future split this into multiple events (first save to db, then send)
+
+    results = await asyncio.gather(
         *platform_notification_sender.PlatformNotificationSender(
             notification=notification,
             emitter=emitter,
@@ -51,5 +73,10 @@ async def send_notification(
         *telegram_notification_sender.TelegramNotificationSender(
             notification=notification,
         ).generate_tasks(recipient_user_ids=recipient_user_ids),
-        # TODO handle partial failure with `return_exceptions=True`
+        return_exceptions=True,
     )
+
+    for result in results:
+        if result is None:
+            continue
+        sentry_sdk.capture_exception(result)

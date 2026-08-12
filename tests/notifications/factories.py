@@ -1,3 +1,6 @@
+from datetime import UTC
+
+from polyfactory import Use
 from pydantic import BaseModel
 
 from app.common.schemas import notifications_sch
@@ -32,6 +35,32 @@ class RecipientInvoiceNotificationPayloadFactory(
     __model__ = notifications_sch.RecipientInvoiceNotificationPayloadSchema
 
 
+class PersistedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ]
+):
+    __model__ = (
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    )
+
+
+class RepeatedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    ]
+):
+    __model__ = (
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    )
+
+
+class ClassroomScheduleFocusNotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.ClassroomScheduleFocusNotificationPayloadSchema]
+):
+    __model__ = notifications_sch.ClassroomScheduleFocusNotificationPayloadSchema
+
+
 class CustomNotificationPayloadFactory(
     BaseModelFactory[notifications_sch.CustomNotificationPayloadSchema]
 ):
@@ -44,6 +73,33 @@ class NotificationSimpleInputSchema(BaseModel):
 
 class NotificationSimpleInputFactory(BaseModelFactory[NotificationSimpleInputSchema]):
     __model__ = NotificationSimpleInputSchema
+
+
+class SingleUserRecipientFilterFactory(
+    BaseModelFactory[notifications_sch.SingleUserRecipientFilterSchema]
+):
+    __model__ = notifications_sch.SingleUserRecipientFilterSchema
+
+
+class ClassroomParticipantRecipientFilterFactory(
+    BaseModelFactory[notifications_sch.ClassroomParticipantRecipientFilterSchema]
+):
+    __model__ = notifications_sch.ClassroomParticipantRecipientFilterSchema
+
+
+class NotificationInputV2Factory(
+    BaseModelFactory[notifications_sch.NotificationInputV2Schema]
+):
+    __model__ = notifications_sch.NotificationInputV2Schema
+
+
+class NotificationInputV2WithIdempotencyFactory(
+    BaseModelFactory[notifications_sch.NotificationInputV2Schema]
+):
+    __model__ = notifications_sch.NotificationInputV2Schema
+
+    idempotency_key = Use(BaseModelFactory.__faker__.pystr, min_chars=3)
+    idempotency_expires_at = Use(BaseModelFactory.__faker__.future_datetime, tzinfo=UTC)
 
 
 class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import sys
 from collections.abc import Iterable, Sequence
 from contextvars import ContextVar
@@ -53,6 +54,21 @@ class DBController:
 
     async def get_all(self, stmt: Select[Any] | ReturningInsert[Any]) -> Sequence[Any]:
         return (await self.session.execute(stmt)).scalars().all()
+
+    async def get_all_with_assumed_limit(
+        self,
+        stmt: Select[Any],
+        limit: int,
+    ) -> list[Any]:
+        result = list(await self.get_all(stmt.limit(limit)))
+
+        if len(result) == limit:
+            logging.error(
+                f"Reached the limit of {limit} in one query",
+                extra={"stmt": str(stmt)},
+            )
+
+        return result
 
     async def get_paginated(
         self, stmt: Select[Any], offset: int, limit: int

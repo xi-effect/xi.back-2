@@ -2629,6 +2629,23 @@ pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
 
 [[package]]
+name = "prometheus-client"
+version = "0.25.0"
+description = "Python client for the Prometheus monitoring system."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "prometheus_client-0.25.0-py3-none-any.whl", hash = "sha256:d5aec89e349a6ec230805d0df882f3807f74fd6c1a2fa86864e3c2279059fed1"},
+    {file = "prometheus_client-0.25.0.tar.gz", hash = "sha256:5e373b75c31afb3c86f1a52fa1ad470c9aace18082d39ec0d2f918d11cc9ba28"},
+]
+
+[package.extras]
+aiohttp = ["aiohttp"]
+django = ["django"]
+twisted = ["twisted"]
+
+[[package]]
 name = "propcache"
 version = "0.2.0"
 description = "Accelerated property cache"
@@ -3677,6 +3694,22 @@ anyio = ">=3.6.2,<5"
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
+name = "starlette-exporter"
+version = "0.23.0"
+description = "Prometheus metrics exporter for Starlette applications."
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "starlette_exporter-0.23.0-py3-none-any.whl", hash = "sha256:ea1a27f2aae48122931e2384a361a03e00261efbb4a665ce1ae2e46f29123d5e"},
+    {file = "starlette_exporter-0.23.0.tar.gz", hash = "sha256:f80998db2d4a3462808a9bce56950046b113d3fab6ec6c20cb6de4431d974969"},
+]
+
+[package.dependencies]
+prometheus-client = ">=0.12"
+starlette = ">=0.35"
+
+[[package]]
 name = "stevedore"
 version = "5.4.1"
 description = "Manage dynamic plugins for Python applications"
@@ -4276,4 +4309,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "~=3.12,<3.15"
-content-hash = "855178da1cdda866751889417cb42c114e1b9dba5d80c45ab2199bd7c1eb1a09"
+content-hash = "e61c08fe15b7619ca64347fc008f1be5c46dc645931330304fffaf68868d694b"

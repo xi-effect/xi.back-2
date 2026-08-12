@@ -11,6 +11,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
+from starlette_exporter import PrometheusMiddleware, handle_metrics
 from tmexio import AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
@@ -101,10 +102,18 @@ class FastStreamDatabaseSessionMiddleware(BaseMiddleware):
         self,
         call_next: Callable[[Any], Awaitable[Any]],
         msg: StreamMessage[Any],
-    ) -> Any:
-        async with sessionmaker.begin() as session:
+    ) -> Any:  # pragma: no cover
+        async with sessionmaker() as session:
             session_context.set(session)
-            return await call_next(msg)
+            try:
+                result = await call_next(msg)
+                if session.in_transaction():
+                    await session.commit()
+                return result
+            except Exception:
+                if session.in_transaction():
+                    await session.rollback()
+                raise
 
 
 faststream = RedisRouter(
@@ -142,6 +151,21 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+app.add_middleware(
+    PrometheusMiddleware,
+    group_paths=True,
+    app_name="xi.back-2",
+    prefix="fastapi",
+    skip_paths=["/metrics"],
+    labels={
+        "instance_name": settings.instance_name,
+        # TODO: Add these only to some metrics to save on series amount
+        #  `"x_user_id": from_header("X-User-ID")`,
+        #  `"x_session_id": from_header("X-Session-ID")`,
+    },
+)
+app.add_route("/metrics", handle_metrics)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

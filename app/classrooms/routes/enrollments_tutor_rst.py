@@ -12,8 +12,9 @@ from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import LimitedListResponses
 from app.common.schemas.notifications_sch import (
     EnrollmentNotificationPayloadSchema,
-    NotificationInputSchema,
+    NotificationInputV2Schema,
     NotificationKind,
+    SingleUserRecipientFilterSchema,
 )
 from app.common.schemas.users_sch import UserProfileWithIDSchema
 
@@ -85,13 +86,15 @@ async def add_classroom_student(
     )
 
     await notifications_bridge.send_notification(
-        NotificationInputSchema(
+        NotificationInputV2Schema(
             payload=EnrollmentNotificationPayloadSchema(
                 kind=NotificationKind.ENROLLMENT_CREATED_V1,
                 classroom_id=group_classroom.id,
                 student_id=tutorship.student_id,
             ),
-            recipient_user_ids=[tutorship.student_id],
+            recipient_filters=[
+                SingleUserRecipientFilterSchema(user_id=tutorship.student_id),
+            ],
         )
     )
 
