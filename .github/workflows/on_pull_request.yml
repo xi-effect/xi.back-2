@@ -2,6 +2,8 @@ name: On Pull Request (Development)
 
 on:
   pull_request:
+    branches-ignore:
+      - main
     types:
       - opened
       - reopened
@@ -11,8 +13,6 @@ on:
 
 jobs:
   namer:
-    if: ${{ github.event.pull_request.head.ref != 'staging' }}
-
     runs-on: ubuntu-latest
 
     outputs:

@@ -12,7 +12,7 @@ jobs:
     uses: ./.github/workflows/main.yml
     with:
       tag: back-2-${{ github.ref_name }}
-      base-tag: back-2-staging
+      base_tag: back-2-staging
       branch: ${{ github.ref_name }}
       commit_sha: ${{ github.sha }}
       check_coverage: true
