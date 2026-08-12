@@ -167,7 +167,5 @@ omit = [
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)
   "app/common/utils/bitwise.py",  # TODO (170)
-  "app/notifications/routes/notification_settings_rst.py",  # TODO remove deprecated methods completely
-  "app/notifications/routes/telegram_connections_rst.py",  # TODO remove deprecated methods completely
   "app/setup_ci.py",
 ]
