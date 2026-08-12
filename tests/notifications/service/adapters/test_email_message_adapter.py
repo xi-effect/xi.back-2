@@ -208,8 +208,8 @@ async def test_single_classroom_event_created_v1_adapting(
     notification_mock: Mock,
 ) -> None:
     notification_payload: (
-        notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
-    ) = factories.ClassroomEventInstanceNotificationPayloadFactory.build(
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ) = factories.PersistedClassroomEventInstanceNotificationPayloadFactory.build(
         kind=notifications_sch.NotificationKind.SINGLE_CLASSROOM_EVENT_CREATED_V1
     )
     notification_mock.payload = notification_payload
@@ -232,7 +232,6 @@ async def test_single_classroom_event_created_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -242,8 +241,8 @@ async def test_classroom_event_instance_rescheduled_v1_adapting(
     notification_mock: Mock,
 ) -> None:
     notification_payload: (
-        notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
-    ) = factories.ClassroomEventInstanceNotificationPayloadFactory.build(
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ) = factories.PersistedClassroomEventInstanceNotificationPayloadFactory.build(
         kind=notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1
     )
     notification_mock.payload = notification_payload
@@ -266,7 +265,6 @@ async def test_classroom_event_instance_rescheduled_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
         },
     )
@@ -276,8 +274,8 @@ async def test_classroom_event_instance_cancelled_v1_adapting(
     notification_mock: Mock,
 ) -> None:
     notification_payload: (
-        notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
-    ) = factories.ClassroomEventInstanceNotificationPayloadFactory.build(
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ) = factories.PersistedClassroomEventInstanceNotificationPayloadFactory.build(
         kind=notifications_sch.NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1
     )
     notification_mock.payload = notification_payload
@@ -300,8 +298,74 @@ async def test_classroom_event_instance_cancelled_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "event_instance_id": [str(notification_payload.event_instance_id)],
+        },
+    )
+
+
+async def test_persisted_classroom_event_instance_reminder_v1_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ) = factories.PersistedClassroomEventInstanceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = NotificationToEmailMessageAdapter(
+        notification=notification_mock
+    )
+
+    result = email_notification_adapter.adapt()
+    assert isinstance(result, pochta_sch.UniversalEmailMessagePayloadSchema)
+
+    assert_universal_email_message_payload(
+        result,
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_THEME,
+        expected_pre_header=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_HEADER,
+        expected_content=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_CONTENT,
+        expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["schedule"],
+            "event_instance_id": [str(notification_payload.event_instance_id)],
+        },
+    )
+
+
+async def test_repeated_classroom_event_instance_reminder_v1_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    ) = factories.RepeatedClassroomEventInstanceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = NotificationToEmailMessageAdapter(
+        notification=notification_mock
+    )
+
+    result = email_notification_adapter.adapt()
+    assert isinstance(result, pochta_sch.UniversalEmailMessagePayloadSchema)
+
+    assert_universal_email_message_payload(
+        result,
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_THEME,
+        expected_pre_header=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_HEADER,
+        expected_content=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_EMAIL_CONTENT,
+        expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["schedule"],
+            "repetition_mode_id": [str(notification_payload.repetition_mode_id)],
+            "instance_index": [str(notification_payload.instance_index)],
         },
     )
 
@@ -334,7 +398,6 @@ async def test_repeating_classroom_event_created_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )
@@ -368,7 +431,6 @@ async def test_classroom_event_repetition_updated_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )
@@ -402,7 +464,6 @@ async def test_classroom_event_repetition_cancelled_v1_adapting(
         expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
         expected_button_link_query={
             "tab": ["schedule"],
-            "role": ["student"],
             "focused_at": [notification_payload.focused_at.isoformat()],
         },
     )

@@ -1,3 +1,6 @@
+from datetime import UTC
+
+from polyfactory import Use
 from pydantic import BaseModel
 
 from app.common.schemas import notifications_sch
@@ -32,10 +35,24 @@ class RecipientInvoiceNotificationPayloadFactory(
     __model__ = notifications_sch.RecipientInvoiceNotificationPayloadSchema
 
 
-class ClassroomEventInstanceNotificationPayloadFactory(
-    BaseModelFactory[notifications_sch.ClassroomEventInstanceNotificationPayloadSchema]
+class PersistedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    ]
 ):
-    __model__ = notifications_sch.ClassroomEventInstanceNotificationPayloadSchema
+    __model__ = (
+        notifications_sch.PersistedClassroomEventInstanceNotificationPayloadSchema
+    )
+
+
+class RepeatedClassroomEventInstanceNotificationPayloadFactory(
+    BaseModelFactory[
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    ]
+):
+    __model__ = (
+        notifications_sch.RepeatedClassroomEventInstanceNotificationPayloadSchema
+    )
 
 
 class ClassroomScheduleFocusNotificationPayloadFactory(
@@ -74,6 +91,15 @@ class NotificationInputV2Factory(
     BaseModelFactory[notifications_sch.NotificationInputV2Schema]
 ):
     __model__ = notifications_sch.NotificationInputV2Schema
+
+
+class NotificationInputV2WithIdempotencyFactory(
+    BaseModelFactory[notifications_sch.NotificationInputV2Schema]
+):
+    __model__ = notifications_sch.NotificationInputV2Schema
+
+    idempotency_key = Use(BaseModelFactory.__faker__.pystr, min_chars=3)
+    idempotency_expires_at = Use(BaseModelFactory.__faker__.future_datetime, tzinfo=UTC)
 
 
 class EmailConnectionInputFactory(BaseModelFactory[EmailConnection.InputSchema]):

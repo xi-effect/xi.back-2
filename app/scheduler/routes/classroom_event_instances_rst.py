@@ -7,10 +7,10 @@ from app.common.config_bdg import notifications_bridge
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
-    ClassroomEventInstanceNotificationPayloadSchema,
     ClassroomParticipantRecipientFilterSchema,
     NotificationInputV2Schema,
     NotificationKind,
+    PersistedClassroomEventInstanceNotificationPayloadSchema,
 )
 from app.common.utils.datetime import datetime_utc_now
 from app.scheduler.dependencies.event_instances_dep import (
@@ -240,7 +240,7 @@ async def reschedule_persisted_classroom_event_instance(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=ClassroomEventInstanceNotificationPayloadSchema(
+            payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
                 classroom_id=classroom_event.classroom_id,
                 event_instance_id=event_instance.id,
@@ -293,7 +293,7 @@ async def reschedule_repeated_classroom_event_instance(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=ClassroomEventInstanceNotificationPayloadSchema(
+            payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1,
                 classroom_id=classroom_event.classroom_id,
                 event_instance_id=event_instance.id,
@@ -335,7 +335,7 @@ async def cancel_persisted_classroom_event_instance(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=ClassroomEventInstanceNotificationPayloadSchema(
+            payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
                 classroom_id=classroom_event.classroom_id,
                 event_instance_id=event_instance.id,
@@ -385,7 +385,7 @@ async def cancel_repeated_classroom_event_instance(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=ClassroomEventInstanceNotificationPayloadSchema(
+            payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                 kind=NotificationKind.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1,
                 classroom_id=classroom_event.classroom_id,
                 event_instance_id=event_instance.id,

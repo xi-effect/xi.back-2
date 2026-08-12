@@ -1,22 +1,19 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, assert_never, cast
 from uuid import UUID
 
 from fastapi import Path
 from pydantic import AwareDatetime
-from sqlalchemy import and_, or_, select, tuple_
+from sqlalchemy import SQLColumnExpression, and_, or_, select, tuple_
 from sqlalchemy.orm import raiseload
 
 from app.common.config_bdg import classrooms_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.sqlalchemy_ext import db
-from app.scheduler.dependencies.events_dep import (
-    EventTimeFrameQuery,
-    EventTimeFrameSchema,
-)
+from app.scheduler.dependencies.events_dep import EventTimeFrameQuery
 from app.scheduler.models.event_instances_db import (
     AnyEventInstance,
     EventInstance,
@@ -41,28 +38,39 @@ router = APIRouterExt(tags=["classroom schedules"])
 
 
 async def get_repetition_modes_in_range(
-    classroom_ids: list[int],
-    happens_after: datetime,
-    happens_before: datetime,
+    classroom_ids: list[int] | None,
+    happens_after_utc: datetime,
+    happens_before_utc: datetime,
+    use_start_time_conditions: bool,
 ) -> list[RepetitionMode]:
+    filters_and: list[SQLColumnExpression[bool]] = [
+        or_(
+            *(
+                and_(
+                    *klass.iter_in_range_conditions(
+                        happens_after_utc=happens_after_utc,
+                        happens_before_utc=happens_before_utc,
+                    )
+                )
+                for klass in ConcreteRepetitionModeClasses
+            )
+        ),
+    ]
+    if use_start_time_conditions:
+        filters_and.extend(
+            RepetitionMode.iter_start_time_conditions(
+                happens_after_utc=happens_after_utc,
+                happens_before_utc=happens_before_utc,
+            )
+        )
+    if classroom_ids is not None:
+        filters_and.append(ClassroomEvent.classroom_id.in_(classroom_ids))
+
     return await db.get_all_with_assumed_limit(
         select(RepetitionMode)
         .options(raiseload(RepetitionMode.event))
         .join(ClassroomEvent)
-        .filter(
-            ClassroomEvent.classroom_id.in_(classroom_ids),
-            or_(
-                *(
-                    and_(
-                        *klass.iter_in_range_conditions(
-                            happens_after=happens_after,
-                            happens_before=happens_before,
-                        )
-                    )
-                    for klass in ConcreteRepetitionModeClasses
-                )
-            ),
-        ),
+        .filter(*filters_and),
         limit=1000,
     )
 
@@ -82,8 +90,9 @@ class VirtualRepeatedEventInstanceValueData:
 
 def iter_virtual_repeated_event_instances_in_range(
     repetition_modes: list[RepetitionMode],
-    happens_after: datetime,
-    happens_before: datetime,
+    happens_after_utc: datetime,
+    happens_before_utc: datetime,
+    include_already_started_instances: bool,
 ) -> Iterator[
     tuple[
         VirtualRepeatedEventInstanceKeyData,
@@ -108,30 +117,40 @@ def iter_virtual_repeated_event_instances_in_range(
                 instance_index,
                 starts_at,
             ) in repetition_mode.iter_event_instances_in_range(
-                happens_after=happens_after,
-                happens_before=happens_before,
+                happens_after_utc=happens_after_utc,
+                happens_before_utc=happens_before_utc,
+                include_already_started_instances=include_already_started_instances,
             )
         )
 
 
 async def get_event_instances_in_range(
-    classroom_ids: list[int],
-    happens_after: datetime,
-    happens_before: datetime,
+    classroom_ids: list[int] | None,
+    happens_after_utc: datetime,
+    happens_before_utc: datetime,
     virtual_repeated_instance_keys: list[VirtualRepeatedEventInstanceKeyData],
+    include_already_started_instances: bool,
 ) -> list[AnyEventInstance]:
     filters_or = [
         and_(
             RepeatedEventInstance.kind == EventInstanceKind.SOLE,
-            SoleEventInstance.starts_at <= happens_before,
-            SoleEventInstance.ends_at > happens_after,
+            SoleEventInstance.starts_at <= happens_before_utc,
+            (
+                SoleEventInstance.ends_at > happens_after_utc
+                if include_already_started_instances
+                else SoleEventInstance.starts_at > happens_after_utc
+            ),
         ),
         and_(
             RepeatedEventInstance.kind == EventInstanceKind.REPEATED,
             RepeatedEventInstance.starts_at_override.is_not(None),
             RepeatedEventInstance.ends_at_override.is_not(None),
-            RepeatedEventInstance.starts_at_override <= happens_before,
-            RepeatedEventInstance.ends_at_override > happens_after,
+            RepeatedEventInstance.starts_at_override <= happens_before_utc,
+            (
+                RepeatedEventInstance.ends_at_override > happens_after_utc
+                if include_already_started_instances
+                else RepeatedEventInstance.starts_at_override > happens_after_utc
+            ),
         ),
     ]
     if len(virtual_repeated_instance_keys) > 0:
@@ -150,6 +169,10 @@ async def get_event_instances_in_range(
             )
         )
 
+    filters_and = [or_(*filters_or)]
+    if classroom_ids is not None:
+        filters_and.append(ClassroomEvent.classroom_id.in_(classroom_ids))
+
     return cast(  # no good way to type this in SQLAlchemy
         list[AnyEventInstance],
         await db.get_all_with_assumed_limit(
@@ -160,16 +183,15 @@ async def get_event_instances_in_range(
                 #   Currently disabled for generating virtual event in `iter_persisted_repeated_event_instances`
             )
             .join(ClassroomEvent)
-            .filter(
-                ClassroomEvent.classroom_id.in_(classroom_ids),
-                or_(*filters_or),
-            ),
+            .filter(*filters_and),
             limit=1000,
         ),
     )
 
 
-class ScheduleResponseSchemaAdapter:
+class BaseEventInstanceListAdapter:
+    # TODO (170) this is named badly, redo it
+
     def __init__(
         self,
         events_by_id: dict[int, ClassroomEvent],
@@ -191,6 +213,8 @@ class ScheduleResponseSchemaAdapter:
             persisted_repeated_event_instance_keys
         )
 
+
+class ScheduleResponseSchemaAdapter(BaseEventInstanceListAdapter):
     def iter_sole_event_instances(self) -> Iterator[SoleEventInstanceResponseSchema]:
         for sole_event_instance in self.sole_event_instances:
             event = self.events_by_id[sole_event_instance.event_id]
@@ -288,14 +312,22 @@ class ScheduleResponseSchemaAdapter:
         return list(self.iter_event_instances())
 
 
-async def list_classroom_event_instances(
-    classroom_ids: list[int],
-    time_frame: EventTimeFrameSchema,
-) -> list[EventInstanceResponseSchema]:
+async def build_classroom_schedule_adapter[T: BaseEventInstanceListAdapter](
+    adapter_type: type[T],
+    classroom_ids: list[int] | None,
+    happens_after: AwareDatetime,
+    happens_before: AwareDatetime,
+    use_start_time_conditions: bool = False,
+    include_already_started_instances: bool = True,
+) -> T:
+    happens_after_utc = happens_after.astimezone(tz=timezone.utc)
+    happens_before_utc = happens_before.astimezone(tz=timezone.utc)
+
     repetition_modes = await get_repetition_modes_in_range(
         classroom_ids=classroom_ids,
-        happens_after=time_frame.happens_after,
-        happens_before=time_frame.happens_before,
+        happens_after_utc=happens_after_utc,
+        happens_before_utc=happens_before_utc,
+        use_start_time_conditions=use_start_time_conditions,
     )
 
     virtual_repeated_instances_by_id: dict[
@@ -304,16 +336,18 @@ async def list_classroom_event_instances(
     ] = dict(
         iter_virtual_repeated_event_instances_in_range(
             repetition_modes=repetition_modes,
-            happens_after=time_frame.happens_after,
-            happens_before=time_frame.happens_before,
+            happens_after_utc=happens_after_utc,
+            happens_before_utc=happens_before_utc,
+            include_already_started_instances=include_already_started_instances,
         )
     )
 
     persisted_event_instances = await get_event_instances_in_range(
         classroom_ids=classroom_ids,
-        happens_after=time_frame.happens_after,
-        happens_before=time_frame.happens_before,
+        happens_after_utc=happens_after_utc,
+        happens_before_utc=happens_before_utc,
         virtual_repeated_instance_keys=list(virtual_repeated_instances_by_id.keys()),
+        include_already_started_instances=include_already_started_instances,
     )
 
     sole_event_instances: list[SoleEventInstance] = []
@@ -324,8 +358,8 @@ async def list_classroom_event_instances(
             case SoleEventInstance():
                 if (
                     persisted_event_instance.cancelled_at is not None
-                    or persisted_event_instance.starts_at > time_frame.happens_before
-                    or persisted_event_instance.ends_at <= time_frame.happens_after
+                    or persisted_event_instance.starts_at > happens_before_utc
+                    or persisted_event_instance.ends_at <= happens_after_utc
                 ):
                     continue
                 sole_event_instances.append(persisted_event_instance)
@@ -335,12 +369,12 @@ async def list_classroom_event_instances(
                     or (
                         persisted_event_instance.starts_at_override is not None
                         and persisted_event_instance.starts_at_override
-                        > time_frame.happens_before
+                        > happens_before_utc
                     )
                     or (
                         persisted_event_instance.ends_at_override is not None
                         and persisted_event_instance.ends_at_override
-                        <= time_frame.happens_after
+                        <= happens_after_utc
                     )
                 ):
                     virtual_repeated_instances_by_id.pop(
@@ -395,13 +429,13 @@ async def list_classroom_event_instances(
             )
         }
 
-    return ScheduleResponseSchemaAdapter(
+    return adapter_type(
         events_by_id=events_by_id,
         virtual_repeated_instances_by_id=virtual_repeated_instances_by_id,
         sole_event_instances=sole_event_instances,
         persisted_repeated_event_instances=persisted_repeated_event_instances,
         persisted_repeated_event_instance_keys=persisted_repeated_event_instance_keys,
-    ).adapt()
+    )
 
 
 @router.get(
@@ -416,10 +450,15 @@ async def retrieve_classroom_schedule(
     classroom_id: Annotated[int, Path()],
     time_frame: EventTimeFrameQuery,
 ) -> list[EventInstanceResponseSchema]:
-    return await list_classroom_event_instances(
-        classroom_ids=[classroom_id],
-        time_frame=time_frame,
+    schedule_adapter: ScheduleResponseSchemaAdapter = (
+        await build_classroom_schedule_adapter(
+            classroom_ids=[classroom_id],
+            happens_after=time_frame.happens_after,
+            happens_before=time_frame.happens_before,
+            adapter_type=ScheduleResponseSchemaAdapter,
+        )
     )
+    return schedule_adapter.adapt()
 
 
 @router.get(
@@ -430,12 +469,17 @@ async def retrieve_tutor_schedule(
     auth_data: AuthorizationData,
     time_frame: EventTimeFrameQuery,
 ) -> list[EventInstanceResponseSchema]:
-    return await list_classroom_event_instances(
-        classroom_ids=await classrooms_bridge.list_tutor_classroom_ids(
-            tutor_id=auth_data.user_id
-        ),
-        time_frame=time_frame,
+    schedule_adapter: ScheduleResponseSchemaAdapter = (
+        await build_classroom_schedule_adapter(
+            classroom_ids=await classrooms_bridge.list_tutor_classroom_ids(
+                tutor_id=auth_data.user_id
+            ),
+            happens_after=time_frame.happens_after,
+            happens_before=time_frame.happens_before,
+            adapter_type=ScheduleResponseSchemaAdapter,
+        )
     )
+    return schedule_adapter.adapt()
 
 
 @router.get(
@@ -446,9 +490,14 @@ async def retrieve_student_schedule(
     auth_data: AuthorizationData,
     time_frame: EventTimeFrameQuery,
 ) -> list[EventInstanceResponseSchema]:
-    return await list_classroom_event_instances(
-        classroom_ids=await classrooms_bridge.list_student_classroom_ids(
-            student_id=auth_data.user_id
-        ),
-        time_frame=time_frame,
+    schedule_adapter: ScheduleResponseSchemaAdapter = (
+        await build_classroom_schedule_adapter(
+            classroom_ids=await classrooms_bridge.list_student_classroom_ids(
+                student_id=auth_data.user_id
+            ),
+            happens_after=time_frame.happens_after,
+            happens_before=time_frame.happens_before,
+            adapter_type=ScheduleResponseSchemaAdapter,
+        )
     )
+    return schedule_adapter.adapt()

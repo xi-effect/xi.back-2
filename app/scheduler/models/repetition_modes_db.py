@@ -19,7 +19,10 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     SQLColumnExpression,
+    Time,
+    and_,
     delete,
+    func,
     or_,
     select,
 )
@@ -76,8 +79,11 @@ class RepetitionMode(Base):
         "with_polymorphic": "*",  # `polymorphic_load: inline` doesn't work in complex queries for some reason
     }
 
+    starts_at_utc_time = func.cast(func.timezone("UTC", starts_at), Time)
+
     __table_args__ = (
         Index("index_repetition_modes_kind_and_interval", kind, starts_at, ends_at),
+        Index("index_repetition_modes_starts_at_utc_time", starts_at_utc_time),
     )
 
     @property
@@ -134,12 +140,28 @@ class RepetitionMode(Base):
     @classmethod
     def iter_in_range_conditions(
         cls,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
     ) -> Iterator[SQLColumnExpression[bool]]:
         yield cls.kind == cls.__mapper__.polymorphic_identity
-        yield cls.starts_at <= happens_before
-        yield or_(cls.is_finite.is_(False), cls.ends_at > happens_after)
+        yield cls.starts_at <= happens_before_utc
+        yield or_(cls.is_finite.is_(False), cls.ends_at > happens_after_utc)
+
+    @classmethod
+    def iter_start_time_conditions(
+        cls,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
+    ) -> Iterator[SQLColumnExpression[bool]]:
+        if happens_before_utc - happens_after_utc >= timedelta(days=1):
+            return
+
+        happens_after_utc_time = happens_after_utc.time()
+        happens_before_utc_time = happens_before_utc.time()
+        yield (and_ if happens_after_utc_time <= happens_before_utc_time else or_)(
+            cls.starts_at_utc_time >= happens_after_utc_time,
+            cls.starts_at_utc_time < happens_before_utc_time,
+        )
 
     def calculate_event_instance_starts_at_for_index(
         self,
@@ -171,33 +193,41 @@ class RepetitionMode(Base):
 
     def get_starts_at_bounds_in_range(
         self,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
+        include_already_started_instances: bool = True,
     ) -> tuple[datetime, datetime]:
-        if self.starts_at > happens_after - self.event_instance_duration:
+        if include_already_started_instances:
+            happens_after_utc = happens_after_utc - self.event_instance_duration
+
+        if self.starts_at > happens_after_utc:
             starts_at_lower_bound = self.starts_at
         else:
             starts_at_lower_bound = datetime.combine(
-                happens_after.astimezone(timezone.utc).date(),
+                happens_after_utc.date(),
                 self.starts_at.time(),
                 self.starts_at.tzinfo,
             )
-            if starts_at_lower_bound + self.event_instance_duration <= happens_after:
+            if starts_at_lower_bound <= happens_after_utc:
                 # TODO use bitmask's unit instead of `days=1`
                 #   or just implement "skipping" the first starts at
+                # TODO recheck if `happens_after_utc.date()` works after
+                #   using the bitmask's unit here (it does for units >= `days=1`),
+                #   because `include_already_started_instances` can change the date
                 starts_at_lower_bound += timedelta(days=1)
 
-        if self.is_finite and self.ends_at < happens_before:
+        if self.is_finite and self.ends_at < happens_before_utc:
             starts_at_upper_bound = self.ends_at
         else:
-            starts_at_upper_bound = happens_before
+            starts_at_upper_bound = happens_before_utc
 
         return starts_at_lower_bound, starts_at_upper_bound
 
     def iter_event_instances_in_range(
         self,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
+        include_already_started_instances: bool,
     ) -> Iterator[tuple[int, datetime]]:
         """This method assumes, that the repetition mode is inside the range (checked on query level)"""
         raise NotImplementedError
@@ -229,12 +259,14 @@ class DailyRepetitionMode(RepetitionMode):
 
     def iter_event_instances_in_range(
         self,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
+        include_already_started_instances: bool,
     ) -> Iterator[tuple[int, datetime]]:
         current_starts_at, starts_at_upper_bound = self.get_starts_at_bounds_in_range(
-            happens_after=happens_after,
-            happens_before=happens_before,
+            happens_after_utc=happens_after_utc,
+            happens_before_utc=happens_before_utc,
+            include_already_started_instances=include_already_started_instances,
         )
         current_event_instance_index: int = (
             self.calculate_event_instance_index_for_starts_at(
@@ -266,21 +298,21 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
     @classmethod
     def iter_in_range_conditions(
         cls,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
     ) -> Iterator[SQLColumnExpression[bool]]:
         yield from super().iter_in_range_conditions(
-            happens_after=happens_after,
-            happens_before=happens_before,
+            happens_after_utc=happens_after_utc,
+            happens_before_utc=happens_before_utc,
         )
 
         if (
-            happens_before - happens_after
+            happens_before_utc - happens_after_utc
             < (cls.bitmask_type.size - 1) * cls.bitmask_type.unit_duration
         ):
             interval_bitmask = cls.bitmask_type.build_continuous(
-                start_timestamp=happens_after.astimezone(timezone.utc),
-                end_timestamp=happens_before.astimezone(timezone.utc),
+                start_timestamp=happens_after_utc,
+                end_timestamp=happens_before_utc,
             )
             yield cls.get_combined_bitmask_field().bitwise_and(
                 interval_bitmask.value
@@ -358,12 +390,14 @@ class BitMaskedRepeatingRepetitionMode(RepetitionMode):
 
     def iter_event_instances_in_range(
         self,
-        happens_after: datetime,
-        happens_before: datetime,
+        happens_after_utc: datetime,
+        happens_before_utc: datetime,
+        include_already_started_instances: bool,
     ) -> Iterator[tuple[int, datetime]]:
         current_starts_at, starts_at_upper_bound = self.get_starts_at_bounds_in_range(
-            happens_after=happens_after,
-            happens_before=happens_before,
+            happens_after_utc=happens_after_utc,
+            happens_before_utc=happens_before_utc,
+            include_already_started_instances=include_already_started_instances,
         )
 
         current_event_instance_index: int | None = None
