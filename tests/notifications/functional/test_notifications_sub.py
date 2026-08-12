@@ -38,7 +38,10 @@ pytestmark = pytest.mark.anyio
 
 @pytest.fixture()
 async def notification_data_no_idempotency() -> NotificationInputV2Schema:
-    return factories.NotificationInputV2Factory.build()
+    return factories.NotificationInputV2Factory.build(
+        idempotency_key=None,
+        idempotency_expires_at=None,
+    )
 
 
 @pytest.fixture()
