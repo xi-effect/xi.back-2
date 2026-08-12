@@ -23,7 +23,10 @@ async def list_promocodes(
     limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> Sequence[Promocode]:
     return await Promocode.find_paginated_by_kwargs(
-        offset, limit, Promocode.created_at.desc()
+        offset,
+        limit,
+        Promocode.created_at.desc(),
+        Promocode.id.desc(),
     )
 
 

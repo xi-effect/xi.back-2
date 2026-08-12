@@ -30,7 +30,10 @@ async def promocodes(
             for i in range(PROMOCODES_LIST_SIZE)
         ]
 
-    promocodes.sort(key=lambda promocode: promocode.created_at, reverse=True)
+    promocodes.sort(
+        key=lambda promocode: (promocode.created_at, promocode.id),
+        reverse=True,
+    )
 
     yield promocodes
 
