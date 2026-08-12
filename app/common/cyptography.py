@@ -1,4 +1,6 @@
-from secrets import token_urlsafe
+from base64 import urlsafe_b64encode
+from collections.abc import Callable
+from secrets import token_bytes
 
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
 
@@ -21,9 +23,19 @@ class CryptographyProvider:
 
 
 class TokenGenerator:
-    def __init__(self, randomness: int, length: int) -> None:
+    def __init__(
+        self,
+        randomness: int,
+        length: int,
+        encoder: Callable[[bytes], bytes] | None = None,
+    ) -> None:
         self.token_randomness = randomness
         self.token_length = length
+        self.encoder: Callable[[bytes], bytes] = encoder or urlsafe_b64encode
 
     def generate_token(self) -> str:
-        return token_urlsafe(self.token_randomness)[: self.token_length]
+        return (
+            self.encoder(token_bytes(self.token_randomness))
+            .rstrip(b"=")
+            .decode("ascii")[: self.token_length]
+        )
