@@ -149,7 +149,7 @@ exclude_also = [
 ]
 
 omit = [
-  "alembic/*",
+  "migrations/*",
   "tests/*",
   "app/common/aiogram_ext.py",
   "app/common/cyptography.py",
