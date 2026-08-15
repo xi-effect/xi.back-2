@@ -8,6 +8,7 @@ from app.notifications.services.adapters.telegram_message_adapter import (
 )
 from app.notifications.services.senders.base_notification_sender import (
     BaseNotificationSender,
+    session_lock,
 )
 
 
@@ -20,12 +21,13 @@ class TelegramNotificationSender(BaseNotificationSender):
         ).adapt()
 
     async def send_notification(self, recipient_user_id: int) -> None:
-        delivery_method = (
-            await TelegramDeliveryMethod.find_first_active_by_delivery_route(
-                user_id=recipient_user_id,
-                notification_category=self.notification_category,
+        async with session_lock:
+            delivery_method = (
+                await TelegramDeliveryMethod.find_first_active_by_delivery_route(
+                    user_id=recipient_user_id,
+                    notification_category=self.notification_category,
+                )
             )
-        )
         if delivery_method is None:
             return
 

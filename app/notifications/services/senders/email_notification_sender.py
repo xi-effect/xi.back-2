@@ -1,5 +1,3 @@
-import logging
-
 from app.common.config_bdg import pochta_bridge
 from app.common.schemas.pochta_sch import EmailMessageInputSchema
 from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
@@ -9,6 +7,7 @@ from app.notifications.services.adapters.email_message_adapter import (
 )
 from app.notifications.services.senders.base_notification_sender import (
     BaseNotificationSender,
+    session_lock,
 )
 
 
@@ -21,19 +20,14 @@ class EmailNotificationSender(BaseNotificationSender):
         ).adapt()
 
     async def send_notification(self, recipient_user_id: int) -> None:
-        delivery_method = await EmailDeliveryMethod.find_first_active_by_delivery_route(
-            user_id=recipient_user_id,
-            notification_category=self.notification_category,
-        )
-
-        if delivery_method is None:
-            logging.error(
-                f"User {recipient_user_id} has no active email delivery methods",
-                extra={
-                    "notification_id": self.notification.id,
-                    "recipient_user_id": recipient_user_id,
-                },
+        async with session_lock:
+            delivery_method = (
+                await EmailDeliveryMethod.find_first_active_by_delivery_route(
+                    user_id=recipient_user_id,
+                    notification_category=self.notification_category,
+                )
             )
+        if delivery_method is None:
             return
 
         await pochta_bridge.send_email_message(

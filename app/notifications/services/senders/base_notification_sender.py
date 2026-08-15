@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Iterator
 
@@ -24,6 +25,9 @@ NOTIFICATION_KIND_TO_NOTIFICATION_CATEGORY: dict[
     NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: NotificationCategory.EVENT_REMINDERS,
     NotificationKind.CUSTOM_V1: None,
 }
+
+
+session_lock = asyncio.Lock()  # TODO (197) remove this band-aid after a proper fix
 
 
 class BaseNotificationSender(ABC):
