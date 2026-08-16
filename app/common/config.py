@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 
 import sentry_sdk
-from aiosmtplib import SMTP
 from cryptography.fernet import Fernet
 from pydantic import BaseModel, Field, PostgresDsn, RedisDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -43,15 +42,6 @@ class FernetSettings(BaseModel):
             if self.backup_key is None
             else [self.current_key, self.backup_key]
         )
-
-
-class EmailSettings(BaseModel):
-    hostname: str
-    username: str
-    password: str
-    port: int = 465
-    timeout: int = 20
-    use_tls: bool = True
 
 
 class TelegramBotSettings(BaseModel):
@@ -196,7 +186,6 @@ class Settings(BaseSettings):
     livekit_demo_base_url: str = "https://meet.livekit.io/custom"
 
     unisender_go_api_key: str | None = None
-    email: EmailSettings | None = None
 
     supbot: SupbotSettings | None = None
     telegram_notifications_bot: TelegramBotSettings | None = None
@@ -254,19 +243,6 @@ livekit = LiveKit(
     url=settings.livekit_url,
     api_key=settings.livekit_api_key,
     api_secret=settings.livekit_api_secret,
-)
-
-smtp_client: SMTP | None = (
-    None
-    if settings.email is None
-    else SMTP(
-        hostname=settings.email.hostname,
-        username=settings.email.username,
-        password=settings.email.password,
-        use_tls=settings.email.use_tls,
-        port=settings.email.port,
-        timeout=settings.email.timeout,
-    )
 )
 
 storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
