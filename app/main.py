@@ -38,11 +38,11 @@ from app.common.config import Base, engine, livekit, sessionmaker, settings, tme
 from app.common.config_bdg import all_bridges, datalake_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
+from app.common.socketio.rooms import user_room
+from app.common.socketio.store import user_id_to_sids
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
-from app.communities.rooms import user_room
-from app.communities.store import user_id_to_sids
 
 tmex.include_router(communities.event_router)
 tmex.include_router(messenger.event_router)

@@ -1,6 +1,7 @@
 import pytest
 from starlette import status
 
+from app.common.socketio.rooms import user_room
 from app.communities.models.communities_db import Community
 from app.communities.models.invitations_db import Invitation
 from app.communities.models.participants_db import Participant
@@ -8,7 +9,6 @@ from app.communities.rooms import (
     community_room,
     participant_room,
     participants_list_room,
-    user_room,
 )
 from tests.common.active_session import ActiveSession
 from tests.common.tmexio_testing import (

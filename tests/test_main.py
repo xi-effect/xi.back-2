@@ -7,9 +7,9 @@ from socketio import packet as sio_packet  # type: ignore[import-untyped]
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
+from app.common.socketio.rooms import user_room
+from app.common.socketio.store import user_id_to_sids
 from app.common.utils.datetime import datetime_utc_now
-from app.communities.rooms import user_room
-from app.communities.store import user_id_to_sids
 from tests.common.tmexio_testing import TMEXIOTestServer
 
 pytestmark = pytest.mark.anyio

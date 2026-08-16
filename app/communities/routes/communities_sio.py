@@ -6,6 +6,8 @@ from starlette import status
 from tmexio import AsyncServer, AsyncSocket, Emitter, EventException, PydanticPackager
 
 from app.common.dependencies.authorization_sio_dep import AuthorizedUser
+from app.common.socketio.rooms import user_room
+from app.common.socketio.store import user_id_to_sids
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.communities_sio_dep import (
@@ -22,13 +24,11 @@ from app.communities.rooms import (
     community_room,
     participant_room,
     participants_list_room,
-    user_room,
 )
 from app.communities.routes.participants_sio import (
     CreateParticipantEmitter,
     DeleteParticipantEmitter,
 )
-from app.communities.store import user_id_to_sids
 
 router = EventRouterExt(tags=["communities-all"])  # TODO split community routers
 

@@ -12,6 +12,7 @@ from tmexio import (
     register_dependency,
 )
 
+from app.common.socketio.store import user_id_to_sids
 from app.common.sqlalchemy_ext import db
 from app.common.tmexio_ext import EventRouterExt
 from app.communities.dependencies.communities_sio_dep import (
@@ -26,7 +27,6 @@ from app.communities.rooms import (
     participant_room,
     participants_list_room,
 )
-from app.communities.store import user_id_to_sids
 
 router = EventRouterExt(tags=["participants-list"])
 
