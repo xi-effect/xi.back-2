@@ -1,14 +1,18 @@
 from typing import Annotated
 
 from fastapi import Depends
-from httpx import AsyncClient, Response
+from httpx import AsyncClient
 from pydantic import TypeAdapter
 
-from app.common.bridges.utils import validate_external_json_response
+from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
 from app.pochta.schemas.unisender_go_sch import (
     UnisenderGoSendEmailRequestSchema,
     UnisenderGoSendEmailSuccessfulResponseSchema,
+)
+
+unisender_go_send_email_successful_response_type_adapter = TypeAdapter(
+    UnisenderGoSendEmailSuccessfulResponseSchema
 )
 
 
@@ -19,16 +23,19 @@ class UnisenderGoClient:
             headers={"X-API-KEY": api_key},
         )
 
-    @validate_external_json_response(
-        TypeAdapter(UnisenderGoSendEmailSuccessfulResponseSchema)
-    )
     async def send_email(
         self,
         data: UnisenderGoSendEmailRequestSchema,
-    ) -> Response:
-        return await self.client.post(
-            url="/api/v1/email/send.json",
-            json=data.model_dump(mode="json", exclude_none=True),
+    ) -> UnisenderGoSendEmailSuccessfulResponseSchema:
+        return (
+            await ResponsePipelineBuilder.initialize_from_request(
+                self.client.post(
+                    url="/api/v1/email/send.json",
+                    json=data.model_dump(mode="json", exclude_none=True),
+                )
+            )
+            .validate_status_code()
+            .validate_json(unisender_go_send_email_successful_response_type_adapter)
         )
 
 

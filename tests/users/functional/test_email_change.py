@@ -10,6 +10,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
+from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.common.schemas.pochta_sch import (
     EmailMessageInputSchema,
     EmailMessageKind,
@@ -143,7 +144,7 @@ async def test_email_change_confirmation(
     new_email: str,
 ) -> None:
     notifications_bridge_mock = notifications_respx_mock.put(
-        path=f"/users/{user.id}/email-connection/",
+        path=f"/users/{user.id}/delivery-methods/{DeliveryMethodKind.EMAIL}/",
     ).respond(status_code=status.HTTP_204_NO_CONTENT)
 
     assert_nodata_response(

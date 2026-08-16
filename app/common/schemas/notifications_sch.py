@@ -21,7 +21,6 @@ class NotificationKind(StrEnum):
     SINGLE_CLASSROOM_EVENT_CREATED_V1 = auto()
     CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1 = auto()  # TODO add `PERSISTED_` for V2
     CLASSROOM_EVENT_INSTANCE_CANCELLED_V1 = auto()
-    CLASSROOM_EVENT_INSTANCE_REMINDER_V1 = auto()
 
     REPEATING_CLASSROOM_EVENT_CREATED_V1 = auto()
     CLASSROOM_EVENT_REPETITION_UPDATED_V1 = auto()
@@ -161,3 +160,9 @@ class NotificationInputV2Schema(BaseModel):
 
 
 # TODO (?) add recipient logic to payload instead?
+
+
+class DeliveryMethodKind(StrEnum):
+    EMAIL = auto()
+    TELEGRAM = auto()
+    VK = auto()

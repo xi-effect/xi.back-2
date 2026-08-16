@@ -2,26 +2,23 @@ name: Rollback (Dispatch)
 
 on:
   workflow_dispatch:
-    # inputs:
-    #   environment:
-    #     description: Environment
-    #     required: true
-    #     type: choice
-    #     options:
-    #       - production
-    #       - staging
+    inputs:
+      environment:
+        description: Environment
+        required: true
+        type: choice
+        options:
+          - production
+          - staging
 
 jobs:
   rollback:
     runs-on: ubuntu-latest
-    environment: ${{ github.triggering_actor == 'niqzart' && 'staging' || 'manual-staging' }}  # ${{ inputs.environment }}
+    if: github.triggering_actor == 'niqzart'
+    environment: ${{ inputs.environment }}
 
     env:
       deploy_image: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_USERNAME }}:${{ secrets.DEPLOY_TAG }}
-      # compose_command: >
-      #   docker compose
-      #   ${{ inputs.environment == 'staging' && '--profile stage' }}
-      #   up -d
 
     steps:
       - name: Run SSH commands
@@ -34,10 +31,10 @@ jobs:
           passphrase: ${{ secrets.SSH_KEY_PASSWORD }}
           script: |-
             cd ~/xieffect-core
-            docker compose stop back-2-stage
-            docker compose run --rm --entrypoint alembic back-2-stage-migrate downgrade $(cat back-2-stage-version.txt)
+            docker compose stop ${{ vars.compose_app_service }}
+            docker compose run --rm --entrypoint alembic ${{ vars.compose_migration_service }} downgrade $(cat ${{ vars.version_filename }})
             docker image tag ${{ env.deploy_image }}-backup ${{ env.deploy_image }}
-            docker compose up -d back-2-stage
+            docker compose up -d ${{ vars.compose_app_service }}
           script_stop: true
 
       - name: Report status to discord

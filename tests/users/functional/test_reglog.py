@@ -8,6 +8,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
+from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.common.schemas.pochta_sch import (
     EmailMessageInputSchema,
     EmailMessageKind,
@@ -44,7 +45,7 @@ async def test_signing_up(
     is_cross_site: bool,
 ) -> None:
     notifications_bridge_mock = notifications_respx_mock.put(
-        path__regex=r"/users/(?P<user_id>\d+)/email-connection/",
+        path__regex=rf"/users/(?P<user_id>\d+)/delivery-methods/{DeliveryMethodKind.EMAIL}/",
     ).respond(status_code=status.HTTP_201_CREATED)
 
     response = assert_response(
@@ -74,7 +75,7 @@ async def test_signing_up(
     assert_last_httpx_request(
         notifications_bridge_mock,
         expected_headers={"X-Api-Key": settings.api_key},
-        expected_path=f"/internal/notification-service/users/{user_id}/email-connection/",
+        expected_path=f"/internal/notification-service/users/{user_id}/delivery-methods/email/",
         expected_json={"email": user_data["email"]},
     )
 

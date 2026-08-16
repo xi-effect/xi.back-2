@@ -149,18 +149,21 @@ exclude_also = [
 ]
 
 omit = [
-  "alembic/*",
+  "migrations/*",
   "tests/*",
   "app/common/aiogram_ext.py",
   "app/common/cyptography.py",
   "app/common/fastapi_ext.py",
   "app/common/faststream_sentry_ext.py",
+  "app/common/generic_fluid_interface.py",
   "app/common/livekit_ext.py",
   "app/common/sentry_ext.py",
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
   "app/common/tmexio_ext.py",
   "app/common/bridges/base_bdg.py",
+  "app/common/bridges/utils.py",
+  "app/notifications/utils/vk_app.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)

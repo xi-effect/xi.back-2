@@ -1,8 +1,8 @@
 from collections.abc import Sequence
-from typing import Annotated, Self
+from typing import Annotated
 
 from fastapi import Query
-from pydantic import model_validator
+from pydantic import AfterValidator, BaseModel, Field
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -20,7 +20,7 @@ router = APIRouterExt(tags=["promocodes mub"])
 )
 async def list_promocodes(
     offset: Annotated[int, Query(ge=0)] = 0,
-    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
 ) -> Sequence[Promocode]:
     return await Promocode.find_paginated_by_kwargs(
         offset,
@@ -30,14 +30,49 @@ async def list_promocodes(
     )
 
 
-class PromocodeInputSchema(Promocode.InputSchema):
-    @model_validator(mode="after")
-    def validate_promocode_valid_from_and_until_date(self) -> Self:
-        if (
-            self.valid_from is not None and self.valid_until is not None
-        ) and self.valid_from >= self.valid_until:
-            raise ValueError("the end date cannot be earlier than the start date")
-        return self
+def validate_promocode_validity_period[T: Promocode.ValidityPeriodInputSchema](
+    data: T,
+) -> T:
+    if (
+        data.valid_from is not None and data.valid_until is not None
+    ) and data.valid_from >= data.valid_until:
+        raise ValueError("the end date cannot be earlier than the start date")
+    return data
+
+
+class PromocodeBatchGenerationRequestSchema(BaseModel):
+    validity_period: Annotated[
+        Promocode.ValidityPeriodInputSchema,
+        AfterValidator(validate_promocode_validity_period),
+    ]
+    title_template: Annotated[
+        str,
+        Field(
+            pattern=r"\{index\}",
+            examples=["Promocode #{index}"],
+            max_length=105,
+        ),
+    ]
+    batch_size: Annotated[int, Field(gt=0, le=100)]
+
+
+@router.post(
+    "/promocode-batch-generation-requests/",
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate a batch of new promocodes with common settings",
+)
+async def generate_promocode_batch(
+    data: PromocodeBatchGenerationRequestSchema,
+) -> list[str]:
+    return [
+        (
+            await Promocode.create(
+                title=data.title_template.format(index=index),
+                **data.validity_period.model_dump(),
+            )
+        ).code
+        for index in range(data.batch_size)
+    ]
 
 
 class PromocodeConflictResponses(Responses):
@@ -51,7 +86,12 @@ class PromocodeConflictResponses(Responses):
     responses=PromocodeConflictResponses.responses(),
     summary="Create a new promocode",
 )
-async def create_promocode(data: PromocodeInputSchema) -> Promocode:
+async def create_promocode(
+    data: Annotated[
+        Promocode.InputSchema,
+        AfterValidator(validate_promocode_validity_period),
+    ],
+) -> Promocode:
     if await Promocode.is_present_by_code(code=data.code):
         raise PromocodeConflictResponses.PROMOCODE_ALREADY_EXISTS
     return await Promocode.create(**data.model_dump())
@@ -83,7 +123,10 @@ async def retrieve_promocode_by_code(promocode: PromocodeByCode) -> Promocode:
 )
 async def put_promocode(
     promocode: PromocodeByID,
-    data: PromocodeInputSchema,
+    data: Annotated[
+        Promocode.UpdateSchema,
+        AfterValidator(validate_promocode_validity_period),
+    ],
 ) -> Promocode:
     if data.code != promocode.code and await Promocode.is_present_by_code(
         code=data.code

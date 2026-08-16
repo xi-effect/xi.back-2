@@ -56,7 +56,7 @@ async def signup(
 
     user = await User.create(**data.model_dump())
 
-    await notifications_bridge.create_or_update_email_connection(
+    await notifications_bridge.create_or_update_email_delivery_method(
         user_id=user.id,
         email=user.email,
     )

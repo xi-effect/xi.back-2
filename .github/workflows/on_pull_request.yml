@@ -1,0 +1,58 @@
+name: On Pull Request (Development)
+
+on:
+  pull_request:
+    branches-ignore:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+
+jobs:
+  namer:
+    runs-on: ubuntu-latest
+
+    outputs:
+      branch: ${{ steps.branch_name.outputs.branch }}
+      tag: ${{ steps.branch_name.outputs.tag }}
+      base_branch: ${{ steps.branch_name.outputs.base_branch }}
+      base_tag: ${{ steps.branch_name.outputs.base_tag }}
+
+    steps:
+      - name: Get tag & branch name
+        id: branch_name
+        run: |-
+          repository="back-2"
+
+          branch=${{ github.event.pull_request.head.ref }}
+          echo "branch=${branch}"
+          echo "branch=${branch}" >> $GITHUB_OUTPUT
+
+          tag="${repository}-${branch////-}"
+          echo "tag=${tag}"
+          echo "tag=${tag}" >> $GITHUB_OUTPUT
+
+          base_branch=${{ github.event.pull_request.base.ref }}
+          echo "base_branch=${base_branch}"
+          echo "base_branch=${base_branch}" >> $GITHUB_OUTPUT
+
+          base_tag="${repository}-${base_branch////-}"
+          echo "base_tag=${base_tag}"
+          echo "base_tag=${base_tag}" >> $GITHUB_OUTPUT
+
+  main:
+    needs: namer
+    uses: ./.github/workflows/main.yml
+    with:
+      tag: ${{ needs.namer.outputs.tag }}
+      base_tag: ${{ needs.namer.outputs.base_tag }}
+      branch: ${{ needs.namer.outputs.branch }}
+      commit_sha: ${{ github.event.pull_request.head.sha }}
+      check_coverage: ${{ contains(github.event.pull_request.labels.*.name, 'ci:covered') }}
+      check_migrations: ${{ contains(github.event.pull_request.labels.*.name, 'ci:migrated') }}
+      enable_deployment: ${{ contains(github.event.pull_request.labels.*.name, 'ci:deployable') }}
+      is_mainline: false
+    secrets: inherit

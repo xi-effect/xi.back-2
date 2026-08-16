@@ -1,0 +1,22 @@
+name: On Push (Staging & Production)
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+
+jobs:
+  main:
+    if: ${{ github.triggering_actor == 'niqzart' }}
+    uses: ./.github/workflows/main.yml
+    with:
+      tag: back-2-${{ github.ref_name }}
+      base_tag: back-2-staging
+      branch: ${{ github.ref_name }}
+      commit_sha: ${{ github.sha }}
+      check_coverage: true
+      check_migrations: true
+      enable_deployment: true
+      is_mainline: true
+    secrets: inherit

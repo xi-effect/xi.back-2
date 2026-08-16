@@ -33,6 +33,7 @@ async def test_user_creation(
             "display_name": user_data["username"],
             "default_layout": None,
             "theme": "system",
+            "language": "ru",
             "onboarding_stage": OnboardingStage.EMAIL_CONFIRMATION,
             "password_last_changed_at": datetime_utc_now(),
             "email_confirmation_resend_allowed_at": datetime_utc_now(),

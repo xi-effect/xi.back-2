@@ -1,7 +1,7 @@
 from httpx import Response
 
 from app.common.bridges.base_bdg import BaseBridge
-from app.common.bridges.utils import validate_external_json_response
+from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
 
 
@@ -12,13 +12,15 @@ class PostsBridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    @validate_external_json_response()
     async def create_post_channel(self, channel_id: int, community_id: int) -> Response:
-        return await self.client.post(
-            f"/post-channels/{channel_id}/",
-            json={"community_id": community_id},
-        )
+        return await ResponsePipelineBuilder.initialize_from_request(
+            self.client.post(
+                f"/post-channels/{channel_id}/",
+                json={"community_id": community_id},
+            )
+        ).validate_status_code()
 
-    @validate_external_json_response()
     async def delete_post_channel(self, channel_id: int) -> Response:
-        return await self.client.delete(f"/post-channels/{channel_id}/")
+        return await ResponsePipelineBuilder.initialize_from_request(
+            self.client.delete(f"/post-channels/{channel_id}/")
+        ).validate_status_code()

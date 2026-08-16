@@ -16,9 +16,13 @@ router = APIRouterExt(tags=["user contacts internal"])
     summary="List all user contacts by user id",
 )
 async def list_user_contacts(
-    user_id: int, public_only: bool = False
+    user_id: int,
+    public_only: bool = False,
 ) -> Sequence[UserContact]:
-    return await UserContact.find_all_by_user(user_id=user_id, public_only=public_only)
+    return await UserContact.find_all_by_user_id(
+        user_id=user_id,
+        public_only=public_only,
+    )
 
 
 @router.put(

@@ -63,6 +63,13 @@ class SupbotSettings(TelegramBotSettings):
     group_id: int
 
 
+class VKBotSettings(BaseModel):
+    api_token: str
+    confirmation_code: str  # TODO receive automatically
+    webhook_secret_key: str | None = None
+    group_id: int
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -101,6 +108,7 @@ class Settings(BaseSettings):
     telegram_connection_token_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 5
     )
+    vk_connection_token_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 5)
     storage_token_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 60 * 24,
     )
@@ -191,9 +199,12 @@ class Settings(BaseSettings):
     email: EmailSettings | None = None
 
     supbot: SupbotSettings | None = None
-    notifications_bot: TelegramBotSettings | None = None
+    telegram_notifications_bot: TelegramBotSettings | None = None
     telegram_server_base_url: str | None = None
     telegram_webhook_base_url: str | None = None
+
+    vk_notifications_bot: VKBotSettings | None = None
+    vk_server_base_url: str = "https://api.vk.ru/method"
 
     sentry_dsn: str | None = None
 
