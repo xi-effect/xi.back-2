@@ -16,6 +16,12 @@ from app.notifications.schemas.vk.vk_messages_sch import (
     MessageSendInputSchema,
     send_message_response_type_adapter,
 )
+from app.notifications.schemas.vk.vk_users_sch import (
+    UserFieldName,
+    UserResponseSchema,
+    UsersGetInputSchema,
+    users_get_response_type_adapter,
+)
 
 
 class VKResponseWithErrorException(Exception):
@@ -80,3 +86,23 @@ class VKClient(AsyncClient):
             .validate_wrapper(send_message_response_type_adapter)
             .validate_success_and_unwrap()
         )
+
+    async def get_user(
+        self,
+        user_id: int,
+    ) -> UserResponseSchema | None:
+        users_data = (
+            await VKResponsePipelineBuilder.initialize_from_request(
+                self.post(
+                    MethodName.USERS__GET,
+                    data=UsersGetInputSchema(
+                        user_ids=[user_id],
+                        fields=[UserFieldName.SCREEN_NAME],
+                    ).model_dump(mode="json"),
+                )
+            )
+            .validate_status_code()
+            .validate_wrapper(users_get_response_type_adapter)
+            .validate_success_and_unwrap()
+        )
+        return next(iter(users_data), None)

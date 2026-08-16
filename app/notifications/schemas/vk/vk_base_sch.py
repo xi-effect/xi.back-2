@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 class MethodName(StrEnum):
     MESSAGES__SEND = "messages.send"
+    USERS__GET = "users.get"
 
 
 class ErrorSchema(BaseModel):
