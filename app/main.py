@@ -25,7 +25,6 @@ from app import (
     materials,
     messenger,
     notifications,
-    payments,
     pochta,
     posts,
     scheduler,
@@ -204,7 +203,6 @@ app.include_router(invoices.api_router)
 app.include_router(materials.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
-app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
 app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
