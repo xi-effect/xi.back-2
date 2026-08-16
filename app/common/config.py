@@ -114,13 +114,6 @@ class Settings(BaseSettings):
     def avatars_path(self) -> Path:
         return self.base_path / self.avatars_folder
 
-    community_avatars_folder: Path = Path("community_avatars")
-
-    @computed_field
-    @property
-    def community_avatars_path(self) -> Path:
-        return self.base_path / self.community_avatars_folder
-
     storage_folder: Path = Path("storage")
 
     @computed_field

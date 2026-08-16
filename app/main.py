@@ -18,7 +18,6 @@ from tmexio.documentation import OpenAPIBuilder
 from app import (
     autocomplete,
     classrooms,
-    communities,
     conferences,
     datalake,
     invoices,
@@ -43,7 +42,6 @@ from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
 
-tmex.include_router(communities.event_router)
 tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
 
@@ -196,7 +194,6 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 
 include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
-app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(conferences.api_router)
 app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
