@@ -16,7 +16,9 @@ from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     TelegramDeliveryMethod,
 )
-from app.notifications.services import user_contacts_svc
+from app.notifications.services.user_contact_syncers.telegram_user_contact_syncer import (
+    TelegramUserContactSyncer,
+)
 from app.notifications.utils.deep_links import DeepLinkException
 
 router = Router(name="delivery methods")
@@ -48,31 +50,32 @@ async def create_telegram_delivery_method(
         )
         return
 
-    delivery_method = await TelegramDeliveryMethod.find_first_by_peer_id_and_status(
-        peer_id=peer_id,
-        allowed_statuses=[
-            DeliveryMethodStatus.ACTIVE,
-            DeliveryMethodStatus.BLOCKED,
-        ],
+    delivery_method_to_replace = (
+        await TelegramDeliveryMethod.find_first_by_peer_id_and_status(
+            peer_id=peer_id,
+            allowed_statuses=[
+                DeliveryMethodStatus.ACTIVE,
+                DeliveryMethodStatus.BLOCKED,
+            ],
+        )
     )
-    if delivery_method is None:
+    if delivery_method_to_replace is None:
         is_replacing_another_connection = False
     else:
-        delivery_method.status = DeliveryMethodStatus.REPLACED
-        await user_contacts_svc.remove_personal_telegram_contact(  # TODO nq
-            user_id=delivery_method.user_id
-        )
+        delivery_method_to_replace.status = DeliveryMethodStatus.REPLACED
+        await TelegramUserContactSyncer(
+            delivery_method=delivery_method_to_replace
+        ).remove()
         # TODO notify user on-platform (& email?) about the connection replacement
         is_replacing_another_connection = True
 
-    await TelegramDeliveryMethod.create(
+    delivery_method = await TelegramDeliveryMethod.create(
         user_id=user_id,
         peer_id=peer_id,
         status=DeliveryMethodStatus.ACTIVE,
     )
-    await user_contacts_svc.sync_personal_telegram_contact(  # TODO nq
-        user_id=user_id,
-        new_username=message.from_user.username,
+    await TelegramUserContactSyncer(delivery_method=delivery_method).sync_from_message(
+        message=message
     )
 
     # TODO notify user on-platform (frontend?) about the connection completion
@@ -92,9 +95,7 @@ async def block_telegram_delivery_method(
     delivery_method: TelegramDeliveryMethod,
 ) -> None:
     delivery_method.status = DeliveryMethodStatus.BLOCKED
-    await user_contacts_svc.remove_personal_telegram_contact(  # TODO nq
-        user_id=delivery_method.user_id
-    )
+    await TelegramUserContactSyncer(delivery_method=delivery_method).remove()
     # TODO notify user on-platform about the blocked connection
 
 
@@ -107,9 +108,8 @@ async def unblock_telegram_delivery_method(
     delivery_method: TelegramDeliveryMethod,
 ) -> None:
     delivery_method.status = DeliveryMethodStatus.ACTIVE
-    await user_contacts_svc.sync_personal_telegram_contact(  # TODO nq
-        user_id=delivery_method.user_id,
-        new_username=message.from_user.username,
+    await TelegramUserContactSyncer(delivery_method=delivery_method).sync_from_message(
+        message=message
     )
     # TODO notify user on-platform (frontend?) about the unblocked connection
     await message.answer(texts.NOTIFICATIONS_RECONNECTED_MESSAGE)

@@ -14,7 +14,9 @@ from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     TelegramDeliveryMethod,
 )
-from app.notifications.services import user_contacts_svc
+from app.notifications.services.user_contact_syncers.telegram_user_contact_syncer import (
+    TelegramUserContactSyncer,
+)
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_factories import (
     ChatMemberUpdatedFactory,
@@ -85,12 +87,12 @@ async def test_telegram_delivery_method_creating(
         user_id=authorized_user_id
     )
 
-    # Specific cases for user_contacts_svc are tested in service/test_user_contacts_svc
-    sync_personal_telegram_contact_mock = mock_stack.enter_async_mock(
-        user_contacts_svc, "sync_personal_telegram_contact"
+    # Specific cases are tested in service/user_contact_syncers/telegram_user_contact_syncer.py
+    upsert_telegram_contact_from_username_mock = mock_stack.enter_async_mock(
+        TelegramUserContactSyncer, "upsert_from_username"
     )
-    remove_personal_telegram_contact_mock = mock_stack.enter_async_mock(
-        user_contacts_svc, "remove_personal_telegram_contact"
+    remove_telegram_contact_mock = mock_stack.enter_async_mock(
+        TelegramUserContactSyncer, "remove"
     )
 
     new_username: str = faker.user_name()
@@ -104,16 +106,13 @@ async def test_telegram_delivery_method_creating(
         )
     )
 
-    sync_personal_telegram_contact_mock.assert_awaited_once_with(
-        user_id=authorized_user_id,
-        new_username=new_username,
+    upsert_telegram_contact_from_username_mock.assert_awaited_once_with(
+        username=new_username,
     )
     if is_user_contact_removed:
-        remove_personal_telegram_contact_mock.assert_awaited_once_with(
-            user_id=other_user_id
-        )
+        remove_telegram_contact_mock.assert_awaited_once_with()
     else:
-        remove_personal_telegram_contact_mock.assert_not_called()
+        remove_telegram_contact_mock.assert_not_called()
 
     async with active_session() as session:
         delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(

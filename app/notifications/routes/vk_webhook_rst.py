@@ -19,6 +19,9 @@ from app.notifications.schemas.vk.vk_updates_sch import (
     DenyMessagesUpdateSchema,
     UpdateSchema,
 )
+from app.notifications.services.user_contact_syncers.vk_user_contact_syncer import (
+    VKUserContactSyncer,
+)
 from app.notifications.utils.deep_links import DeepLinkException
 
 router = APIRouterExt()
@@ -29,7 +32,7 @@ async def reactivate_existing_delivery_method(
 ) -> None:
     if delivery_method.status is DeliveryMethodStatus.BLOCKED:
         delivery_method.status = DeliveryMethodStatus.ACTIVE
-        # TODO update vk contact for `user_id`
+        await VKUserContactSyncer(delivery_method=delivery_method).sync_with_origin()
         await vk_app.client.send_message(
             data=MessageSendInputSchema(
                 peer_id=delivery_method.peer_id,
@@ -108,16 +111,16 @@ async def handle_allow_messages(update: AllowMessagesUpdateSchema) -> None:
         is_replacing_another_connection = False
     else:
         delivery_method_to_replace.status = DeliveryMethodStatus.REPLACED
-        # TODO remove vk contact for `delivery_method.user_id`
+        await VKUserContactSyncer(delivery_method=delivery_method_to_replace).remove()
         # TODO notify user on-platform (& email?) about the connection replacement
         is_replacing_another_connection = True
 
-    await VKDeliveryMethod.create(
+    delivery_method = await VKDeliveryMethod.create(
         user_id=user_id,
         peer_id=peer_id,
         status=DeliveryMethodStatus.ACTIVE,
     )
-    # TODO update vk contact for `user_id`
+    await VKUserContactSyncer(delivery_method=delivery_method).sync_with_origin()
 
     await vk_app.client.send_message(
         data=MessageSendInputSchema(
@@ -143,7 +146,7 @@ async def handle_deny_messages(update: DenyMessagesUpdateSchema) -> None:
         return
 
     delivery_method.status = DeliveryMethodStatus.BLOCKED
-    # TODO remove vk contact for `delivery_method.user_id`
+    await VKUserContactSyncer(delivery_method=delivery_method).remove()
 
 
 @router.post(

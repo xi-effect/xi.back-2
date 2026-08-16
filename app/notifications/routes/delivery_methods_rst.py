@@ -18,7 +18,7 @@ from app.notifications.config import (
 from app.notifications.dependencies.delivery_methods_dep import (
     MissingTelegramDeliveryMethodDep,
     MissingVKDeliveryMethodDep,
-    MyEditableDeliveryMethodByKind,
+    MyMessengerDeliveryMethodByKind,
 )
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethod,
@@ -189,12 +189,9 @@ async def generate_vk_connection_data(
     summary="Delete any delivery method by kind for the current user",
 )
 async def delete_delivery_method(
-    delivery_method: MyEditableDeliveryMethodByKind,
+    delivery_method: MyMessengerDeliveryMethodByKind,
 ) -> None:
     await delivery_method.delete()
-
-    # TODO implement user contacts for VK  # TODO nq not this weekend tho
-    if delivery_method.kind is DeliveryMethodKind.TELEGRAM:
-        await user_contacts_svc.remove_personal_telegram_contact(
-            user_id=delivery_method.user_id
-        )
+    await user_contacts_svc.delivery_method_to_user_contact_syncer(
+        delivery_method=delivery_method
+    ).remove()

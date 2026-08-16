@@ -14,11 +14,10 @@ from app.notifications.config import (
     telegram_deep_link_provider,
     vk_connection_key_provider,
 )
-from app.notifications.models.delivery_methods_db import (
-    DeliveryMethod,
-    TelegramDeliveryMethod,
+from app.notifications.models.delivery_methods_db import DeliveryMethod
+from app.notifications.services.user_contact_syncers.base_user_contact_syncer import (
+    BaseUserContactSyncer,
 )
-from app.notifications.services import user_contacts_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.mock_stack import MockStack
@@ -121,8 +120,9 @@ async def test_delivery_method_removing(
     authorized_client: TestClient,
     delivery_method: DeliveryMethod,
 ) -> None:
-    remove_personal_telegram_contact_mock = mock_stack.enter_async_mock(
-        user_contacts_svc, "remove_personal_telegram_contact"
+    # Specific cases are tested in service/user_contact_syncers/*
+    remove_messenger_user_contact_mock = mock_stack.enter_async_mock(
+        BaseUserContactSyncer, "remove"
     )
 
     assert_nodata_response(
@@ -132,12 +132,7 @@ async def test_delivery_method_removing(
         ),
     )
 
-    if isinstance(delivery_method, TelegramDeliveryMethod):
-        remove_personal_telegram_contact_mock.assert_awaited_once_with(
-            user_id=proxy_auth_data.user_id
-        )
-    else:
-        remove_personal_telegram_contact_mock.assert_not_called()
+    remove_messenger_user_contact_mock.assert_awaited_once_with()
 
     async with active_session():
         assert (

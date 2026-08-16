@@ -1,43 +1,30 @@
-from aiogram.utils.link import create_telegram_link
+from typing import Any, assert_never
 
-from app.common.schemas.user_contacts_sch import UserContactKind
-from app.notifications.models.user_contacts_db import UserContact
+from app.notifications.dependencies.delivery_methods_dep import (
+    AnyMessengerDeliveryMethod,
+)
+from app.notifications.models.delivery_methods_db import (
+    TelegramDeliveryMethod,
+    VKDeliveryMethod,
+)
+from app.notifications.services.user_contact_syncers import (
+    base_user_contact_syncer,
+    telegram_user_contact_syncer,
+    vk_user_contact_syncer,
+)
 
 
-async def remove_personal_telegram_contact(user_id: int) -> None:
-    await UserContact.delete_by_kwargs(
-        user_id=user_id,
-        kind=UserContactKind.PERSONAL_TELEGRAM,
-    )
-
-
-async def sync_personal_telegram_contact(
-    user_id: int,
-    new_username: str | None,
-) -> UserContact | None:
-    if new_username is None:
-        await remove_personal_telegram_contact(user_id=user_id)
-        return None
-
-    telegram_contact_link = create_telegram_link(new_username)
-    telegram_contact_title = f"@{new_username}"
-
-    user_contact = await UserContact.find_first_by_primary_key(
-        user_id=user_id,
-        kind=UserContactKind.PERSONAL_TELEGRAM,
-    )
-
-    if user_contact is None:
-        return await UserContact.create(
-            user_id=user_id,
-            kind=UserContactKind.PERSONAL_TELEGRAM,
-            link=telegram_contact_link,
-            title=telegram_contact_title,
-            is_public=True,
-        )
-
-    user_contact.update(
-        link=telegram_contact_link,
-        title=telegram_contact_title,
-    )
-    return user_contact
+def delivery_method_to_user_contact_syncer(
+    delivery_method: AnyMessengerDeliveryMethod,
+) -> base_user_contact_syncer.BaseUserContactSyncer[Any]:
+    match delivery_method:
+        case TelegramDeliveryMethod():
+            return telegram_user_contact_syncer.TelegramUserContactSyncer(
+                delivery_method=delivery_method
+            )
+        case VKDeliveryMethod():
+            return vk_user_contact_syncer.VKUserContactSyncer(
+                delivery_method=delivery_method
+            )
+        case _:
+            assert_never(delivery_method)
