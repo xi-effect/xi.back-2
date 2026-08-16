@@ -10,7 +10,7 @@ from app.notifications.models.disabled_delivery_routes_db import (
     NotificationCategory,
 )
 from app.notifications.models.notifications_db import Notification
-from app.notifications.services.senders.email_notification_sender import (
+from app.notifications.services.notification_senders.email_notification_sender import (
     EmailNotificationSender,
 )
 from tests.common.active_session import ActiveSession

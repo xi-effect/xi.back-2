@@ -2,10 +2,10 @@ from app.common.config_bdg import pochta_bridge
 from app.common.schemas.pochta_sch import EmailMessageInputSchema
 from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.notifications_db import Notification
-from app.notifications.services.adapters.email_notification_adapter import (
+from app.notifications.services.notification_adapters.email_notification_adapter import (
     EmailNotificationAdapter,
 )
-from app.notifications.services.senders.base_notification_sender import (
+from app.notifications.services.notification_senders.base_notification_sender import (
     BaseNotificationSender,
     session_lock,
 )

@@ -3,10 +3,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.notifications.config import telegram_app
 from app.notifications.models.delivery_methods_db import TelegramDeliveryMethod
 from app.notifications.models.notifications_db import Notification
-from app.notifications.services.adapters.messenger_notification_adapter import (
+from app.notifications.services.notification_adapters.messenger_notification_adapter import (
     MessengerNotificationAdapter,
 )
-from app.notifications.services.senders.base_notification_sender import (
+from app.notifications.services.notification_senders.base_notification_sender import (
     BaseNotificationSender,
     session_lock,
 )

@@ -11,7 +11,9 @@ from app.common.schemas.notifications_sch import (
     RepeatedClassroomEventInstanceNotificationPayloadSchema,
 )
 from app.notifications import texts
-from app.notifications.services.adapters.base_adapter import BaseNotificationAdapter
+from app.notifications.services.notification_adapters.base_notification_adapter import (
+    BaseNotificationAdapter,
+)
 
 
 class MessengerMessagePayloadSchema(BaseModel):

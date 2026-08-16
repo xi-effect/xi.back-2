@@ -11,7 +11,7 @@ from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sio import NewNotificationEmitter
 from app.notifications.services import recipients_svc
-from app.notifications.services.senders import (
+from app.notifications.services.notification_senders import (
     email_notification_sender,
     platform_notification_sender,
     telegram_notification_sender,

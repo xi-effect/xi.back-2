@@ -7,10 +7,10 @@ from app.notifications.schemas.vk.vk_messages_sch import (
     KeyboardSchema,
     MessageSendInputSchema,
 )
-from app.notifications.services.adapters.messenger_notification_adapter import (
+from app.notifications.services.notification_adapters.messenger_notification_adapter import (
     MessengerNotificationAdapter,
 )
-from app.notifications.services.senders.base_notification_sender import (
+from app.notifications.services.notification_senders.base_notification_sender import (
     BaseNotificationSender,
     session_lock,
 )

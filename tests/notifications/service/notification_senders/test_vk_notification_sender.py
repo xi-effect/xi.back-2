@@ -13,7 +13,7 @@ from app.notifications.schemas.vk.vk_messages_sch import (
     KeyboardLinkButtonActionSchema,
     KeyboardSchema,
 )
-from app.notifications.services.senders.vk_notification_sender import (
+from app.notifications.services.notification_senders.vk_notification_sender import (
     VKNotificationSender,
 )
 from tests.common.active_session import ActiveSession
@@ -159,8 +159,8 @@ async def test_system_vk_notification_sending(
 @pytest.mark.usefixtures("inactive_vk_delivery_method")
 async def test_vk_notification_sending_inactive_delivery_method(
     active_session: ActiveSession,
-    authorized_user_id: int,
     vk_respx_mock: MockRouter,
+    authorized_user_id: int,
     vk_notification_sender: VKNotificationSender,
 ) -> None:
     async with active_session():
@@ -173,8 +173,8 @@ async def test_vk_notification_sending_inactive_delivery_method(
 
 async def test_vk_notification_sending_vk_delivery_method_not_found(
     active_session: ActiveSession,
-    authorized_user_id: int,
     vk_respx_mock: MockRouter,
+    authorized_user_id: int,
     vk_notification_sender: VKNotificationSender,
 ) -> None:
     async with active_session():

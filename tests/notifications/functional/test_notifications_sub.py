@@ -19,17 +19,11 @@ from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sub import send_notification
 from app.notifications.services import recipients_svc
-from app.notifications.services.senders.email_notification_sender import (
-    EmailNotificationSender,
-)
-from app.notifications.services.senders.platform_notification_sender import (
-    PlatformNotificationSender,
-)
-from app.notifications.services.senders.telegram_notification_sender import (
-    TelegramNotificationSender,
-)
-from app.notifications.services.senders.vk_notification_sender import (
-    VKNotificationSender,
+from app.notifications.services.notification_senders import (
+    email_notification_sender,
+    platform_notification_sender,
+    telegram_notification_sender,
+    vk_notification_sender,
 )
 from tests.common.active_session import ActiveSession
 from tests.common.mock_stack import MockStack
@@ -115,13 +109,13 @@ async def test_notification_send(
     ]
 
     email_notification_sender_mock = mock_stack.enter_async_mock(
-        EmailNotificationSender, "send_notification"
+        email_notification_sender.EmailNotificationSender, "send_notification"
     )
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
-        TelegramNotificationSender, "send_notification"
+        telegram_notification_sender.TelegramNotificationSender, "send_notification"
     )
     vk_notification_sender_mock = mock_stack.enter_async_mock(
-        VKNotificationSender, "send_notification"
+        vk_notification_sender.VKNotificationSender, "send_notification"
     )
 
     send_notification.mock.reset_mock()
@@ -230,16 +224,16 @@ async def test_notification_send_no_recipients_found(
     )
 
     platform_notification_sender_mock = mock_stack.enter_async_mock(
-        PlatformNotificationSender, "send_notification"
+        platform_notification_sender.PlatformNotificationSender, "send_notification"
     )
     email_notification_sender_mock = mock_stack.enter_async_mock(
-        EmailNotificationSender, "send_notification"
+        email_notification_sender.EmailNotificationSender, "send_notification"
     )
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
-        TelegramNotificationSender, "send_notification"
+        telegram_notification_sender.TelegramNotificationSender, "send_notification"
     )
     vk_notification_sender_mock = mock_stack.enter_async_mock(
-        VKNotificationSender, "send_notification"
+        vk_notification_sender.VKNotificationSender, "send_notification"
     )
 
     send_notification.mock.reset_mock()
@@ -301,16 +295,16 @@ async def test_notification_send_idempotency_violated(
         )
 
     platform_notification_sender_mock = mock_stack.enter_async_mock(
-        PlatformNotificationSender, "send_notification"
+        platform_notification_sender.PlatformNotificationSender, "send_notification"
     )
     email_notification_sender_mock = mock_stack.enter_async_mock(
-        EmailNotificationSender, "send_notification"
+        email_notification_sender.EmailNotificationSender, "send_notification"
     )
     telegram_notification_sender_mock = mock_stack.enter_async_mock(
-        TelegramNotificationSender, "send_notification"
+        telegram_notification_sender.TelegramNotificationSender, "send_notification"
     )
     vk_notification_sender_mock = mock_stack.enter_async_mock(
-        VKNotificationSender, "send_notification"
+        vk_notification_sender.VKNotificationSender, "send_notification"
     )
 
     send_notification.mock.reset_mock()
