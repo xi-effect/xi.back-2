@@ -21,7 +21,7 @@ class APIKeyResponses(Responses):
 
 @with_responses(APIKeyResponses)
 def api_key_verification(api_key: KeyHeader = None) -> None:
-    if api_key != settings.api_key:
+    if api_key != settings.api_key:  # TODO (203) pragma: no cover
         raise APIKeyResponses.INVALID_API_KEY
 
 

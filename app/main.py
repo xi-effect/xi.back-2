@@ -25,7 +25,6 @@ from app import (
     messenger,
     notifications,
     pochta,
-    posts,
     scheduler,
     storage_v2,
     subscriptions,
@@ -88,7 +87,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 
 
 @tmex.on_other(summary="[special] Handler for non-existent events")
-async def handle_other_events(  # TODO (38980978) pragma: no cover
+async def handle_other_events(  # TODO (203) pragma: no cover
     event_name: EventName,
 ) -> Annotated[str, PydanticPackager(str, status.HTTP_404_NOT_FOUND)]:
     return f"Unknown event: '{event_name}'"
@@ -201,7 +200,6 @@ app.include_router(materials.api_router)
 app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
 app.include_router(pochta.api_router)
-app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)
