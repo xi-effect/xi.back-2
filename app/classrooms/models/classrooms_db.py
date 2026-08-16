@@ -83,9 +83,13 @@ class IndividualClassroom(Classroom):
 
     student_id: Mapped[int] = mapped_column(nullable=True)
     student_name: Mapped[str] = mapped_column(String(100), nullable=True)
+    student_name_override: Mapped[str | None] = mapped_column(String(100), default=None)
 
+    OverrideSchema = MappedModel.create(
+        columns=[(student_name_override, Classroom.NameType | None, "name_override")],
+    )
     InputSchema = MappedModel.create(bases=[Classroom.BaseInputSchema])
-    PatchSchema = MappedModel.create(bases=[Classroom.BasePatchSchema])
+    PatchSchema = OverrideSchema.as_patch().extend(bases=[Classroom.BasePatchSchema])
     BaseResponseSchema = MappedModel.create(
         bases=[Classroom.BaseResponseSchema],
         extra_fields={
@@ -96,6 +100,7 @@ class IndividualClassroom(Classroom):
         columns=[
             (student_id, int),
             (student_name, Classroom.NameType, "name"),
+            (student_name_override, Classroom.NameType | None, "name_override"),
         ],
     )
     StudentResponseSchema = BaseResponseSchema.extend(
