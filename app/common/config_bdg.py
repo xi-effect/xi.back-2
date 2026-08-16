@@ -2,7 +2,6 @@ from app.common.bridges.autocomplete_bdg import AutocompleteBridge
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.classrooms_bdg import ClassroomsBridge
 from app.common.bridges.datalake_bdg import DatalakeBridge
-from app.common.bridges.messenger_bdg import MessengerBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.bridges.pochta_bdg import PochtaBridge
 from app.common.bridges.storage_v2_bdg import StorageV2Bridge
@@ -12,7 +11,6 @@ from app.common.bridges.users_public_bdg import UsersPublicBridge
 autocomplete_bridge = AutocompleteBridge()
 classrooms_bridge = ClassroomsBridge()
 datalake_bridge = DatalakeBridge()
-messenger_bridge = MessengerBridge()
 notifications_bridge = NotificationsBridge()
 pochta_bridge = PochtaBridge()
 users_internal_bridge = UsersInternalBridge()
@@ -23,7 +21,6 @@ all_bridges: tuple[BaseBridge, ...] = (
     autocomplete_bridge,
     classrooms_bridge,
     datalake_bridge,
-    messenger_bridge,
     notifications_bridge,
     pochta_bridge,
     users_internal_bridge,

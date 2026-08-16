@@ -22,7 +22,6 @@ from app import (
     datalake,
     invoices,
     materials,
-    messenger,
     notifications,
     pochta,
     scheduler,
@@ -41,7 +40,6 @@ from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
 
-tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
 
 if settings.socketio_admin is not None:
@@ -197,7 +195,6 @@ app.include_router(conferences.api_router)
 app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
 app.include_router(materials.api_router)
-app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
 app.include_router(pochta.api_router)
 app.include_router(scheduler.api_router)
