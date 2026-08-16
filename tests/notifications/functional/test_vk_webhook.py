@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import Mock, create_autospec
 
 import pytest
 from faker import Faker
@@ -14,6 +15,9 @@ from app.notifications.config import vk_connection_key_provider
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     VKDeliveryMethod,
+)
+from app.notifications.services.user_contact_syncers.vk_user_contact_syncer import (
+    VKUserContactSyncer,
 )
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
@@ -58,6 +62,16 @@ def assert_vk_message_sent(
     )
 
 
+@pytest.fixture()
+def vk_user_contact_syncer_mock(mock_stack: MockStack) -> Mock:
+    vk_user_contact_syncer_mock: Mock = create_autospec(VKUserContactSyncer)
+    mock_stack.enter_patch(
+        "app.notifications.routes.vk_webhook_rst.VKUserContactSyncer",
+        new=vk_user_contact_syncer_mock,
+    )
+    return vk_user_contact_syncer_mock
+
+
 async def test_handling_update_from_vk_confirmation(
     client: TestClient,
     vk_notifications_bot_webhook_url: str,
@@ -76,25 +90,29 @@ async def test_handling_update_from_vk_confirmation(
 
 
 @pytest.mark.parametrize(
-    ("other_delivery_method_status", "expected_reply_text"),
+    ("other_delivery_method_status", "is_user_contact_removed", "expected_reply_text"),
     [
         pytest.param(
             None,
+            False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
             id="no_other_delivery_methods",
         ),
         pytest.param(
             DeliveryMethodStatus.REPLACED,
+            False,
             texts.NOTIFICATIONS_CONNECTED_MESSAGE,
             id="existing_replaced_delivery_method",
         ),
         pytest.param(
             DeliveryMethodStatus.ACTIVE,
+            True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
             id="existing_active_delivery_method",
         ),
         pytest.param(
             DeliveryMethodStatus.BLOCKED,
+            True,
             texts.NOTIFICATIONS_REPLACES_MESSAGE,
             id="existing_blocked_delivery_method",
         ),
@@ -109,7 +127,9 @@ async def test_handling_update_from_vk_allow_messages_delivery_method_creating(
     vk_notifications_bot_webhook_secret_key: str,
     vk_peer_id: int,
     vk_send_message_mock: Route,
+    vk_user_contact_syncer_mock: Mock,
     other_delivery_method_status: DeliveryMethodStatus | None,
+    is_user_contact_removed: bool,
     expected_reply_text: str,
 ) -> None:
     other_user_id: int = id_provider.generate_id()
@@ -135,6 +155,24 @@ async def test_handling_update_from_vk_allow_messages_delivery_method_creating(
             ),
         )
     )
+
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        vk_user_contact_syncer_mock.call_args_list,
+        (
+            [
+                {"kwargs": {"delivery_method": {"user_id": other_user_id}}},
+                {"kwargs": {"delivery_method": {"user_id": authorized_user_id}}},
+            ]
+            if is_user_contact_removed
+            else [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}]
+        ),
+    )
+    vk_user_contact_syncer_mock.return_value.sync_with_origin.assert_awaited_once_with()
+    if is_user_contact_removed:
+        vk_user_contact_syncer_mock.return_value.remove.assert_awaited_once_with()
+    else:
+        vk_user_contact_syncer_mock.return_value.remove.assert_not_called()
 
     assert_vk_message_sent(
         vk_send_message_mock,
@@ -248,6 +286,7 @@ async def test_handling_update_from_vk_allow_messages_delivery_method_reactivati
     vk_notifications_bot_webhook_secret_key: str,
     vk_peer_id: int,
     vk_send_message_mock: Route,
+    vk_user_contact_syncer_mock: Mock,
     is_connection_key_used: bool,
 ) -> None:
     async with active_session():
@@ -275,6 +314,13 @@ async def test_handling_update_from_vk_allow_messages_delivery_method_reactivati
             ),
         )
     )
+
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        vk_user_contact_syncer_mock.call_args_list,
+        [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}],
+    )
+    vk_user_contact_syncer_mock.return_value.sync_with_origin.assert_awaited_once_with()
 
     assert_vk_message_sent(
         vk_send_message_mock,
@@ -375,6 +421,7 @@ async def test_handling_update_from_vk_deny_messages_delivery_method_blocking(
     vk_notifications_bot_webhook_url: str,
     vk_notifications_bot_webhook_secret_key: str,
     vk_peer_id: int,
+    vk_user_contact_syncer_mock: Mock,
 ) -> None:
     async with active_session():
         delivery_method = await VKDeliveryMethod.create(
@@ -392,6 +439,13 @@ async def test_handling_update_from_vk_deny_messages_delivery_method_blocking(
             ),
         )
     )
+
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        vk_user_contact_syncer_mock.call_args_list,
+        [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}],
+    )
+    vk_user_contact_syncer_mock.return_value.remove.assert_awaited_once_with()
 
     async with active_session() as session:
         session.add(delivery_method)
