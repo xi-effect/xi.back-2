@@ -10,8 +10,8 @@ from pydantic_marshals.contains import assert_contains
 from app.common.config import settings
 from app.common.schemas import notifications_sch, pochta_sch
 from app.notifications import texts
-from app.notifications.services.adapters.email_message_adapter import (
-    NotificationToEmailMessageAdapter,
+from app.notifications.services.notification_adapters.email_notification_adapter import (
+    EmailNotificationAdapter,
 )
 from tests.notifications import factories
 
@@ -28,7 +28,7 @@ async def test_individual_invitation_accepted_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -52,7 +52,7 @@ async def test_group_invitation_accepted_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -76,7 +76,7 @@ async def test_group_enrollment_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -100,7 +100,7 @@ async def test_classroom_conference_started_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -124,7 +124,7 @@ async def test_recipient_invoice_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -148,7 +148,7 @@ async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapt
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -214,7 +214,7 @@ async def test_single_classroom_event_created_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -247,7 +247,7 @@ async def test_classroom_event_instance_rescheduled_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -280,7 +280,7 @@ async def test_classroom_event_instance_cancelled_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -313,7 +313,7 @@ async def test_persisted_classroom_event_instance_reminder_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -346,7 +346,7 @@ async def test_repeated_classroom_event_instance_reminder_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -380,7 +380,7 @@ async def test_repeating_classroom_event_created_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -413,7 +413,7 @@ async def test_classroom_event_repetition_updated_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -446,7 +446,7 @@ async def test_classroom_event_repetition_cancelled_v1_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 
@@ -479,7 +479,7 @@ async def test_custom_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    email_notification_adapter = NotificationToEmailMessageAdapter(
+    email_notification_adapter = EmailNotificationAdapter(
         notification=notification_mock
     )
 

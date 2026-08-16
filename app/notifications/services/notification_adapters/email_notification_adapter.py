@@ -17,12 +17,12 @@ from app.common.schemas.pochta_sch import (
     UniversalEmailMessagePayloadSchema,
 )
 from app.notifications import texts
-from app.notifications.services.adapters.base_adapter import BaseNotificationAdapter
+from app.notifications.services.notification_adapters.base_notification_adapter import (
+    BaseNotificationAdapter,
+)
 
 
-class NotificationToEmailMessageAdapter(
-    BaseNotificationAdapter[AnyEmailMessagePayload]
-):
+class EmailNotificationAdapter(BaseNotificationAdapter[AnyEmailMessagePayload]):
     def adapt_individual_invitation_accepted_v1(
         self,
         payload: InvitationAcceptanceNotificationPayloadSchema,

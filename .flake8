@@ -52,6 +52,8 @@ extend-ignore =
   # # don't block features
   # utils is a module name
   WPS100
+  # double underscores exist for a reason
+  WPS116
   # f-strings are the best
   WPS237 WPS305
   # python 2.x is deprecated

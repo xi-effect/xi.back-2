@@ -1,4 +1,4 @@
-from typing import Annotated, cast
+from typing import Annotated, Literal, cast
 
 from fastapi import Depends, Path
 from fastapi.params import Depends as DependsType
@@ -9,6 +9,8 @@ from app.common.fastapi_ext import Responses, with_responses
 from app.common.schemas.notifications_sch import DeliveryMethodKind
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethod,
+    TelegramDeliveryMethod,
+    VKDeliveryMethod,
 )
 
 
@@ -19,22 +21,52 @@ class DeliveryMethodResponses(Responses):
     )
 
 
+AnyMessengerDeliveryMethod = TelegramDeliveryMethod | VKDeliveryMethod
+MessengerDeliveryMethodKind = Literal[
+    DeliveryMethodKind.TELEGRAM, DeliveryMethodKind.VK
+]
+
+
 @with_responses(DeliveryMethodResponses)
-async def get_my_delivery_method_by_kind(
+async def get_my_messenger_delivery_method_by_kind(
     auth_data: AuthorizationData,
-    delivery_method_kind: Annotated[DeliveryMethodKind, Path()],
-) -> DeliveryMethod:
+    delivery_method_kind: Annotated[MessengerDeliveryMethodKind, Path()],
+) -> AnyMessengerDeliveryMethod:
     delivery_method = await DeliveryMethod.find_first_by_primary_key(
         user_id=auth_data.user_id,
         kind=delivery_method_kind,
     )
     if delivery_method is None:
         raise DeliveryMethodResponses.DELIVERY_METHOD_NOT_FOUND
+    if not isinstance(delivery_method, AnyMessengerDeliveryMethod):  # pragma: no cover
+        raise TypeError("SQLAlchemy returned an unknown type of DeliveryMethod")
     return delivery_method
 
 
-MyDeliveryMethodByKind = Annotated[
-    DeliveryMethod, Depends(get_my_delivery_method_by_kind)
+MyMessengerDeliveryMethodByKind = Annotated[
+    AnyMessengerDeliveryMethod, Depends(get_my_messenger_delivery_method_by_kind)
+]
+
+
+@with_responses(DeliveryMethodResponses)
+async def get_messenger_delivery_method_by_kind_and_user_id(
+    user_id: Annotated[int, Path()],
+    delivery_method_kind: Annotated[MessengerDeliveryMethodKind, Path()],
+) -> AnyMessengerDeliveryMethod:
+    delivery_method = await DeliveryMethod.find_first_by_primary_key(
+        user_id=user_id,
+        kind=delivery_method_kind,
+    )
+    if delivery_method is None:
+        raise DeliveryMethodResponses.DELIVERY_METHOD_NOT_FOUND
+    if not isinstance(delivery_method, AnyMessengerDeliveryMethod):  # pragma: no cover
+        raise TypeError("SQLAlchemy returned an unknown type of DeliveryMethod")
+    return delivery_method
+
+
+MessengerDeliveryMethodByKindAndID = Annotated[
+    AnyMessengerDeliveryMethod,
+    Depends(get_messenger_delivery_method_by_kind_and_user_id),
 ]
 
 
@@ -62,4 +94,7 @@ def build_delivery_method_is_missing_dependency(
 
 MissingTelegramDeliveryMethodDep = build_delivery_method_is_missing_dependency(
     DeliveryMethodKind.TELEGRAM
+)
+MissingVKDeliveryMethodDep = build_delivery_method_is_missing_dependency(
+    DeliveryMethodKind.VK
 )

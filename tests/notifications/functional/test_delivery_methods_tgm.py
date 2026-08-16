@@ -1,5 +1,6 @@
 import random
 from datetime import datetime
+from unittest.mock import Mock, create_autospec
 
 import pytest
 from aiogram.enums import ChatMemberStatus
@@ -14,7 +15,9 @@ from app.notifications.models.delivery_methods_db import (
     DeliveryMethodStatus,
     TelegramDeliveryMethod,
 )
-from app.notifications.services import user_contacts_svc
+from app.notifications.services.user_contact_syncers.telegram_user_contact_syncer import (
+    TelegramUserContactSyncer,
+)
 from tests.common.active_session import ActiveSession
 from tests.common.aiogram_factories import (
     ChatMemberUpdatedFactory,
@@ -27,6 +30,16 @@ from tests.common.id_provider import IDProvider
 from tests.common.mock_stack import MockStack
 
 pytestmark = pytest.mark.anyio
+
+
+@pytest.fixture()
+def telegram_user_contact_syncer_mock(mock_stack: MockStack) -> Mock:
+    telegram_user_contact_syncer_mock: Mock = create_autospec(TelegramUserContactSyncer)
+    mock_stack.enter_patch(
+        "app.notifications.routes.delivery_methods_tgm.TelegramUserContactSyncer",
+        new=telegram_user_contact_syncer_mock,
+    )
+    return telegram_user_contact_syncer_mock
 
 
 @pytest.mark.parametrize(
@@ -61,13 +74,13 @@ pytestmark = pytest.mark.anyio
 async def test_telegram_delivery_method_creating(
     faker: Faker,
     active_session: ActiveSession,
-    mock_stack: MockStack,
     id_provider: IDProvider,
     authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
+    telegram_user_contact_syncer_mock: Mock,
     other_delivery_method_status: DeliveryMethodStatus | None,
     is_user_contact_removed: bool,
     expected_reply_text: str,
@@ -85,15 +98,8 @@ async def test_telegram_delivery_method_creating(
         user_id=authorized_user_id
     )
 
-    # Specific cases for user_contacts_svc are tested in service/test_user_contacts_svc
-    sync_personal_telegram_contact_mock = mock_stack.enter_async_mock(
-        user_contacts_svc, "sync_personal_telegram_contact"
-    )
-    remove_personal_telegram_contact_mock = mock_stack.enter_async_mock(
-        user_contacts_svc, "remove_personal_telegram_contact"
-    )
-
     new_username: str = faker.user_name()
+
     notifications_bot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
@@ -104,16 +110,34 @@ async def test_telegram_delivery_method_creating(
         )
     )
 
-    sync_personal_telegram_contact_mock.assert_awaited_once_with(
-        user_id=authorized_user_id,
-        new_username=new_username,
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        telegram_user_contact_syncer_mock.call_args_list,
+        (
+            [
+                {"kwargs": {"delivery_method": {"user_id": other_user_id}}},
+                {"kwargs": {"delivery_method": {"user_id": authorized_user_id}}},
+            ]
+            if is_user_contact_removed
+            else [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}]
+        ),
     )
     if is_user_contact_removed:
-        remove_personal_telegram_contact_mock.assert_awaited_once_with(
-            user_id=other_user_id
-        )
+        telegram_user_contact_syncer_mock.return_value.remove.assert_awaited_once_with()
     else:
-        remove_personal_telegram_contact_mock.assert_not_called()
+        telegram_user_contact_syncer_mock.return_value.remove.assert_not_called()
+    sync_from_message_mock = (
+        telegram_user_contact_syncer_mock.return_value.sync_from_message
+    )
+    assert_contains(
+        sync_from_message_mock.mock_calls[0].kwargs,
+        {
+            "message": {
+                "from_user": {"id": tg_user_id, "username": new_username},
+                "chat": {"id": tg_chat_id},
+            },
+        },
+    )
 
     async with active_session() as session:
         delivery_method = await TelegramDeliveryMethod.find_first_by_user_id(
@@ -245,6 +269,7 @@ async def test_telegram_delivery_method_blocking(
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
+    telegram_user_contact_syncer_mock: Mock,
 ) -> None:
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.create(
@@ -270,6 +295,13 @@ async def test_telegram_delivery_method_blocking(
             ),
         )
     )
+
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        telegram_user_contact_syncer_mock.call_args_list,
+        [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}],
+    )
+    telegram_user_contact_syncer_mock.return_value.remove.assert_awaited_once_with()
 
     async with active_session() as session:
         session.add(delivery_method)
@@ -342,6 +374,7 @@ async def test_telegram_delivery_method_blocking_delivery_method_is_not_active(
 
 
 async def test_telegram_delivery_method_unblocking(
+    faker: Faker,
     active_session: ActiveSession,
     authorized_user_id: int,
     notifications_bot_webhook_driver: TelegramBotWebhookDriver,
@@ -349,6 +382,7 @@ async def test_telegram_delivery_method_unblocking(
     mocked_bot: MockedBot,
     tg_chat_id: int,
     tg_user_id: int,
+    telegram_user_contact_syncer_mock: Mock,
 ) -> None:
     async with active_session():
         delivery_method = await TelegramDeliveryMethod.create(
@@ -357,14 +391,34 @@ async def test_telegram_delivery_method_unblocking(
             status=DeliveryMethodStatus.BLOCKED,
         )
 
+    new_username: str = faker.user_name()
+
     notifications_bot_webhook_driver.feed_update(
         UpdateFactory.build(
             message=MessageFactory.build(
                 text="/start",
                 chat=Chat(id=tg_chat_id, type="private"),
-                from_user=UserFactory.build(id=tg_user_id),
+                from_user=UserFactory.build(id=tg_user_id, username=new_username),
             ),
         )
+    )
+
+    # Specific cases are tested in service/user_contact_syncers/*
+    assert_contains(
+        telegram_user_contact_syncer_mock.call_args_list,
+        [{"kwargs": {"delivery_method": {"user_id": authorized_user_id}}}],
+    )
+    sync_from_message_mock = (
+        telegram_user_contact_syncer_mock.return_value.sync_from_message
+    )
+    assert_contains(
+        sync_from_message_mock.mock_calls[0].kwargs,
+        {
+            "message": {
+                "from_user": {"id": tg_user_id, "username": new_username},
+                "chat": {"id": tg_chat_id},
+            },
+        },
     )
 
     async with active_session() as session:

@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Literal
 
 from aiogram.utils.deep_linking import create_deep_link
 from pydantic import BaseModel, ConfigDict
@@ -13,15 +12,19 @@ from app.common.schemas.user_contacts_sch import UserContactKind
 from app.notifications.config import (
     telegram_app,
     telegram_deep_link_provider,
+    vk_app,
+    vk_connection_key_provider,
 )
 from app.notifications.dependencies.delivery_methods_dep import (
     MissingTelegramDeliveryMethodDep,
-    MyDeliveryMethodByKind,
+    MissingVKDeliveryMethodDep,
+    MyMessengerDeliveryMethodByKind,
 )
 from app.notifications.models.delivery_methods_db import (
     DeliveryMethod,
     EmailDeliveryMethod,
     TelegramDeliveryMethod,
+    VKDeliveryMethod,
 )
 from app.notifications.models.disabled_delivery_routes_db import (
     DisabledDeliveryRoute,
@@ -50,6 +53,7 @@ class DeliveryMethodsResponsePreSchema(BaseModel):
 
     email: DeliveryMethodEnrichedPreSchema | None
     telegram: DeliveryMethodEnrichedPreSchema | None
+    vk: DeliveryMethodEnrichedPreSchema | None
 
 
 class DeliveryMethodEnrichedSchema[DeliveryMethodSchema: BaseModel](BaseModel):
@@ -61,10 +65,12 @@ class DeliveryMethodEnrichedSchema[DeliveryMethodSchema: BaseModel](BaseModel):
 class DeliveryMethodsResponseSchema(BaseModel):
     email: DeliveryMethodEnrichedSchema[EmailDeliveryMethod.ResponseSchema] | None
     telegram: DeliveryMethodEnrichedSchema[TelegramDeliveryMethod.ResponseSchema] | None
+    vk: DeliveryMethodEnrichedSchema[VKDeliveryMethod.ResponseSchema] | None
 
 
 USER_CONTACT_KIND_TO_DELIVERY_METHOD_KIND: dict[UserContactKind, DeliveryMethodKind] = {
     UserContactKind.PERSONAL_TELEGRAM: DeliveryMethodKind.TELEGRAM,
+    UserContactKind.PERSONAL_VK: DeliveryMethodKind.VK,
 }
 
 
@@ -114,6 +120,7 @@ class DeliveryMethodsSchemaAdapter:
         return DeliveryMethodsResponsePreSchema(
             email=self.adapt_delivery_method(DeliveryMethodKind.EMAIL),
             telegram=self.adapt_delivery_method(DeliveryMethodKind.TELEGRAM),
+            vk=self.adapt_delivery_method(DeliveryMethodKind.VK),
         )
 
 
@@ -155,7 +162,25 @@ async def generate_telegram_connection_link(auth_data: AuthorizationData) -> str
     )
 
 
-DeletableDeliveryMethodKind = Literal[DeliveryMethodKind.TELEGRAM]
+class VKConnectionStartResponseSchema(BaseModel):
+    group_id: int
+    key: str
+
+
+@router.post(
+    path=f"/users/current/delivery-methods/{DeliveryMethodKind.VK}/connection-requests/",
+    dependencies=[MissingVKDeliveryMethodDep],
+    summary="Generate data for connecting vk notifications for the current user",
+)
+async def generate_vk_connection_data(
+    auth_data: AuthorizationData,
+) -> VKConnectionStartResponseSchema:
+    return VKConnectionStartResponseSchema(
+        group_id=vk_app.client.group_id,
+        key=vk_connection_key_provider.create_signed_link_payload(
+            user_id=auth_data.user_id,
+        ),
+    )
 
 
 @router.delete(
@@ -163,8 +188,10 @@ DeletableDeliveryMethodKind = Literal[DeliveryMethodKind.TELEGRAM]
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete any delivery method by kind for the current user",
 )
-async def delete_delivery_method(delivery_method: MyDeliveryMethodByKind) -> None:
+async def delete_delivery_method(
+    delivery_method: MyMessengerDeliveryMethodByKind,
+) -> None:
     await delivery_method.delete()
-    await user_contacts_svc.remove_personal_telegram_contact(
-        user_id=delivery_method.user_id
-    )  # TODO redo for vk
+    await user_contacts_svc.delivery_method_to_user_contact_syncer(
+        delivery_method=delivery_method
+    ).remove()

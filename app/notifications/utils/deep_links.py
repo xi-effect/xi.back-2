@@ -21,7 +21,7 @@ class ExpiredDeepLinkException(DeepLinkException):
     pass
 
 
-class TelegramDeepLinkProvider:
+class DeepLinkProvider:
     sep: ClassVar[str] = "-"
 
     def __init__(self, secret_keys: list[str], ttl: int) -> None:

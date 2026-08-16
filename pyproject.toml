@@ -163,11 +163,10 @@ omit = [
   "app/common/tmexio_ext.py",
   "app/common/bridges/base_bdg.py",
   "app/common/bridges/utils.py",
+  "app/notifications/utils/vk_app.py",
   "app/common/abscract_models/ordered_lists_db.py",  # TODO (33602197)
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)
   "app/common/utils/bitwise.py",  # TODO (170)
-  "app/notifications/routes/notification_settings_rst.py",  # TODO remove deprecated methods completely
-  "app/notifications/routes/telegram_connections_rst.py",  # TODO remove deprecated methods completely
   "app/setup_ci.py",
 ]

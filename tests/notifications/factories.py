@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.common.schemas import notifications_sch
 from app.notifications.models.delivery_methods_db import EmailDeliveryMethod
 from app.notifications.models.user_contacts_db import UserContact
+from app.notifications.schemas.vk import vk_base_sch, vk_updates_sch, vk_users_sch
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
@@ -130,3 +131,41 @@ class EmailDeliveryMethodInputFactory(
 
 class UserContactInputFactory(BaseModelFactory[UserContact.InputSchema]):
     __model__ = UserContact.InputSchema
+
+
+class ConfirmationUpdateFactory(
+    BaseModelFactory[vk_updates_sch.ConfirmationUpdateSchema]
+):
+    __model__ = vk_updates_sch.ConfirmationUpdateSchema
+
+
+class AllowMessagesObjectFactory(
+    BaseModelFactory[vk_updates_sch.AllowMessagesObjectSchema]
+):
+    __model__ = vk_updates_sch.AllowMessagesObjectSchema
+
+
+class AllowMessagesUpdateFactory(
+    BaseModelFactory[vk_updates_sch.AllowMessagesUpdateSchema]
+):
+    __model__ = vk_updates_sch.AllowMessagesUpdateSchema
+
+
+class DenyMessagesObjectFactory(
+    BaseModelFactory[vk_updates_sch.DenyMessagesObjectSchema]
+):
+    __model__ = vk_updates_sch.DenyMessagesObjectSchema
+
+
+class DenyMessagesUpdateFactory(
+    BaseModelFactory[vk_updates_sch.DenyMessagesUpdateSchema]
+):
+    __model__ = vk_updates_sch.DenyMessagesUpdateSchema
+
+
+class UserResponseFactory(BaseModelFactory[vk_users_sch.UserResponseSchema]):
+    __model__ = vk_users_sch.UserResponseSchema
+
+
+class ErrorFactory(BaseModelFactory[vk_base_sch.ErrorSchema]):
+    __model__ = vk_base_sch.ErrorSchema

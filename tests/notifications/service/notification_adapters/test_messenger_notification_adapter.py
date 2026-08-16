@@ -10,17 +10,17 @@ from pydantic_marshals.contains import assert_contains
 from app.common.config import settings
 from app.common.schemas import notifications_sch
 from app.notifications import texts
-from app.notifications.services.adapters.telegram_message_adapter import (
-    NotificationToTelegramMessageAdapter,
-    TelegramMessagePayloadSchema,
+from app.notifications.services.notification_adapters.messenger_notification_adapter import (
+    MessengerMessagePayloadSchema,
+    MessengerNotificationAdapter,
 )
 from tests.notifications import factories
 
 pytestmark = pytest.mark.anyio
 
 
-def assert_telegram_message_payload(
-    telegram_message_payload: TelegramMessagePayloadSchema,
+def assert_messenger_message_payload(
+    message_payload: MessengerMessagePayloadSchema,
     expected_notification_id: UUID,
     expected_message_text: str,
     expected_button_text: str,
@@ -28,7 +28,7 @@ def assert_telegram_message_payload(
     expected_button_link_query: dict[str, list[Any]],
 ) -> None:
     assert_contains(
-        telegram_message_payload,
+        message_payload,
         {
             "message_text": expected_message_text,
             "button_text": expected_button_text,
@@ -36,10 +36,8 @@ def assert_telegram_message_payload(
         },
     )
 
-    assert telegram_message_payload.button_link.startswith(
-        settings.frontend_app_base_url
-    )
-    parsed_button_link = urlparse(telegram_message_payload.button_link)
+    assert message_payload.button_link.startswith(settings.frontend_app_base_url)
+    parsed_button_link = urlparse(message_payload.button_link)
     assert_contains(
         {
             "path": parsed_button_link.path,
@@ -65,12 +63,12 @@ async def test_individual_invitation_accepted_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_MESSAGE,
         expected_button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
@@ -92,12 +90,12 @@ async def test_group_invitation_accepted_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.GROUP_INVITATION_ACCEPTED_V1_MESSAGE,
         expected_button_text=texts.GROUP_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
@@ -119,12 +117,12 @@ async def test_group_enrollment_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.ENROLLMENT_CREATED_V1_MESSAGE,
         expected_button_text=texts.ENROLLMENT_CREATED_V1_BUTTON_TEXT,
@@ -146,12 +144,12 @@ async def test_classroom_conference_started_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_BUTTON_TEXT,
@@ -174,12 +172,12 @@ async def test_recipient_invoice_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.RECIPIENT_INVOICE_CREATED_V1_MESSAGE,
         expected_button_text=texts.RECIPIENT_INVOICE_CREATED_V1_BUTTON_TEXT,
@@ -202,12 +200,12 @@ async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapt
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_MESSAGE,
         expected_button_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_BUTTON_TEXT,
@@ -230,12 +228,12 @@ async def test_single_classroom_event_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.SINGLE_CLASSROOM_EVENT_CREATED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
@@ -257,12 +255,12 @@ async def test_classroom_event_instance_rescheduled_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_INSTANCE_RESCHEDULED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
@@ -284,12 +282,12 @@ async def test_classroom_event_instance_cancelled_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_INSTANCE_CANCELLED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
@@ -311,12 +309,12 @@ async def test_persisted_classroom_event_instance_reminder_v1_notification_adapt
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
@@ -338,12 +336,12 @@ async def test_repeated_classroom_event_instance_reminder_v1_notification_adapti
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_INSTANCE_REMINDER_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT,
@@ -366,12 +364,12 @@ async def test_repeating_classroom_event_created_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.REPEATING_CLASSROOM_EVENT_CREATED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
@@ -393,12 +391,12 @@ async def test_classroom_event_repetition_updated_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_REPETITION_UPDATED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
@@ -420,12 +418,12 @@ async def test_classroom_event_repetition_cancelled_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
-    assert_telegram_message_payload(
-        telegram_notification_adapter.adapt(),
+    assert_messenger_message_payload(
+        messenger_notification_adapter.adapt(),
         expected_notification_id=notification_mock.id,
         expected_message_text=texts.CLASSROOM_EVENT_REPETITION_CANCELLED_V1_MESSAGE,
         expected_button_text=texts.CLASSROOM_SCHEDULE_FOCUS_BUTTON_TEXT,
@@ -447,12 +445,12 @@ async def test_custom_v1_notification_adapting(
     )
     notification_mock.payload = notification_payload
 
-    telegram_notification_adapter = NotificationToTelegramMessageAdapter(
+    messenger_notification_adapter = MessengerNotificationAdapter(
         notification=notification_mock
     )
 
     assert_contains(
-        telegram_notification_adapter.adapt(),
+        messenger_notification_adapter.adapt(),
         {
             "message_text": f"{notification_payload.header}\n\n{notification_payload.content}",
             "button_text": notification_payload.button_text,

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class UserContactKind(StrEnum):
     PERSONAL_TELEGRAM = "personal-telegram"
+    PERSONAL_VK = "personal-vk"
 
 
 class UserContactSchema(BaseModel):

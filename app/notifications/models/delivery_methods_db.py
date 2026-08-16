@@ -58,21 +58,6 @@ class DeliveryMethod(Base):
         return await cls.find_first_by_kwargs(user_id=user_id)
 
     @classmethod
-    async def find_first_by_user_id_and_status(
-        cls,
-        user_id: int,
-        allowed_statuses: list[DeliveryMethodStatus],
-    ) -> Self | None:
-        if cls is DeliveryMethod:
-            raise NotImplementedError
-        stmt = (
-            select(cls)
-            .filter_by(user_id=user_id)
-            .filter(cls.status.in_(allowed_statuses))
-        )
-        return await db.get_first(stmt)
-
-    @classmethod
     async def find_first_active_by_delivery_route(
         cls,
         user_id: int,
@@ -143,13 +128,24 @@ class TelegramDeliveryMethod(MessengerDeliveryMethod):
     }
 
 
+class VKDeliveryMethod(MessengerDeliveryMethod):
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": DeliveryMethodKind.VK,
+        "polymorphic_load": "inline",
+    }
+
+
 # declared outside the class, because STI doesn't support indexes on child classes
 Index(
     "unique_index_delivery_methods_active_or_blocked_peer_id",
     MessengerDeliveryMethod.kind,
     MessengerDeliveryMethod.peer_id,
     postgresql_where=and_(
-        MessengerDeliveryMethod.kind == DeliveryMethodKind.TELEGRAM,
+        MessengerDeliveryMethod.kind.in_(
+            (DeliveryMethodKind.TELEGRAM, DeliveryMethodKind.VK)
+        ),
         MessengerDeliveryMethod.status.in_(
             (DeliveryMethodStatus.ACTIVE, DeliveryMethodStatus.BLOCKED)
         ),
