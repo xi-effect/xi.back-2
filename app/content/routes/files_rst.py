@@ -1,51 +1,65 @@
 from datetime import datetime
 from io import BytesIO
 from os import stat
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, Any
 
-from fastapi import Header, UploadFile
+from fastapi import Depends, Header, UploadFile
 from PIL import Image
+from pydantic import BeforeValidator
 from starlette import status
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
 
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
-from app.common.schemas.storage_sch import StorageTokenPayloadSchema
+from app.content.dependencies.content_token_dep import (
+    ensure_content_token_allows_reading_files,
+    ensure_content_token_allows_uploading_files,
+)
+from app.content.dependencies.files_dep import MyFileByID
 from app.content.dependencies.uploads_dep import (
     ValidatedAudioUpload,
     ValidatedDocumentUpload,
     ValidatedImageUpload,
 )
-from app.storage_v2.dependencies.files_dep import MyFileByID
-from app.storage_v2.dependencies.storage_token_dep import (
-    StorageTokenPayload,
-    StorageTokenResponses,
-    UploadAllowedStorageTokenPayload,
-)
-from app.storage_v2.models.access_groups_db import AccessGroupFile
-from app.storage_v2.models.files_db import File, FileKind
+from app.content.dependencies.ydocs_dep import ContentTokenYDoc
+from app.content.models.files_db import File, FileKind
+from app.content.models.ydoc_files_db import YDocFile
+from app.content.models.ydocs_db import YDoc
 
 router = APIRouterExt(tags=["files"])
 
 
 async def upload_file(
-    storage_token_payload: StorageTokenPayloadSchema,
+    ydoc: YDoc,
+    auth_data: AuthorizationData,
     upload_content: bytes,
     upload_filename: str | None,
     file_kind: FileKind,
+    content_type: str,
 ) -> File:
+    filename = Path(upload_filename or "upload")
+
     file = await File.create_with_content(
         content=upload_content,
-        filename=upload_filename or "upload",
+        owner_id=ydoc.owner_id,
+        uploader_id=auth_data.user_id,
+        name=filename.stem,
+        extension=filename.suffix.lstrip("."),
         file_kind=file_kind,
+        content_type=content_type,
     )
 
-    await AccessGroupFile.create(
-        access_group_id=storage_token_payload.access_group_id,
+    await YDocFile.create(
+        ydoc_id=ydoc.id,
         file_id=file.id,
     )
 
     return file
+
+
+DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
 
 @router.post(
@@ -53,16 +67,20 @@ async def upload_file(
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new uncategorized file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_uncategorized_file(
-    storage_token_payload: UploadAllowedStorageTokenPayload,
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
     upload: UploadFile,
 ) -> File:
     return await upload_file(
-        storage_token_payload=storage_token_payload,
+        ydoc=ydoc,
+        auth_data=auth_data,
         upload_content=await upload.read(),
         upload_filename=upload.filename,
         file_kind=FileKind.UNCATEGORIZED,
+        content_type=upload.content_type or DEFAULT_CONTENT_TYPE,
     )
 
 
@@ -71,9 +89,11 @@ async def upload_uncategorized_file(
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new image file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_image_file(
-    storage_token_payload: UploadAllowedStorageTokenPayload,
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
     upload: ValidatedImageUpload,
 ) -> File:
     image = Image.open(BytesIO(await upload.read()))
@@ -82,10 +102,12 @@ async def upload_image_file(
     processed_image.seek(0)
 
     return await upload_file(
-        storage_token_payload=storage_token_payload,
+        ydoc=ydoc,
+        auth_data=auth_data,
         upload_content=processed_image.read(),
         upload_filename=upload.filename,
         file_kind=FileKind.IMAGE,
+        content_type="image/webp",
     )
 
 
@@ -94,16 +116,20 @@ async def upload_image_file(
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new document file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_document_file(
-    storage_token_payload: UploadAllowedStorageTokenPayload,
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
     upload: ValidatedDocumentUpload,
 ) -> File:
     return await upload_file(
-        storage_token_payload=storage_token_payload,
+        ydoc=ydoc,
+        auth_data=auth_data,
         upload_content=await upload.read(),
         upload_filename=upload.filename,
         file_kind=FileKind.DOCUMENT,
+        content_type="application/pdf",
     )
 
 
@@ -112,16 +138,20 @@ async def upload_document_file(
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
     summary="Upload a new audio file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_audio_file(
-    storage_token_payload: UploadAllowedStorageTokenPayload,
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
     upload: ValidatedAudioUpload,
 ) -> File:
     return await upload_file(
-        storage_token_payload=storage_token_payload,
+        ydoc=ydoc,
+        auth_data=auth_data,
         upload_content=await upload.read(),
         upload_filename=upload.filename,
         file_kind=FileKind.AUDIO,
+        content_type=upload.content_type or DEFAULT_CONTENT_TYPE,
     )
 
 
@@ -129,39 +159,39 @@ async def upload_audio_file(
     "/files/{file_id}/meta/",
     response_model=File.ResponseSchema,
     summary="Read meta of any file by id",
+    dependencies=[Depends(ensure_content_token_allows_reading_files)],
 )
-async def retrieve_file_meta(
-    storage_token_payload: StorageTokenPayload,
-    file: MyFileByID,
-) -> File:
-    if not storage_token_payload.can_read_files:
-        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
+async def retrieve_file_meta(file: MyFileByID) -> File:
     return file
 
 
-def parse_http_datetime(header: str | None) -> datetime | None:
-    if header is None:
-        return None
-    return datetime.strptime(header, "%a, %d %b %Y %H:%M:%S GMT")
+def parse_http_datetime(value: str) -> datetime:
+    return datetime.strptime(value, "%a, %d %b %Y %H:%M:%S GMT")
+
+
+def parse_http_datetime_header(value: Any) -> Any:
+    return parse_http_datetime(value) if isinstance(value, str) else value
 
 
 @router.get(
     "/files/{file_id}/",
+    response_model=File.ResponseSchema,
     summary="Read any file by id",
+    dependencies=[Depends(ensure_content_token_allows_reading_files)],
 )
 async def read_file(
-    storage_token_payload: StorageTokenPayload,
     file: MyFileByID,
     if_none_match: Annotated[str, Header()] = "",
-    if_modified_since: Annotated[str | None, Header()] = None,
+    if_modified_since: Annotated[
+        datetime | None,
+        BeforeValidator(parse_http_datetime_header),
+        Header(),
+    ] = None,
 ) -> Response:
-    if not storage_token_payload.can_read_files:
-        raise StorageTokenResponses.INVALID_STORAGE_TOKEN
-
     response = FileResponse(
         path=file.path,
-        filename=file.name,
-        media_type=file.media_type,
+        filename=file.filename,
+        media_type=file.content_type,
         content_disposition_type=file.content_disposition,
         stat_result=stat(file.path),
     )
@@ -170,13 +200,8 @@ async def read_file(
     if etag in {tag.strip(" W/") for tag in if_none_match.split(",")}:
         return NotModifiedResponse(headers=response.headers)
 
-    modified_since = parse_http_datetime(if_modified_since)
-    last_modified = parse_http_datetime(response.headers.get("last-modified"))
-    if (
-        modified_since is not None
-        and last_modified is not None
-        and modified_since >= last_modified
-    ):
+    last_modified = parse_http_datetime(response.headers["last-modified"])
+    if if_modified_since is not None and if_modified_since >= last_modified:
         return NotModifiedResponse(headers=response.headers)
 
     return response

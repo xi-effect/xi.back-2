@@ -20,6 +20,7 @@ from app import (
     autocomplete,
     classrooms,
     conferences,
+    content,
     datalake,
     invoices,
     materials,
@@ -197,6 +198,7 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
 app.include_router(conferences.api_router)
+app.include_router(content.api_router)
 app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
 app.include_router(materials.api_router)

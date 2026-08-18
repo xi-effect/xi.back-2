@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Literal, Self
@@ -5,10 +6,11 @@ from uuid import UUID, uuid4
 
 import aiofiles
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import Enum
+from sqlalchemy import DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
+from app.common.utils.datetime import datetime_utc_now
 
 
 class FileKind(StrEnum):
@@ -20,18 +22,6 @@ class FileKind(StrEnum):
 
 ContentDisposition = Literal["inline", "attachment"]
 
-FILE_KIND_TO_FOLDER: dict[FileKind, str] = {
-    FileKind.UNCATEGORIZED: "uncategorized",
-    FileKind.IMAGE: "images",
-    FileKind.DOCUMENT: "documents",
-    FileKind.AUDIO: "audios",
-}
-FILE_KIND_TO_MEDIA_TYPE: dict[FileKind, str | None] = {
-    FileKind.UNCATEGORIZED: None,
-    FileKind.IMAGE: "image/webp",
-    FileKind.DOCUMENT: "application/pdf",
-    FileKind.AUDIO: None,
-}
 FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
     FileKind.UNCATEGORIZED: "attachment",
     FileKind.IMAGE: "inline",
@@ -41,22 +31,42 @@ FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
 
 
 class File(Base):
-    __tablename__ = "files_old"
+    __tablename__ = "files"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    owner_id: Mapped[int] = mapped_column()
+    uploader_id: Mapped[int] = mapped_column()
 
     name: Mapped[str] = mapped_column()
-    kind: Mapped[FileKind] = mapped_column(Enum(FileKind, name="file_kind"))
+    extension: Mapped[str] = mapped_column()
+    kind: Mapped[FileKind] = mapped_column(Enum(FileKind, name="content_file_kind"))
+    content_type: Mapped[str] = mapped_column()
+    size_bytes: Mapped[int] = mapped_column()
 
-    ResponseSchema = MappedModel.create(columns=[id, name, kind])
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime_utc_now
+    )
+
+    ResponseSchema = MappedModel.create(
+        columns=[
+            id,
+            name,
+            extension,
+            kind,
+            content_type,
+            size_bytes,
+            created_at,
+        ]
+    )
 
     @property
     def path(self) -> Path:
-        return settings.storage_path / FILE_KIND_TO_FOLDER[self.kind] / self.id.hex
+        hex_id = self.id.hex
+        return settings.storage_path / "files" / hex_id[:2] / hex_id[2:4] / hex_id
 
     @property
-    def media_type(self) -> str | None:
-        return FILE_KIND_TO_MEDIA_TYPE[self.kind]
+    def filename(self) -> str:
+        return self.name if self.extension == "" else f"{self.name}.{self.extension}"
 
     @property
     def content_disposition(self) -> ContentDisposition:
@@ -66,13 +76,23 @@ class File(Base):
     async def create_with_content(
         cls,
         content: bytes,
-        filename: str,
+        owner_id: int,
+        uploader_id: int,
+        name: str,
+        extension: str,
         file_kind: FileKind,
+        content_type: str,
     ) -> Self:
         file = await cls.create(
-            name=filename,
+            owner_id=owner_id,
+            uploader_id=uploader_id,
+            name=name,
+            extension=extension,
             kind=file_kind,
+            content_type=content_type,
+            size_bytes=len(content),
         )
+        file.path.parent.mkdir(parents=True, exist_ok=True)
         async with aiofiles.open(file.path, "wb") as f:
             await f.write(content)
         return file
