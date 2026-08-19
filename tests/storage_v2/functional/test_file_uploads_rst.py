@@ -116,6 +116,7 @@ CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
     ("image/tiff", "tif"),
     ("image/tiff", "tiff"),
     ("image/webp", "webp"),
+    ("application/pdf", "pdf"),
 ]
 
 
@@ -124,6 +125,7 @@ CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
     [
         pytest.param(lf("webp_image_file_input_data"), id="webp"),
         pytest.param(lf("png_image_file_input_data"), id="png"),
+        pytest.param(lf("pdf_document_file_input_data"), id="pdf"),
     ],
 )
 async def test_image_file_uploading_content_type_mismatch(
@@ -142,7 +144,7 @@ async def test_image_file_uploading_content_type_mismatch(
 
     assert_response(
         authorized_client.post(
-            "/api/protected/storage-service/v2/file-kinds/image/files/",
+            f"/api/protected/storage-service/v2/file-kinds/{file_input_data.kind}/files/",
             headers={"X-Storage-Token": file_upload_storage_token},
             files={
                 "upload": (
@@ -157,21 +159,29 @@ async def test_image_file_uploading_content_type_mismatch(
     )
 
 
-async def test_image_file_uploading_wrong_content_format(
+@pytest.mark.parametrize(
+    "file_input_data",
+    [
+        pytest.param(lf("webp_image_file_input_data"), id="image"),
+        pytest.param(lf("pdf_document_file_input_data"), id="document"),
+    ],
+)
+async def test_file_uploading_wrong_content_format(
     faker: Faker,
     authorized_client: TestClient,
     uncategorized_file_content: bytes,
     file_upload_storage_token: str,
+    file_input_data: FileInputData,
 ) -> None:
     assert_response(
         authorized_client.post(
-            "/api/protected/storage-service/v2/file-kinds/image/files/",
+            f"/api/protected/storage-service/v2/file-kinds/{file_input_data.kind}/files/",
             headers={"X-Storage-Token": file_upload_storage_token},
             files={
                 "upload": (
-                    faker.file_name(extension="webp"),
+                    file_input_data.name,
                     uncategorized_file_content,
-                    "image/webp",
+                    file_input_data.content_type,
                 )
             },
         ),
