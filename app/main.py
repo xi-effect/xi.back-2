@@ -7,6 +7,7 @@ from fastapi.openapi.docs import get_swagger_ui_html
 from faststream import BaseMiddleware, StreamMessage
 from faststream.redis.fastapi import RedisRouter
 from pydantic import ValidationError
+from sqlalchemy.sql.ddl import CreateSchema
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import Response
@@ -121,6 +122,10 @@ faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
 
 async def reinit_database() -> None:  # pragma: no cover
     async with engine.begin() as conn:
+        if settings.postgres_schema is not None:
+            await conn.execute(
+                CreateSchema(settings.postgres_schema, if_not_exists=True)
+            )
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
