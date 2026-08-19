@@ -1,3 +1,4 @@
+import wave
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from io import BytesIO
@@ -221,12 +222,37 @@ def pdf_document_file_input_data(
     )
 
 
+@pytest.fixture()
+def wav_audio_file_content(faker: Faker) -> bytes:
+    audio_content = BytesIO()
+    with wave.open(audio_content, "wb") as f:
+        f.setnchannels(1)
+        f.setsampwidth(2)
+        f.setframerate(44100)
+        f.writeframes(faker.binary(44100))
+    return audio_content.getvalue()
+
+
+@pytest.fixture()
+def wav_audio_file_input_data(
+    faker: Faker, wav_audio_file_content: bytes
+) -> FileInputData:
+    return FileInputData(
+        kind=FileKind.AUDIO,
+        name=faker.file_name(extension="wav"),
+        input_content=wav_audio_file_content,
+        processed_content=wav_audio_file_content,
+        content_type="audio/x-wav",
+    )
+
+
 @pytest.fixture(
     params=[
         pytest.param(lf("uncategorized_file_input_data"), id="uncategorized"),
         pytest.param(lf("webp_image_file_input_data"), id="webp_image"),
         pytest.param(lf("png_image_file_input_data"), id="png_image"),
         pytest.param(lf("pdf_document_file_input_data"), id="pdf_document"),
+        pytest.param(lf("wav_audio_file_input_data"), id="wav_audio"),
     ],
 )
 def parametrized_file_input_data(
