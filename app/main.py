@@ -18,16 +18,12 @@ from tmexio.documentation import OpenAPIBuilder
 from app import (
     autocomplete,
     classrooms,
-    communities,
     conferences,
     datalake,
     invoices,
     materials,
-    messenger,
     notifications,
-    payments,
     pochta,
-    posts,
     scheduler,
     storage_v2,
     subscriptions,
@@ -38,14 +34,12 @@ from app.common.config import Base, engine, livekit, sessionmaker, settings, tme
 from app.common.config_bdg import all_bridges, datalake_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
 from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
+from app.common.socketio.rooms import user_room
+from app.common.socketio.store import user_id_to_sids
 from app.common.sqlalchemy_ext import session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
-from app.communities.rooms import user_room
-from app.communities.store import user_id_to_sids
 
-tmex.include_router(communities.event_router)
-tmex.include_router(messenger.event_router)
 remove_ping_pong_logs()
 
 if settings.socketio_admin is not None:
@@ -91,7 +85,7 @@ async def disconnect_user(socket: AsyncSocket) -> None:
 
 
 @tmex.on_other(summary="[special] Handler for non-existent events")
-async def handle_other_events(  # TODO (38980978) pragma: no cover
+async def handle_other_events(  # TODO (203) pragma: no cover
     event_name: EventName,
 ) -> Annotated[str, PydanticPackager(str, status.HTTP_404_NOT_FOUND)]:
     return f"Unknown event: '{event_name}'"
@@ -197,16 +191,12 @@ app.mount("/socket.io/", tmex.build_asgi_app())
 
 include_unused_services = not settings.production_mode
 app.include_router(autocomplete.api_router)
-app.include_router(communities.api_router, include_in_schema=include_unused_services)
 app.include_router(conferences.api_router)
 app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
 app.include_router(materials.api_router)
-app.include_router(messenger.api_router, include_in_schema=include_unused_services)
 app.include_router(notifications.api_router)
-app.include_router(payments.api_router)
 app.include_router(pochta.api_router)
-app.include_router(posts.api_router, include_in_schema=include_unused_services)
 app.include_router(scheduler.api_router)
 app.include_router(storage_v2.api_router)
 app.include_router(supbot.api_router)

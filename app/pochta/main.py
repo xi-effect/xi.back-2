@@ -1,16 +1,14 @@
-import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
 from faststream.redis import RedisRouter
 
-from app.common.config import settings
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.pochta.routes import email_messages_mub, email_messages_sub, pochta_mub
+from app.pochta.routes import email_messages_mub, email_messages_sub
 
 outside_router = APIRouterExt(prefix="/api/public/pochta-service")
 
@@ -29,13 +27,10 @@ internal_router = APIRouterExt(
 
 mub_router = APIRouterExt(prefix="/mub/pochta-service", dependencies=[MUBProtection])
 mub_router.include_router(email_messages_mub.router)
-mub_router.include_router(pochta_mub.router)
 
 
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
-    if settings.production_mode and settings.email is None:
-        logging.error("Configuration for email service is missing")
     yield
 
 

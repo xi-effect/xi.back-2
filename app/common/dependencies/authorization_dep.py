@@ -88,8 +88,8 @@ async def authorize_proxy(
             user_id_token=user_id_token,
             username_token=username_token,
         )
-    except ValidationError:  # noqa: WPS329  # bug  # TODO (36286438) pragma: no cover
-        raise AuthorizedResponses.PROXY_AUTH_MISSING
+    except ValidationError:  # noqa: WPS329  # bug
+        raise AuthorizedResponses.PROXY_AUTH_MISSING  # TODO (203) pragma: no cover
 
     sentry_sdk.set_user(
         {
