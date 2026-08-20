@@ -13,6 +13,7 @@ from starlette.staticfiles import NotModifiedResponse
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.content.dependencies.content_token_dep import (
     ensure_content_token_allows_reading_files,
     ensure_content_token_allows_uploading_files,
@@ -22,6 +23,7 @@ from app.content.dependencies.uploads_dep import (
     ValidatedAudioUpload,
     ValidatedDocumentUpload,
     ValidatedImageUpload,
+    ValidatedPresentationUpload,
 )
 from app.content.dependencies.ydocs_dep import ContentTokenYDoc
 from app.content.models.files_db import File, FileKind
@@ -152,6 +154,28 @@ async def upload_audio_file(
         upload_filename=upload.filename,
         file_kind=FileKind.AUDIO,
         content_type=upload.content_type or DEFAULT_CONTENT_TYPE,
+    )
+
+
+@router.post(
+    "/file-kinds/presentation/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.ResponseSchema,
+    summary="Upload a new presentation file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
+)
+async def upload_presentation_file(
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
+    upload: ValidatedPresentationUpload,
+) -> File:
+    return await upload_file(
+        ydoc=ydoc,
+        auth_data=auth_data,
+        upload_content=await upload.read(),
+        upload_filename=upload.filename,
+        file_kind=FileKind.PRESENTATION,
+        content_type=PRESENTATION_CONTENT_TYPE,
     )
 
 
