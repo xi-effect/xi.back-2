@@ -12,6 +12,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider
+from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File
@@ -153,6 +154,7 @@ CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
     ("audio/ogg", "ogg"),
     ("audio/x-flac", "flac"),
     ("audio/x-wav", "wav"),
+    (PRESENTATION_CONTENT_TYPE, "pptx"),
 ]
 
 
@@ -163,6 +165,7 @@ CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
         pytest.param(lf("png_image_file_input_data"), id="png"),
         pytest.param(lf("pdf_document_file_input_data"), id="pdf"),
         pytest.param(lf("wav_audio_file_input_data"), id="wav"),
+        pytest.param(lf("pptx_presentation_file_input_data"), id="pptx"),
     ],
 )
 async def test_file_uploading_content_type_mismatch(
@@ -202,6 +205,7 @@ async def test_file_uploading_content_type_mismatch(
         pytest.param(lf("webp_image_file_input_data"), id="image"),
         pytest.param(lf("pdf_document_file_input_data"), id="document"),
         pytest.param(lf("wav_audio_file_input_data"), id="audio"),
+        pytest.param(lf("pptx_presentation_file_input_data"), id="presentation"),
     ],
 )
 async def test_file_uploading_wrong_content_format(
