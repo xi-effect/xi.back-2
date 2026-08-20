@@ -87,7 +87,7 @@ freezegun = "^1.5.1"
 respx = "^0.22.0"
 polyfactory = "^2.21.0"
 faker = "^37.1.0"
-faker-file = "^0.18.4"
+faker-file = {extras = ["pptx"], version = "^0.18.4"}
 rstr = "^3.2.2"
 
 [tool.isort]
