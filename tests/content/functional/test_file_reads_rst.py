@@ -8,10 +8,6 @@ from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
-from app.content.models.files_db import (
-    FILE_KIND_TO_CONTENT_DISPOSITION,
-    ContentDisposition,
-)
 from app.content.models.ydoc_files_db import YDocFile
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
@@ -61,9 +57,7 @@ async def test_file_reading(
     file_last_modified: str,
     file_read_content_token: str,
 ) -> None:
-    disposition_type: ContentDisposition = FILE_KIND_TO_CONTENT_DISPOSITION.get(
-        parametrized_file_input_data.kind, "attachment"
-    )
+    content_disposition = parametrized_file_input_data.content_disposition
 
     response = assert_response(
         authorized_client.get(
@@ -75,7 +69,7 @@ async def test_file_reading(
             "Last-Modified": file_last_modified,
             "Content-Type": parametrized_file_input_data.stored_content_type,
             "Content-Disposition": (
-                f'{disposition_type}; filename="{parametrized_file_input_data.name}"'
+                f'{content_disposition}; filename="{parametrized_file_input_data.name}"'
             ),
         },
         expected_json=None,

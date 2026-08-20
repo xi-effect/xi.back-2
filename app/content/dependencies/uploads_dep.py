@@ -10,6 +10,7 @@ from app.common.filetype_ext import (
     match_audio_filetype,
     match_document_filetype,
     match_image_filetype,
+    match_presentation_filetype,
 )
 
 
@@ -75,3 +76,23 @@ async def validate_audio_upload(upload: UploadFile) -> UploadFile:
 
 
 ValidatedAudioUpload = Annotated[UploadFile, Depends(validate_audio_upload)]
+
+
+@with_responses(FileFormatResponses)
+async def validate_presentation_upload(upload: UploadFile) -> UploadFile:
+    upload_header_data = await upload.read(FILE_HEADER_SIZE)
+    presentation_type = match_presentation_filetype(upload_header_data)
+
+    if presentation_type is None:
+        raise FileFormatResponses.WRONG_FORMAT
+
+    if presentation_type.mime != upload.content_type:
+        raise FileFormatResponses.CONTENT_TYPE_MISMATCH
+
+    await upload.seek(0)
+    return upload
+
+
+ValidatedPresentationUpload = Annotated[
+    UploadFile, Depends(validate_presentation_upload)
+]

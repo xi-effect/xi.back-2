@@ -19,7 +19,8 @@ from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.content.models.files_db import File, FileKind
+from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
+from app.content.models.files_db import ContentDisposition, File, FileKind
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
@@ -182,6 +183,11 @@ class FileInputData:
     def stored_content_type(self) -> str:
         return "image/webp" if self.kind == FileKind.IMAGE else self.content_type
 
+    @property
+    def content_disposition(self) -> ContentDisposition:
+        attachment_kinds = {FileKind.UNCATEGORIZED, FileKind.PRESENTATION}
+        return "attachment" if self.kind in attachment_kinds else "inline"
+
 
 @pytest.fixture()
 def uncategorized_file_input_data(
@@ -272,6 +278,25 @@ def wav_audio_file_input_data(
     )
 
 
+@pytest.fixture()
+def pptx_presentation_file_content(faker: Faker) -> bytes:
+    return faker.pptx_file(raw=True)  # type: ignore[no-any-return]
+
+
+@pytest.fixture()
+def pptx_presentation_file_input_data(
+    faker: Faker,
+    pptx_presentation_file_content: bytes,
+) -> FileInputData:
+    return FileInputData(
+        kind=FileKind.PRESENTATION,
+        name=faker.file_name(extension="pptx"),
+        input_content=pptx_presentation_file_content,
+        processed_content=pptx_presentation_file_content,
+        content_type=PRESENTATION_CONTENT_TYPE,
+    )
+
+
 @pytest.fixture(
     params=[
         pytest.param(lf("uncategorized_file_input_data"), id="uncategorized"),
@@ -279,6 +304,7 @@ def wav_audio_file_input_data(
         pytest.param(lf("png_image_file_input_data"), id="png_image"),
         pytest.param(lf("pdf_document_file_input_data"), id="pdf_document"),
         pytest.param(lf("wav_audio_file_input_data"), id="wav_audio"),
+        pytest.param(lf("pptx_presentation_file_input_data"), id="pptx_presentation"),
     ],
 )
 def parametrized_file_input_data(

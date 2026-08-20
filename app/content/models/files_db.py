@@ -18,6 +18,7 @@ class FileKind(StrEnum):
     IMAGE = "image"
     DOCUMENT = "document"
     AUDIO = "audio"
+    PRESENTATION = "presentation"
 
 
 ContentDisposition = Literal["inline", "attachment"]
@@ -27,6 +28,7 @@ FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
     FileKind.IMAGE: "inline",
     FileKind.DOCUMENT: "inline",
     FileKind.AUDIO: "inline",
+    FileKind.PRESENTATION: "attachment",
 }
 
 
