@@ -45,7 +45,7 @@ class MaterialSearchRequestSchema(BaseModel):
 
 
 class Material(Base):
-    __tablename__: str | None = "materials"
+    __tablename__: str | None = "materials_old"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     access_kind: Mapped[MaterialAccessKind] = mapped_column(Enum(MaterialAccessKind))

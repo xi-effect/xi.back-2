@@ -1,12 +1,14 @@
 from datetime import datetime
 from enum import StrEnum, auto
+from typing import Self
 from uuid import UUID, uuid4
 
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, LargeBinary
+from sqlalchemy import DateTime, Enum, LargeBinary, insert, literal, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
 
@@ -24,7 +26,9 @@ class YDoc(Base):
     content_kind: Mapped[YDocContentKind] = mapped_column(
         Enum(YDocContentKind, name="content_ydoc_kind")
     )
-    content: Mapped[bytes | None] = mapped_column(LargeBinary, default=None)
+    content: Mapped[bytes | None] = mapped_column(
+        LargeBinary, default=None, deferred=True
+    )
     size_bytes: Mapped[int] = mapped_column(default=0)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -38,7 +42,23 @@ class YDoc(Base):
         columns=[id, owner_id, content_kind, size_bytes, created_at, updated_at]
     )
 
-    def update_content(self, content: bytes | None) -> None:
-        self.content = content
-        self.size_bytes = 0 if content is None else len(content)
-        self.updated_at = datetime_utc_now()
+    @classmethod
+    async def duplicate_by_id(cls, source_ydoc_id: UUID, owner_id: int) -> Self:
+        stmt = (
+            insert(cls)
+            .from_select(
+                [cls.owner_id, cls.content_kind, cls.content, cls.size_bytes],
+                (
+                    select(
+                        literal(owner_id),
+                        cls.content_kind,
+                        cls.content,
+                        cls.size_bytes,
+                    )
+                    .select_from(cls)
+                    .filter_by(id=source_ydoc_id)
+                ),
+            )
+            .returning(cls)
+        )
+        return (await db.session.execute(stmt)).scalar_one()
