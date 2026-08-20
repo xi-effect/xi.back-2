@@ -21,6 +21,7 @@ from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.content.models.files_db import ContentDisposition, File, FileKind
+from app.content.models.materials_db import ClassroomMaterial, PersonalMaterial
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
@@ -90,6 +91,44 @@ def outsider_internal_client(
 
 
 @pytest.fixture()
+def outsider_client(
+    client: TestClient,
+    outsider_auth_data: ProxyAuthData,
+) -> TestClient:
+    return TestClient(client.app, headers=outsider_auth_data.as_headers)
+
+
+@pytest.fixture()
+def tutor_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def tutor_user_id(tutor_auth_data: ProxyAuthData) -> int:
+    return tutor_auth_data.user_id
+
+
+@pytest.fixture()
+def tutor_client(client: TestClient, tutor_auth_data: ProxyAuthData) -> TestClient:
+    return TestClient(client.app, headers=tutor_auth_data.as_headers)
+
+
+@pytest.fixture()
+def student_auth_data() -> ProxyAuthData:
+    return ProxyAuthDataFactory.build()
+
+
+@pytest.fixture()
+def student_user_id(student_auth_data: ProxyAuthData) -> int:
+    return student_auth_data.user_id
+
+
+@pytest.fixture()
+def student_client(client: TestClient, student_auth_data: ProxyAuthData) -> TestClient:
+    return TestClient(client.app, headers=student_auth_data.as_headers)
+
+
+@pytest.fixture()
 def ydoc_owner_id(faker: Faker) -> int:
     return faker.pyint(min_value=1, max_value=1000000)
 
@@ -100,7 +139,8 @@ async def ydoc(
     active_session: ActiveSession,
     ydoc_owner_id: int,
 ) -> AsyncIterator[YDoc]:
-    content = faker.binary(length=64)
+    content: bytes = faker.binary(length=64)
+
     async with active_session():
         ydoc = await YDoc.create(
             owner_id=ydoc_owner_id,
@@ -120,7 +160,8 @@ async def other_ydoc(
     faker: Faker,
     active_session: ActiveSession,
 ) -> AsyncIterator[YDoc]:
-    content = faker.binary(length=64)
+    content: bytes = faker.binary(length=64)
+
     async with active_session():
         ydoc = await YDoc.create(
             owner_id=faker.pyint(min_value=1, max_value=1000000),
@@ -398,3 +439,103 @@ def file_last_modified(file_response: FileResponse) -> str | None:
 @pytest.fixture()
 def missing_file_id() -> UUID:
     return uuid4()
+
+
+@pytest.fixture()
+def classroom_id(faker: Faker) -> int:
+    return faker.random_int()
+
+
+@pytest.fixture()
+async def personal_material(
+    faker: Faker,
+    active_session: ActiveSession,
+    tutor_user_id: int,
+) -> AsyncIterator[PersonalMaterial]:
+    input_data = factories.PersonalMaterialInputFactory.build_python()
+    content: bytes = faker.binary(length=64)
+
+    async with active_session():
+        main_ydoc = await YDoc.create(
+            owner_id=tutor_user_id,
+            content_kind=input_data.pop("content_kind"),
+            content=content,
+            size_bytes=len(content),
+        )
+        personal_material = await PersonalMaterial.create(
+            main_ydoc=main_ydoc,
+            tutor_id=tutor_user_id,
+            **input_data,
+        )
+
+    yield personal_material
+
+    async with active_session():
+        await PersonalMaterial.delete_by_kwargs(id=personal_material.id)
+        await YDoc.delete_by_kwargs(id=main_ydoc.id)
+
+
+@pytest.fixture()
+async def personal_material_data(personal_material: PersonalMaterial) -> AnyJSON:
+    return PersonalMaterial.ResponseSchema.model_validate(
+        personal_material, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_personal_material_id(
+    active_session: ActiveSession,
+    personal_material: PersonalMaterial,
+) -> UUID:
+    async with active_session():
+        await PersonalMaterial.delete_by_kwargs(id=personal_material.id)
+    return personal_material.id
+
+
+@pytest.fixture()
+async def classroom_material(
+    faker: Faker,
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    classroom_id: int,
+) -> AsyncIterator[ClassroomMaterial]:
+    input_data = factories.ClassroomMaterialInputFactory.build_python()
+    content: bytes = faker.binary(length=64)
+
+    async with active_session():
+        main_ydoc = await YDoc.create(
+            owner_id=tutor_user_id,
+            content_kind=input_data.pop("content_kind"),
+            content=content,
+            size_bytes=len(content),
+        )
+        classroom_material = await ClassroomMaterial.create(
+            main_ydoc=main_ydoc,
+            classroom_id=classroom_id,
+            **input_data,
+        )
+
+    yield classroom_material
+
+    async with active_session():
+        await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
+        await YDoc.delete_by_kwargs(id=main_ydoc.id)
+
+
+@pytest.fixture()
+async def classroom_material_data(
+    classroom_material: ClassroomMaterial,
+) -> AnyJSON:
+    return ClassroomMaterial.ResponseSchema.model_validate(
+        classroom_material, from_attributes=True
+    ).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def deleted_classroom_material_id(
+    active_session: ActiveSession,
+    classroom_material: ClassroomMaterial,
+) -> UUID:
+    async with active_session():
+        await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
+    return classroom_material.id

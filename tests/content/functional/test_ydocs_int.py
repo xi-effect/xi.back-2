@@ -11,6 +11,7 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
 from app.common.utils.datetime import datetime_utc_now
+from app.content.models.materials_db import PersonalMaterial
 from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -136,26 +137,30 @@ async def test_ydoc_content_updating(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
-    ydoc: YDoc,
+    personal_material: PersonalMaterial,
 ) -> None:
     content: bytes = faker.binary(length=64)
 
     assert_nodata_response(
         internal_client.put(
-            f"/internal/content-service/ydocs/{ydoc.id}/content/",
+            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/",
             content=content,
             headers={"Content-Type": "application/octet-stream"},
         ),
     )
 
     async with active_session() as session:
-        session.add(ydoc)
-        await session.refresh(ydoc)
+        session.add(personal_material)
+        await session.refresh(personal_material)
+        assert_contains(personal_material, {"updated_at": datetime_utc_now()})
+
+        main_ydoc = personal_material.main_ydoc
+        await session.refresh(main_ydoc)
         assert_contains(
             {
-                "content": ydoc.content,
-                "size_bytes": ydoc.size_bytes,
-                "updated_at": ydoc.updated_at,
+                "content": await main_ydoc.awaitable_attrs.content,
+                "size_bytes": main_ydoc.size_bytes,
+                "updated_at": main_ydoc.updated_at,
             },
             {
                 "content": content,
@@ -169,20 +174,26 @@ async def test_ydoc_content_updating(
 async def test_ydoc_content_clearing(
     active_session: ActiveSession,
     internal_client: TestClient,
-    ydoc: YDoc,
+    personal_material: PersonalMaterial,
 ) -> None:
     assert_nodata_response(
-        internal_client.delete(f"/internal/content-service/ydocs/{ydoc.id}/content/"),
+        internal_client.delete(
+            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/"
+        ),
     )
 
     async with active_session() as session:
-        session.add(ydoc)
-        await session.refresh(ydoc)
+        session.add(personal_material)
+        await session.refresh(personal_material)
+        assert_contains(personal_material, {"updated_at": datetime_utc_now()})
+
+        main_ydoc = personal_material.main_ydoc
+        await session.refresh(main_ydoc)
         assert_contains(
             {
-                "content": ydoc.content,
-                "size_bytes": ydoc.size_bytes,
-                "updated_at": ydoc.updated_at,
+                "content": await main_ydoc.awaitable_attrs.content,
+                "size_bytes": main_ydoc.size_bytes,
+                "updated_at": main_ydoc.updated_at,
             },
             {
                 "content": None,

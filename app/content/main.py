@@ -8,7 +8,13 @@ from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.mimetypes import add_missing_mime_to_mimetypes
-from app.content.routes import files_rst, ydocs_int
+from app.content.routes import (
+    classroom_materials_student_rst,
+    classroom_materials_tutor_rst,
+    files_rst,
+    personal_materials_tutor_rst,
+    ydocs_int,
+)
 
 outside_router = APIRouterExt(prefix="/api/public/content-service")
 
@@ -17,6 +23,9 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/content-service",
 )
 authorized_router.include_router(files_rst.router)
+authorized_router.include_router(personal_materials_tutor_rst.router)
+authorized_router.include_router(classroom_materials_tutor_rst.router)
+authorized_router.include_router(classroom_materials_student_rst.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],

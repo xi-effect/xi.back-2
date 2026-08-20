@@ -19,3 +19,8 @@ class ContentTokenPayloadSchema(BaseModel):
     can_read_files: bool
 
     ydoc_access_level: YDocAccessLevel
+
+
+class ContentYDocItemSchema(BaseModel):
+    ydoc_id: UUID
+    content_token: str
