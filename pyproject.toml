@@ -160,6 +160,7 @@ omit = [
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
   "app/common/tmexio_ext.py",
+  "app/common/utils/mimetypes.py",
   "app/common/bridges/base_bdg.py",
   "app/common/bridges/utils.py",
   "app/notifications/utils/vk_app.py",

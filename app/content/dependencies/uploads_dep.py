@@ -39,6 +39,7 @@ async def validate_image_upload(upload: UploadFile) -> UploadFile:
 ValidatedImageUpload = Annotated[UploadFile, Depends(validate_image_upload)]
 
 
+@with_responses(FileFormatResponses)
 async def validate_document_upload(upload: UploadFile) -> UploadFile:
     upload_header_data = await upload.read(FILE_HEADER_SIZE)
     document_type = match_document_filetype(upload_header_data)
