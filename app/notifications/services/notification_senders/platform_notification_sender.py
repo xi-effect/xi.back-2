@@ -1,6 +1,6 @@
 from tmexio import Emitter
 
-from app.communities.rooms import user_room
+from app.common.socketio.rooms import user_room
 from app.notifications.models.notifications_db import Notification
 from app.notifications.services.notification_senders.base_notification_sender import (
     BaseNotificationSender,

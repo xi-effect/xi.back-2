@@ -10,5 +10,4 @@ env/
 .pytest_cache/
 __pycache__/
 
-community_avatars/
 /storage/

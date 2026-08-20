@@ -14,6 +14,8 @@ from app.common.config import Base, settings
 class FileKind(StrEnum):
     UNCATEGORIZED = "uncategorized"
     IMAGE = "image"
+    DOCUMENT = "document"
+    AUDIO = "audio"
 
 
 ContentDisposition = Literal["inline", "attachment"]
@@ -21,14 +23,20 @@ ContentDisposition = Literal["inline", "attachment"]
 FILE_KIND_TO_FOLDER: dict[FileKind, str] = {
     FileKind.UNCATEGORIZED: "uncategorized",
     FileKind.IMAGE: "images",
+    FileKind.DOCUMENT: "documents",
+    FileKind.AUDIO: "audios",
 }
 FILE_KIND_TO_MEDIA_TYPE: dict[FileKind, str | None] = {
     FileKind.UNCATEGORIZED: None,
     FileKind.IMAGE: "image/webp",
+    FileKind.DOCUMENT: "application/pdf",
+    FileKind.AUDIO: None,
 }
 FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
     FileKind.UNCATEGORIZED: "attachment",
     FileKind.IMAGE: "inline",
+    FileKind.DOCUMENT: "inline",
+    FileKind.AUDIO: "inline",
 }
 
 

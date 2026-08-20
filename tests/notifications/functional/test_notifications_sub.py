@@ -13,8 +13,8 @@ from pytest_lazy_fixtures import lf
 
 from app.common.config_bdg import notifications_bridge
 from app.common.schemas.notifications_sch import NotificationInputV2Schema
+from app.common.socketio.rooms import user_room
 from app.common.utils.datetime import datetime_utc_now
-from app.communities.rooms import user_room
 from app.notifications.models.notifications_db import Notification
 from app.notifications.models.recipient_notifications_db import RecipientNotification
 from app.notifications.routes.notifications_sub import send_notification

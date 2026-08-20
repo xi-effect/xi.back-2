@@ -17,7 +17,11 @@ from app.storage_v2.dependencies.storage_token_dep import (
     StorageTokenResponses,
     UploadAllowedStorageTokenPayload,
 )
-from app.storage_v2.dependencies.uploads_dep import ValidatedImageUpload
+from app.storage_v2.dependencies.uploads_dep import (
+    ValidatedAudioUpload,
+    ValidatedDocumentUpload,
+    ValidatedImageUpload,
+)
 from app.storage_v2.models.access_groups_db import AccessGroupFile
 from app.storage_v2.models.files_db import File, FileKind
 
@@ -85,6 +89,42 @@ async def upload_image_file(
     )
 
 
+@router.post(
+    "/file-kinds/document/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.ResponseSchema,
+    summary="Upload a new document file",
+)
+async def upload_document_file(
+    storage_token_payload: UploadAllowedStorageTokenPayload,
+    upload: ValidatedDocumentUpload,
+) -> File:
+    return await upload_file(
+        storage_token_payload=storage_token_payload,
+        upload_content=await upload.read(),
+        upload_filename=upload.filename,
+        file_kind=FileKind.DOCUMENT,
+    )
+
+
+@router.post(
+    "/file-kinds/audio/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.ResponseSchema,
+    summary="Upload a new audio file",
+)
+async def upload_audio_file(
+    storage_token_payload: UploadAllowedStorageTokenPayload,
+    upload: ValidatedAudioUpload,
+) -> File:
+    return await upload_file(
+        storage_token_payload=storage_token_payload,
+        upload_content=await upload.read(),
+        upload_filename=upload.filename,
+        file_kind=FileKind.AUDIO,
+    )
+
+
 @router.get(
     "/files/{file_id}/meta/",
     response_model=File.ResponseSchema,
@@ -107,7 +147,6 @@ def parse_http_datetime(header: str | None) -> datetime | None:
 
 @router.get(
     "/files/{file_id}/",
-    response_model=File.ResponseSchema,
     summary="Read any file by id",
 )
 async def read_file(

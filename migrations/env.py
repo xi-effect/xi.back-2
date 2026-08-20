@@ -2,6 +2,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from alembic.runtime.environment import NameFilterParentNames, NameFilterType
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -57,12 +58,23 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def name_filter(
+    name: str | None,
+    type_: NameFilterType,
+    _parent_names: NameFilterParentNames,
+) -> bool:
+    if type_ == "schema":
+        return name == settings.postgres_schema
+    return True
+
+
 def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
         version_table_schema=target_metadata.schema,
         include_schemas=True,
+        include_name=name_filter,
         transactional_ddl=True,
         transaction_per_migration=True,
     )

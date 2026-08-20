@@ -26,7 +26,9 @@ async def authorize_from_wsgi_environ(environ: dict[str, Any]) -> ProxyAuthData:
 
 
 @register_dependency()
-async def retrieve_authorized_user(socket: AsyncSocket) -> ProxyAuthData:
+async def retrieve_authorized_user(
+    socket: AsyncSocket,
+) -> ProxyAuthData:  # TODO (203) pragma: no cover
     session = await socket.get_session()  # TODO better typing!!!
     return cast(ProxyAuthData, session["auth"])
 

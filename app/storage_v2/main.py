@@ -13,6 +13,7 @@ from app.storage_v2.routers import (
     files_rst,
     ydocs_hocus_int,
 )
+from app.storage_v2.utils.mimetypes import add_missing_mime_to_mimetypes
 
 outside_router = APIRouterExt(prefix="/api/public/storage-service/v2")
 
@@ -40,6 +41,9 @@ async def lifespan(_: Any) -> AsyncIterator[None]:
     settings.storage_path.mkdir(exist_ok=True)
     for sub_folder in FILE_KIND_TO_FOLDER.values():
         (settings.storage_path / sub_folder).mkdir(exist_ok=True)
+
+    add_missing_mime_to_mimetypes()
+
     yield
 
 

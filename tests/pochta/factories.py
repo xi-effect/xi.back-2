@@ -1,23 +1,8 @@
-from polyfactory import Use
-from pydantic import BaseModel
-
 from app.common.schemas import pochta_sch
 from app.pochta.schemas.unisender_go_sch import (
     UnisenderGoSendEmailSuccessfulResponseSchema,
 )
 from tests.common.polyfactory_ext import BaseModelFactory
-
-
-class EmailFormDataSchema(BaseModel):
-    receiver: str
-    subject: str
-
-
-class EmailFormDataFactory(BaseModelFactory[EmailFormDataSchema]):
-    __model__ = EmailFormDataSchema
-
-    receiver = Use(BaseModelFactory.__faker__.email)
-    subject = Use(BaseModelFactory.__faker__.sentence)
 
 
 class CustomEmailMessagePayloadFactory(

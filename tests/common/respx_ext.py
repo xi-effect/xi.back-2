@@ -30,45 +30,9 @@ def classrooms_respx_mock() -> Iterator[MockRouter]:
 
 
 @pytest.fixture()
-def communities_respx_mock() -> Iterator[MockRouter]:
-    mock_router: MockRouter = mock(
-        base_url=f"{settings.bridge_base_url}/internal/community-service"
-    )
-    with mock_router:
-        yield mock_router
-
-
-@pytest.fixture()
-def messenger_respx_mock() -> Iterator[MockRouter]:
-    mock_router: MockRouter = mock(
-        base_url=f"{settings.bridge_base_url}/internal/messenger-service"
-    )
-    with mock_router:
-        yield mock_router
-
-
-@pytest.fixture()
 def notifications_respx_mock() -> Iterator[MockRouter]:
     mock_router: MockRouter = mock(
         base_url=f"{settings.bridge_base_url}/internal/notification-service"
-    )
-    with mock_router:
-        yield mock_router
-
-
-@pytest.fixture()
-def posts_respx_mock() -> Iterator[MockRouter]:
-    mock_router: MockRouter = mock(
-        base_url=f"{settings.bridge_base_url}/internal/post-service"
-    )
-    with mock_router:
-        yield mock_router
-
-
-@pytest.fixture()
-def storage_respx_mock() -> Iterator[MockRouter]:
-    mock_router: MockRouter = mock(
-        base_url=f"{settings.bridge_base_url}/internal/storage-service"
     )
     with mock_router:
         yield mock_router
@@ -114,6 +78,7 @@ def assert_last_httpx_request(
     expected_headers: dict[str, TypeChecker] | None = None,
     expected_method: TypeChecker | None = None,
     expected_path: TypeChecker | None = None,
+    expected_params: TypeChecker | None = None,
     expected_data: dict[str, TypeChecker] | None = None,
     expected_json: TypeChecker | None = None,
 ) -> None:
@@ -134,6 +99,10 @@ def assert_last_httpx_request(
     if expected_path is not None:
         real["path"] = last_request.url.path
         expected["path"] = expected_path
+
+    if expected_params is not None:
+        real["params"] = dict(last_request.url.params)
+        expected["params"] = expected_params
 
     if expected_data is not None:
         real["data"] = parse_qs(last_request.content.decode())
