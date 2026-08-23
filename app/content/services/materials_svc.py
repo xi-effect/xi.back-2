@@ -11,6 +11,7 @@ def build_ydoc_item(
     material: Material,
     user_id: int,
     can_upload_files: bool,
+    can_add_library_files: bool,
     ydoc_access_level: YDocAccessLevel,
 ) -> ContentYDocItemSchema:
     return ContentYDocItemSchema(
@@ -22,6 +23,7 @@ def build_ydoc_item(
                 user_id=user_id,
                 can_upload_files=can_upload_files,
                 can_read_files=True,
+                can_add_library_files=can_add_library_files,
                 ydoc_access_level=ydoc_access_level,
             )
         ),
