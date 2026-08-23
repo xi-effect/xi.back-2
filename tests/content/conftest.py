@@ -23,6 +23,7 @@ from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.content.models.files_db import ContentDisposition, File, FileKind
 from app.content.models.materials_db import (
     ClassroomMaterial,
+    ClassroomNoteMaterial,
     Material,
     PersonalMaterial,
 )
@@ -545,10 +546,39 @@ async def deleted_classroom_material_id(
     return classroom_material.id
 
 
+@pytest.fixture()
+async def classroom_note_material(
+    faker: Faker,
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    classroom_id: int,
+) -> AsyncIterator[ClassroomNoteMaterial]:
+    content: bytes = faker.binary(length=64)
+
+    async with active_session():
+        main_ydoc = await YDoc.create(
+            owner_id=tutor_user_id,
+            content_kind=YDocContentKind.NOTE,
+            content=content,
+            size_bytes=len(content),
+        )
+        classroom_note_material = await ClassroomNoteMaterial.create(
+            main_ydoc=main_ydoc,
+            classroom_id=classroom_id,
+        )
+
+    yield classroom_note_material
+
+    async with active_session():
+        await ClassroomNoteMaterial.delete_by_kwargs(id=classroom_note_material.id)
+        await YDoc.delete_by_kwargs(id=main_ydoc.id)
+
+
 @pytest.fixture(
     params=[
         pytest.param(lf("personal_material"), id="personal_material"),
         pytest.param(lf("classroom_material"), id="classroom_material"),
+        pytest.param(lf("classroom_note_material"), id="classroom_note_material"),
     ],
 )
 def any_material(request: PytestRequest[Material]) -> Material:
