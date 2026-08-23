@@ -13,7 +13,7 @@ from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccessLevel
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File
-from app.content.models.materials_db import ClassroomMaterial, PersonalMaterial
+from app.content.models.materials_db import ClassroomMaterial, Material
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
@@ -78,49 +78,50 @@ async def test_classroom_material_creation(
 
 
 @pytest.fixture()
-async def personal_material_ydoc_file(
+async def any_material_ydoc_file(
     active_session: ActiveSession,
     file: File,
-    personal_material: PersonalMaterial,
+    any_material: Material,
 ) -> AsyncIterator[YDocFile]:
     async with active_session():
-        personal_material_ydoc_file = await YDocFile.create(
-            ydoc_id=personal_material.main_ydoc_id,
+        any_material_ydoc_file = await YDocFile.create(
+            ydoc_id=any_material.main_ydoc_id,
             file_id=file.id,
         )
 
-    yield personal_material_ydoc_file
+    yield any_material_ydoc_file
 
     async with active_session():
         await YDocFile.delete_by_kwargs(
-            ydoc_id=personal_material_ydoc_file.ydoc_id,
-            file_id=personal_material_ydoc_file.file_id,
+            ydoc_id=any_material_ydoc_file.ydoc_id,
+            file_id=any_material_ydoc_file.file_id,
         )
 
 
 @freeze_time()
-async def test_personal_material_to_classroom_duplication(
+async def test_material_to_classroom_duplication(
     active_session: ActiveSession,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
-    personal_material: PersonalMaterial,
-    personal_material_ydoc_file: YDocFile,
+    any_material: Material,
+    any_material_ydoc_file: YDocFile,
 ) -> None:
     input_data = factories.ClassroomMaterialDuplicateInputFactory.build_json()
+    target_classroom_id: int = randint(classroom_id + 1, classroom_id + 1000)
 
     material_id: UUID = assert_response(
         tutor_client.post(
             "/api/protected/content-service/roles/tutor"
-            f"/classrooms/{classroom_id}/material-duplicates/",
-            json={**input_data, "source_id": str(personal_material.id)},
+            f"/classrooms/{target_classroom_id}/material-duplicates/",
+            json={**input_data, "source_id": str(any_material.id)},
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **input_data,
             "id": UUID,
             "access_kind": "classroom",
-            "content_kind": personal_material.content_kind,
+            "content_kind": any_material.content_kind,
             "updated_at": datetime_utc_now(),
         },
     ).json()["id"]
@@ -128,6 +129,7 @@ async def test_personal_material_to_classroom_duplication(
     async with active_session():
         classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
         assert classroom_material is not None
+        assert_contains(classroom_material, {"classroom_id": target_classroom_id})
 
         assert_contains(
             {
@@ -140,9 +142,9 @@ async def test_personal_material_to_classroom_duplication(
             },
             {
                 "owner_id": tutor_user_id,
-                "content_kind": personal_material.content_kind,
-                "content": personal_material.main_ydoc.content,
-                "size_bytes": personal_material.main_ydoc.size_bytes,
+                "content_kind": any_material.content_kind,
+                "content": any_material.main_ydoc.content,
+                "size_bytes": any_material.main_ydoc.size_bytes,
                 "created_at": datetime_utc_now(),
                 "updated_at": datetime_utc_now(),
             },
@@ -151,7 +153,7 @@ async def test_personal_material_to_classroom_duplication(
         assert (
             await YDocFile.find_first_by_ids(
                 ydoc_id=classroom_material.main_ydoc_id,
-                file_id=personal_material_ydoc_file.file_id,
+                file_id=any_material_ydoc_file.file_id,
             )
             is not None
         )
@@ -160,10 +162,10 @@ async def test_personal_material_to_classroom_duplication(
         await classroom_material.main_ydoc.delete()
 
 
-async def test_personal_material_to_classroom_duplication_material_access_denied(
+async def test_material_to_classroom_duplication_material_access_denied(
     outsider_client: TestClient,
     classroom_id: int,
-    personal_material: PersonalMaterial,
+    any_material: Material,
 ) -> None:
     assert_response(
         outsider_client.post(
@@ -171,7 +173,7 @@ async def test_personal_material_to_classroom_duplication_material_access_denied
             f"/classrooms/{classroom_id}/material-duplicates/",
             json={
                 **factories.ClassroomMaterialDuplicateInputFactory.build_json(),
-                "source_id": str(personal_material.id),
+                "source_id": str(any_material.id),
             },
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
@@ -179,10 +181,10 @@ async def test_personal_material_to_classroom_duplication_material_access_denied
     )
 
 
-async def test_personal_material_to_classroom_duplication_material_not_found(
+async def test_material_to_classroom_duplication_material_not_found(
     tutor_client: TestClient,
     classroom_id: int,
-    deleted_personal_material_id: UUID,
+    deleted_any_material_id: UUID,
 ) -> None:
     assert_response(
         tutor_client.post(
@@ -190,7 +192,7 @@ async def test_personal_material_to_classroom_duplication_material_not_found(
             f"/classrooms/{classroom_id}/material-duplicates/",
             json={
                 **factories.ClassroomMaterialDuplicateInputFactory.build_json(),
-                "source_id": str(deleted_personal_material_id),
+                "source_id": str(deleted_any_material_id),
             },
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
