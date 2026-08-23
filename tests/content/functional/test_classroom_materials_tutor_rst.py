@@ -45,6 +45,7 @@ async def test_classroom_material_creation(
             **input_data,
             "id": UUID,
             "access_kind": "classroom",
+            "classroom_id": classroom_id,
             "updated_at": datetime_utc_now(),
         },
     ).json()["id"]
@@ -52,7 +53,6 @@ async def test_classroom_material_creation(
     async with active_session():
         classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
         assert classroom_material is not None
-        assert_contains(classroom_material, {"classroom_id": classroom_id})
 
         assert_contains(
             {
@@ -121,6 +121,7 @@ async def test_material_to_classroom_duplication(
             **input_data,
             "id": UUID,
             "access_kind": "classroom",
+            "classroom_id": target_classroom_id,
             "content_kind": any_material.content_kind,
             "updated_at": datetime_utc_now(),
         },
@@ -129,7 +130,6 @@ async def test_material_to_classroom_duplication(
     async with active_session():
         classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
         assert classroom_material is not None
-        assert_contains(classroom_material, {"classroom_id": target_classroom_id})
 
         assert_contains(
             {

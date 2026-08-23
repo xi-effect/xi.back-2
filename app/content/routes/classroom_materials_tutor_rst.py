@@ -15,8 +15,8 @@ from app.content.dependencies.materials_dep import (
 )
 from app.content.models.materials_db import (
     ClassroomMaterial,
+    ClassroomMaterialSearchRequestSchema,
     Material,
-    MaterialSearchRequestSchema,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
@@ -32,7 +32,7 @@ router = APIRouterExt(tags=["tutor classroom materials"])
 )
 async def list_classroom_materials(
     classroom_id: Annotated[int, Path()],
-    data: MaterialSearchRequestSchema,
+    data: ClassroomMaterialSearchRequestSchema,
 ) -> Sequence[ClassroomMaterial]:
     return await ClassroomMaterial.find_paginated_by_classroom_id(
         classroom_id=classroom_id,

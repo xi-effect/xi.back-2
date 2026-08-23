@@ -13,8 +13,8 @@ from app.content.dependencies.classroom_materials_dep import (
 from app.content.dependencies.materials_dep import MyMaterialResponses
 from app.content.models.materials_db import (
     ClassroomMaterial,
+    ClassroomMaterialSearchRequestSchema,
     MaterialAccessMode,
-    MaterialSearchRequestSchema,
 )
 from app.content.services import materials_svc
 
@@ -28,7 +28,7 @@ router = APIRouterExt(tags=["student classroom materials"])
 )
 async def list_classroom_materials(
     classroom_id: Annotated[int, Path()],
-    data: MaterialSearchRequestSchema,
+    data: ClassroomMaterialSearchRequestSchema,
 ) -> Sequence[ClassroomMaterial]:
     return await ClassroomMaterial.find_paginated_by_classroom_id(
         classroom_id=classroom_id,
