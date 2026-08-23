@@ -5,6 +5,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.content_sch import YDocAccessLevel
 from app.content.dependencies.content_token_dep import ContentTokenPayload
 from app.content.dependencies.ydocs_dep import MyYDocByID, YDocByID, YDocContent
+from app.content.models.materials_db import Material
 
 router = APIRouterExt(tags=["ydocs internal"])
 
@@ -25,7 +26,10 @@ async def retrieve_ydoc_access_level(
     summary="Retrieve ydoc's content",
 )
 async def retrieve_ydoc_content(ydoc: YDocByID) -> Response:
-    return Response(content=ydoc.content, media_type="application/octet-stream")
+    return Response(
+        content=await ydoc.awaitable_attrs.content,
+        media_type="application/octet-stream",
+    )
 
 
 @router.put(
@@ -34,7 +38,7 @@ async def retrieve_ydoc_content(ydoc: YDocByID) -> Response:
     summary="Update ydoc's content",
 )
 async def update_ydoc_content(ydoc: YDocByID, content: YDocContent) -> None:
-    ydoc.update_content(content)
+    await Material.update_main_ydoc_content(main_ydoc_id=ydoc.id, content=content)
 
 
 @router.delete(
@@ -43,4 +47,4 @@ async def update_ydoc_content(ydoc: YDocByID, content: YDocContent) -> None:
     summary="Clear ydoc's content",
 )
 async def clear_ydoc_content(ydoc: YDocByID) -> None:
-    ydoc.update_content(None)
+    await Material.update_main_ydoc_content(main_ydoc_id=ydoc.id, content=None)
