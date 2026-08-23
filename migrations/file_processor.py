@@ -65,13 +65,15 @@ engine = create_engine(url="postgresql+psycopg://test:test@db:5432/test")
 metadata = sa.MetaData(schema=schema_name)
 
 
-def match_supported_files(file: os.DirEntry[str]) -> filetype.Type | None:
-    return filetype.match(file.path, ALL_SUPPORTED_TYPES)
+def match_supported_files(
+    path: Path, supported_types: list[filetype.Type] = ALL_SUPPORTED_TYPES
+) -> filetype.Type | None:
+    return filetype.match(path, supported_types)
 
 
-def save_image_to_webp(file: os.DirEntry[str]) -> None:
-    with Image.open(file.path) as img:
-        img.save(FILE_KIND_TO_FOLDER[FileKind.IMAGE].joinpath(file.name), format="webp")
+def save_image_to_webp(source_path: Path, target_path: Path) -> None:
+    with Image.open(source_path) as img:
+        img.save(target_path, format="webp")
 
 
 def main() -> None:
@@ -82,7 +84,7 @@ def main() -> None:
             if not file.is_file():
                 continue
 
-            file_type = match_supported_files(file)
+            file_type = match_supported_files(Path(file.path))
             if file_type is None:
                 continue
 
@@ -94,7 +96,10 @@ def main() -> None:
                 continue
 
             if file_kind is FileKind.IMAGE and not isinstance(file_type, image.Webp):
-                save_image_to_webp(file)
+                save_image_to_webp(
+                    Path(file.path),
+                    FILE_KIND_TO_FOLDER[FileKind.IMAGE].joinpath(file.name),
+                )
                 Path(file.path).unlink()
             else:  # todo: Upgrade when adding conversion of other file types (elif)
                 Path(file.path).rename(FILE_KIND_TO_FOLDER[file_kind] / file.name)
