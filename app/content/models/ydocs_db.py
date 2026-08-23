@@ -21,7 +21,7 @@ class YDoc(Base):
     __tablename__ = "ydocs"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_id: Mapped[int] = mapped_column()
+    owner_id: Mapped[int] = mapped_column(index=True)
 
     content_kind: Mapped[YDocContentKind] = mapped_column(
         Enum(YDocContentKind, name="content_ydoc_kind")
