@@ -27,6 +27,7 @@ from app.content.models.ydocs_db import YDoc, YDocContentKind
 class MaterialAccessKind(StrEnum):
     PERSONAL = auto()
     CLASSROOM = auto()
+    CLASSROOM_NOTE = auto()
 
 
 class MaterialAccessMode(StrEnum):
@@ -66,7 +67,6 @@ class Material(Base):
     main_ydoc_id: Mapped[UUID] = mapped_column(ForeignKey(YDoc.id), unique=True)
     main_ydoc: Mapped[YDoc] = relationship(lazy="joined")
 
-    name: Mapped[str] = mapped_column(String(100))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
     )
@@ -80,12 +80,8 @@ class Material(Base):
         "polymorphic_abstract": True,
     }
 
-    NameType = Annotated[str, Field(min_length=1, max_length=100)]
-
-    NameSchema = MappedModel.create(columns=[(name, NameType)])
-    BaseInputSchema = NameSchema.extend(properties=[content_kind])
-    BasePatchSchema = NameSchema.as_patch()
-    BaseResponseSchema = BaseInputSchema.extend(
+    ContentKindSchema = MappedModel.create(properties=[content_kind])
+    BaseResponseSchema = ContentKindSchema.extend(
         columns=[id, (updated_at, AwareDatetime)]
     )
 
@@ -115,7 +111,23 @@ class Material(Base):
         await db.session.execute(stmt)
 
 
-class PersonalMaterial(Material):
+class NamedMaterial(Material):
+    __tablename__ = None
+    __mapper_args__ = {
+        "polymorphic_abstract": True,
+    }
+
+    name: Mapped[str] = mapped_column(String(100), nullable=True)
+
+    NameType = Annotated[str, Field(min_length=1, max_length=100)]
+
+    NameSchema = MappedModel.create(columns=[(name, NameType)])
+    BaseInputSchema = NameSchema.extend(bases=[Material.ContentKindSchema])
+    BasePatchSchema = NameSchema.as_patch()
+    BaseResponseSchema = NameSchema.extend(bases=[Material.BaseResponseSchema])
+
+
+class PersonalMaterial(NamedMaterial):
     __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": MaterialAccessKind.PERSONAL,
@@ -124,10 +136,10 @@ class PersonalMaterial(Material):
 
     tutor_id: Mapped[int] = mapped_column(nullable=True)
 
-    InputSchema = MappedModel.create(bases=[Material.BaseInputSchema])
-    PatchSchema = MappedModel.create(bases=[Material.BasePatchSchema])
+    InputSchema = MappedModel.create(bases=[NamedMaterial.BaseInputSchema])
+    PatchSchema = MappedModel.create(bases=[NamedMaterial.BasePatchSchema])
     ResponseSchema = MappedModel.create(
-        bases=[Material.BaseResponseSchema],
+        bases=[NamedMaterial.BaseResponseSchema],
         extra_fields={
             "access_kind": (
                 Literal[MaterialAccessKind.PERSONAL],
@@ -137,14 +149,14 @@ class PersonalMaterial(Material):
     )
 
 
-class ClassroomMaterial(Material):
+class ClassroomMaterial(NamedMaterial):
     __tablename__ = None
     __mapper_args__ = {
         "polymorphic_identity": MaterialAccessKind.CLASSROOM,
         "polymorphic_load": "inline",
     }
 
-    classroom_id: Mapped[int] = mapped_column(nullable=True)
+    classroom_id: Mapped[int] = mapped_column(nullable=True, use_existing_column=True)
     student_access_mode: Mapped[MaterialAccessMode] = mapped_column(
         Enum(MaterialAccessMode, name="content_material_access_mode"),
         nullable=True,
@@ -153,13 +165,15 @@ class ClassroomMaterial(Material):
     StudentAccessModeSchema = MappedModel.create(
         columns=[(student_access_mode, MaterialAccessMode)]
     )
-    DuplicateInputSchema = StudentAccessModeSchema.extend(bases=[Material.NameSchema])
-    InputSchema = StudentAccessModeSchema.extend(bases=[Material.BaseInputSchema])
+    DuplicateInputSchema = StudentAccessModeSchema.extend(
+        bases=[NamedMaterial.NameSchema]
+    )
+    InputSchema = StudentAccessModeSchema.extend(bases=[NamedMaterial.BaseInputSchema])
     PatchSchema = StudentAccessModeSchema.as_patch().extend(
-        bases=[Material.BasePatchSchema]
+        bases=[NamedMaterial.BasePatchSchema]
     )
     ResponseSchema = StudentAccessModeSchema.extend(
-        bases=[Material.BaseResponseSchema],
+        bases=[NamedMaterial.BaseResponseSchema],
         extra_fields={
             "access_kind": (
                 Literal[MaterialAccessKind.CLASSROOM],
@@ -198,19 +212,39 @@ class ClassroomMaterial(Material):
         )
 
 
+class ClassroomNoteMaterial(Material):
+    __tablename__ = None
+    __mapper_args__ = {
+        "polymorphic_identity": MaterialAccessKind.CLASSROOM_NOTE,
+        "polymorphic_load": "inline",
+    }
+
+    classroom_id: Mapped[int] = mapped_column(nullable=True, use_existing_column=True)
+
+    @classmethod
+    async def is_present_by_classroom_id(cls, classroom_id: int) -> bool:
+        return await db.is_present(select(cls).filter_by(classroom_id=classroom_id))
+
+
 # declared outside the class, because STI doesn't support indexes on child classes
 Index(
-    "index_materials_classroom_id_updated_at",
+    "index_classroom_materials_pagination",
     ClassroomMaterial.classroom_id,
     ClassroomMaterial.updated_at,
     postgresql_where=Material.access_kind == MaterialAccessKind.CLASSROOM,
 )
 Index(
-    "index_materials_student_accessible_classroom_id_updated_at",
+    "index_student_accessible_classroom_materials_pagination",
     ClassroomMaterial.classroom_id,
     ClassroomMaterial.updated_at,
     postgresql_where=and_(
         Material.access_kind == MaterialAccessKind.CLASSROOM,
         ClassroomMaterial.student_access_mode.in_(STUDENT_ACCESSIBLE_ACCESS_MODES),
     ),
+)
+Index(
+    "unique_index_classroom_note_materials_classroom_id",
+    ClassroomNoteMaterial.classroom_id,
+    unique=True,
+    postgresql_where=Material.access_kind == MaterialAccessKind.CLASSROOM_NOTE,
 )
