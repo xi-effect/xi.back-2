@@ -13,6 +13,7 @@ from app.content.routes import (
     classroom_materials_tutor_rst,
     classroom_notes_tutor_rst,
     files_rst,
+    materials_tutor_rst,
     personal_materials_tutor_rst,
     ydocs_int,
 )
@@ -24,6 +25,7 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/content-service",
 )
 authorized_router.include_router(files_rst.router)
+authorized_router.include_router(materials_tutor_rst.router)
 authorized_router.include_router(personal_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_student_rst.router)
