@@ -21,7 +21,11 @@ from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.content.models.files_db import ContentDisposition, File, FileKind
-from app.content.models.materials_db import ClassroomMaterial, PersonalMaterial
+from app.content.models.materials_db import (
+    ClassroomMaterial,
+    Material,
+    PersonalMaterial,
+)
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
@@ -539,3 +543,23 @@ async def deleted_classroom_material_id(
     async with active_session():
         await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
     return classroom_material.id
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(lf("personal_material"), id="personal_material"),
+        pytest.param(lf("classroom_material"), id="classroom_material"),
+    ],
+)
+def any_material(request: PytestRequest[Material]) -> Material:
+    return request.param
+
+
+@pytest.fixture()
+async def deleted_any_material_id(
+    active_session: ActiveSession,
+    any_material: Material,
+) -> UUID:
+    async with active_session():
+        await Material.delete_by_kwargs(id=any_material.id)
+    return any_material.id

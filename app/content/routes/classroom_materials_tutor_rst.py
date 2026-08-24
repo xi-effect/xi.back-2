@@ -15,8 +15,8 @@ from app.content.dependencies.materials_dep import (
 )
 from app.content.models.materials_db import (
     ClassroomMaterial,
+    Material,
     MaterialSearchRequestSchema,
-    PersonalMaterial,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
@@ -72,25 +72,25 @@ class DuplicateMaterialInputSchema(ClassroomMaterial.DuplicateInputSchema):
     status_code=status.HTTP_201_CREATED,
     response_model=ClassroomMaterial.ResponseSchema,
     responses=Responses.chain(MaterialResponses, MyMaterialResponses),
-    summary="Duplicate a personal material to a classroom by id",
+    summary="Duplicate any material to a classroom by id",
 )
-async def duplicate_personal_material_to_classroom(
+async def duplicate_material_to_classroom(
     auth_data: AuthorizationData,
     classroom_id: Annotated[int, Path()],
     input_data: DuplicateMaterialInputSchema,
 ) -> ClassroomMaterial:
-    personal_material = await PersonalMaterial.find_first_by_id(input_data.source_id)
-    if personal_material is None:
+    source_material = await Material.find_first_by_id(input_data.source_id)
+    if source_material is None:
         raise MaterialResponses.MATERIAL_NOT_FOUND
-    if personal_material.tutor_id != auth_data.user_id:
+    if source_material.main_ydoc.owner_id != auth_data.user_id:
         raise MyMaterialResponses.MATERIAL_ACCESS_DENIED
 
     main_ydoc = await YDoc.duplicate_by_id(
-        source_ydoc_id=personal_material.main_ydoc_id,
+        source_ydoc_id=source_material.main_ydoc_id,
         owner_id=auth_data.user_id,
     )
     await YDocFile.duplicate_all_links_by_ydoc_id(
-        source_ydoc_id=personal_material.main_ydoc_id,
+        source_ydoc_id=source_material.main_ydoc_id,
         target_ydoc_id=main_ydoc.id,
     )
     return await ClassroomMaterial.create(
