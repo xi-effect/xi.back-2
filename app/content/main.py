@@ -11,6 +11,7 @@ from app.common.utils.mimetypes import add_missing_mime_to_mimetypes
 from app.content.routes import (
     classroom_materials_student_rst,
     classroom_materials_tutor_rst,
+    classroom_notes_tutor_rst,
     files_rst,
     personal_materials_tutor_rst,
     ydocs_int,
@@ -26,6 +27,7 @@ authorized_router.include_router(files_rst.router)
 authorized_router.include_router(personal_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_student_rst.router)
+authorized_router.include_router(classroom_notes_tutor_rst.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
