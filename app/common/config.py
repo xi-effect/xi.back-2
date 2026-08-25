@@ -14,7 +14,6 @@ from app.common.faststream_sentry_ext import FaststreamIntegration
 from app.common.itsdangerous_ext import SignedTokenProvider
 from app.common.livekit_ext import LiveKit
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
-from app.common.schemas.storage_sch import StorageTokenPayloadSchema
 from app.common.sentry_ext import before_breadcrumb
 from app.common.sqlalchemy_ext import MappingBase, sqlalchemy_naming_convention
 
@@ -100,9 +99,6 @@ class Settings(BaseSettings):
         encryption_ttl=60 * 5
     )
     vk_connection_token_keys: FernetSettings = FernetSettings(encryption_ttl=60 * 5)
-    storage_token_keys: FernetSettings = FernetSettings(
-        encryption_ttl=60 * 60 * 24,
-    )
     content_token_keys: FernetSettings = FernetSettings(
         encryption_ttl=60 * 60 * 24,
     )
@@ -240,12 +236,6 @@ livekit = LiveKit(
     url=settings.livekit_url,
     api_key=settings.livekit_api_key,
     api_secret=settings.livekit_api_secret,
-)
-
-storage_token_provider = SignedTokenProvider[StorageTokenPayloadSchema](
-    secret_keys=settings.storage_token_keys.keys,
-    encryption_ttl=settings.storage_token_keys.encryption_ttl,
-    payload_schema=StorageTokenPayloadSchema,
 )
 
 content_token_provider = SignedTokenProvider[ContentTokenPayloadSchema](
