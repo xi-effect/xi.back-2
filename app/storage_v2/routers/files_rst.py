@@ -11,16 +11,16 @@ from starlette.staticfiles import NotModifiedResponse
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.storage_sch import StorageTokenPayloadSchema
+from app.content.dependencies.uploads_dep import (
+    ValidatedAudioUpload,
+    ValidatedDocumentUpload,
+    ValidatedImageUpload,
+)
 from app.storage_v2.dependencies.files_dep import MyFileByID
 from app.storage_v2.dependencies.storage_token_dep import (
     StorageTokenPayload,
     StorageTokenResponses,
     UploadAllowedStorageTokenPayload,
-)
-from app.storage_v2.dependencies.uploads_dep import (
-    ValidatedAudioUpload,
-    ValidatedDocumentUpload,
-    ValidatedImageUpload,
 )
 from app.storage_v2.models.access_groups_db import AccessGroupFile
 from app.storage_v2.models.files_db import File, FileKind

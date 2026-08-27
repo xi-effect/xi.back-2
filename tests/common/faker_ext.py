@@ -5,6 +5,7 @@ from faker_file.providers import (  # type: ignore[import-untyped]
     bin_file,
     pdf_file,
     png_file,
+    pptx_file,
     webp_file,
 )
 
@@ -16,6 +17,7 @@ def _setup_faker(faker: Faker) -> None:
     faker.add_provider(webp_file.GraphicWebpFileProvider)
     faker.add_provider(png_file.GraphicPngFileProvider)
     faker.add_provider(pdf_file.PdfFileProvider)
+    faker.add_provider(pptx_file.PptxFileProvider)
 
 
 @pytest.fixture(scope="session")

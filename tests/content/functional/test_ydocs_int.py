@@ -2,63 +2,68 @@ from uuid import UUID
 
 import pytest
 from faker import Faker
+from freezegun import freeze_time
+from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf, lfc
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.common.config import storage_token_provider
-from app.common.schemas.storage_sch import StorageTokenPayloadSchema
-from app.storage_v2.models.access_groups_db import AccessGroup
-from app.storage_v2.models.ydocs_db import YDoc
+from app.common.config import content_token_provider
+from app.common.schemas.content_sch import ContentTokenPayloadSchema
+from app.common.utils.datetime import datetime_utc_now
+from app.content.models.materials_db import PersonalMaterial
+from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
-from tests.storage_v2 import factories
+from tests.content import factories
 
 pytestmark = pytest.mark.anyio
 
 
 @pytest.fixture()
-def ydocs_access_storage_token_payload(
+def ydoc_access_content_token_payload(
     authorized_user_id: int,
-    access_group: AccessGroup,
-) -> StorageTokenPayloadSchema:
-    return factories.StorageTokenPayloadFactory.build(
-        access_group_id=access_group.id,
+    material_id: UUID,
+    ydoc: YDoc,
+) -> ContentTokenPayloadSchema:
+    return factories.ContentTokenPayloadFactory.build(
+        material_id=material_id,
+        ydoc_id=ydoc.id,
         user_id=authorized_user_id,
         can_upload_files=True,
     )
 
 
 @pytest.fixture()
-def ydocs_access_storage_token(
-    ydocs_access_storage_token_payload: StorageTokenPayloadSchema,
+def ydoc_access_content_token(
+    ydoc_access_content_token_payload: ContentTokenPayloadSchema,
 ) -> str:
-    return storage_token_provider.serialize_and_sign(ydocs_access_storage_token_payload)
+    return content_token_provider.serialize_and_sign(ydoc_access_content_token_payload)
 
 
 async def test_ydoc_access_level_retrieving(
     authorized_internal_client: TestClient,
-    access_group: AccessGroup,
-    ydocs_access_storage_token_payload: StorageTokenPayloadSchema,
-    ydocs_access_storage_token: str,
+    ydoc: YDoc,
+    ydoc_access_content_token_payload: ContentTokenPayloadSchema,
+    ydoc_access_content_token: str,
 ) -> None:
     assert_response(
         authorized_internal_client.get(
-            "/internal/storage-service/v2"
-            f"/ydocs/{access_group.main_ydoc_id}/access-level/",
-            headers={"X-Storage-Token": ydocs_access_storage_token},
+            f"/internal/content-service/ydocs/{ydoc.id}/access-level/",
+            headers={"X-Content-Token": ydoc_access_content_token},
         ),
-        expected_json=ydocs_access_storage_token_payload.ydoc_access_level,
+        expected_json=ydoc_access_content_token_payload.ydoc_access_level,
     )
 
 
 @pytest.mark.parametrize(
-    ("storage_token", "ydoc_id"),
+    ("content_token", "ydoc_id"),
     [
         pytest.param(
             lfc(
-                "storage_token_generator",
-                lf("access_group.id"),
+                "content_token_generator",
+                lf("material_id"),
+                lf("ydoc.id"),
                 lf("outsider_user_id"),
             ),
             lf("ydoc.id"),
@@ -66,21 +71,13 @@ async def test_ydoc_access_level_retrieving(
         ),
         pytest.param(
             lfc(
-                "storage_token_generator",
-                lf("access_group.id"),
+                "content_token_generator",
+                lf("material_id"),
+                lf("ydoc.id"),
                 lf("authorized_user_id"),
             ),
             lf("other_ydoc.id"),
-            id="wrong_access_group",
-        ),
-        pytest.param(
-            lfc(
-                "storage_token_generator",
-                lf("missing_access_group_id"),
-                lf("authorized_user_id"),
-            ),
-            lf("ydoc.id"),
-            id="missing_access_group",
+            id="wrong_ydoc",
         ),
         pytest.param(
             lfc("faker.password"),
@@ -91,29 +88,28 @@ async def test_ydoc_access_level_retrieving(
 )
 async def test_ydoc_access_level_invalid_token(
     authorized_internal_client: TestClient,
-    storage_token: str,
+    content_token: str,
     ydoc_id: UUID,
 ) -> None:
     assert_response(
         authorized_internal_client.get(
-            f"/internal/storage-service/v2/ydocs/{ydoc_id}/access-level/",
-            headers={"X-Storage-Token": storage_token},
+            f"/internal/content-service/ydocs/{ydoc_id}/access-level/",
+            headers={"X-Content-Token": content_token},
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
-        expected_json={"detail": "Invalid storage token"},
+        expected_json={"detail": "Invalid content token"},
     )
 
 
 async def test_ydoc_access_level_retrieving_proxy_authorization_missing(
     internal_client: TestClient,
-    access_group: AccessGroup,
-    ydocs_access_storage_token: str,
+    ydoc: YDoc,
+    ydoc_access_content_token: str,
 ) -> None:
     assert_response(
         internal_client.get(
-            "/internal/storage-service/v2"
-            f"/ydocs/{access_group.main_ydoc_id}/access-level/",
-            headers={"X-Storage-Token": ydocs_access_storage_token},
+            f"/internal/content-service/ydocs/{ydoc.id}/access-level/",
+            headers={"X-Content-Token": ydoc_access_content_token},
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Proxy auth required"},
@@ -126,7 +122,7 @@ async def test_ydoc_content_retrieving(
 ) -> None:
     response_content: bytes = assert_response(
         internal_client.get(
-            f"/internal/storage-service/v2/ydocs/{ydoc.id}/content/",
+            f"/internal/content-service/ydocs/{ydoc.id}/content/",
         ),
         expected_json=None,
         expected_headers={
@@ -136,44 +132,75 @@ async def test_ydoc_content_retrieving(
     assert response_content == ydoc.content
 
 
+@freeze_time()
 async def test_ydoc_content_updating(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
-    ydoc: YDoc,
+    personal_material: PersonalMaterial,
 ) -> None:
     content: bytes = faker.binary(length=64)
 
     assert_nodata_response(
         internal_client.put(
-            f"/internal/storage-service/v2/ydocs/{ydoc.id}/content/",
+            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/",
             content=content,
             headers={"Content-Type": "application/octet-stream"},
         ),
     )
 
     async with active_session() as session:
-        session.add(ydoc)
-        await session.refresh(ydoc)
-        assert ydoc.content == content
+        session.add(personal_material)
+        await session.refresh(personal_material)
+        assert_contains(personal_material, {"updated_at": datetime_utc_now()})
+
+        main_ydoc = personal_material.main_ydoc
+        await session.refresh(main_ydoc)
+        assert_contains(
+            {
+                "content": await main_ydoc.awaitable_attrs.content,
+                "size_bytes": main_ydoc.size_bytes,
+                "updated_at": main_ydoc.updated_at,
+            },
+            {
+                "content": content,
+                "size_bytes": len(content),
+                "updated_at": datetime_utc_now(),
+            },
+        )
 
 
+@freeze_time()
 async def test_ydoc_content_clearing(
-    faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
-    ydoc: YDoc,
+    personal_material: PersonalMaterial,
 ) -> None:
     assert_nodata_response(
         internal_client.delete(
-            f"/internal/storage-service/v2/ydocs/{ydoc.id}/content/"
+            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/"
         ),
     )
 
     async with active_session() as session:
-        session.add(ydoc)
-        await session.refresh(ydoc)
-        assert ydoc.content is None
+        session.add(personal_material)
+        await session.refresh(personal_material)
+        assert_contains(personal_material, {"updated_at": datetime_utc_now()})
+
+        main_ydoc = personal_material.main_ydoc
+        await session.refresh(main_ydoc)
+        assert_contains(
+            {
+                "content": await main_ydoc.awaitable_attrs.content,
+                "size_bytes": main_ydoc.size_bytes,
+                "updated_at": main_ydoc.updated_at,
+            },
+            {
+                "content": None,
+                "size_bytes": 0,
+                "updated_at": datetime_utc_now(),
+            },
+        )
 
 
 @pytest.mark.parametrize(
@@ -188,7 +215,7 @@ async def test_ydoc_content_clearing(
 async def test_ydoc_not_finding(
     faker: Faker,
     authorized_internal_client: TestClient,
-    missing_ydoc_id: int,
+    missing_ydoc_id: UUID,
     method: str,
     path: str,
     with_content: bool,
@@ -196,7 +223,7 @@ async def test_ydoc_not_finding(
     assert_response(
         authorized_internal_client.request(
             method,
-            f"/internal/storage-service/v2/ydocs/{missing_ydoc_id}/{path}/",
+            f"/internal/content-service/ydocs/{missing_ydoc_id}/{path}/",
             content=faker.binary(length=64) if with_content else None,
             headers=(
                 {"Content-Type": "application/octet-stream"} if with_content else None

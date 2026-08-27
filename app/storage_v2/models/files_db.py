@@ -41,7 +41,7 @@ FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
 
 
 class File(Base):
-    __tablename__ = "files"
+    __tablename__ = "files_old"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 

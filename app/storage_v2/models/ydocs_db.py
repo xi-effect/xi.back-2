@@ -9,7 +9,7 @@ from app.common.sqlalchemy_ext import db
 
 
 class YDoc(Base):
-    __tablename__ = "ydocs"
+    __tablename__ = "ydocs_old"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
 

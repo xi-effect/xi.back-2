@@ -87,7 +87,7 @@ freezegun = "^1.5.1"
 respx = "^0.22.0"
 polyfactory = "^2.21.0"
 faker = "^37.1.0"
-faker-file = "^0.18.4"
+faker-file = {extras = ["pptx"], version = "^0.18.4"}
 rstr = "^3.2.2"
 
 [tool.isort]
@@ -160,6 +160,7 @@ omit = [
   "app/common/sqlalchemy_ext.py",
   "app/common/starlette_cors_ext.py",
   "app/common/tmexio_ext.py",
+  "app/common/utils/mimetypes.py",
   "app/common/bridges/base_bdg.py",
   "app/common/bridges/utils.py",
   "app/notifications/utils/vk_app.py",
@@ -167,5 +168,6 @@ omit = [
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)
   "app/common/utils/bitwise.py",  # TODO (170)
+  "app/storage_v2/*",  # TODO (218)
   "app/setup_ci.py",
 ]
