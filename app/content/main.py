@@ -16,7 +16,6 @@ from app.content.routes import (
     materials_tutor_rst,
     personal_materials_tutor_rst,
     ydocs_int,
-    ydocs_legacy_int,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/content-service")
@@ -56,4 +55,3 @@ api_router.include_router(outside_router)
 api_router.include_router(authorized_router)
 api_router.include_router(internal_router)
 api_router.include_router(mub_router)
-api_router.include_router(ydocs_legacy_int.router)  # TODO (218)

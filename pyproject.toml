@@ -168,6 +168,5 @@ omit = [
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)
   "app/common/utils/bitwise.py",  # TODO (170)
-  "app/storage_v2/*",  # TODO (218)
   "app/setup_ci.py",
 ]
