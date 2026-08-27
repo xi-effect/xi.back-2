@@ -3,18 +3,26 @@ from typing import Annotated, Self
 
 from pydantic import Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import Index, String, or_, select
+from sqlalchemy import Enum, Index, String, or_, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
+from app.common.schemas.autocomplete_sch import TagKind
 from app.common.sqlalchemy_ext import db
 
 
-class Subject(Base):
-    __tablename__ = "subjects"
+class Tag(Base):
+    __tablename__: str | None = "tags"
+
     id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[TagKind] = mapped_column(Enum(TagKind))
     name: Mapped[str] = mapped_column(String(100))
     tutor_id: Mapped[int | None] = mapped_column(default=None)
+
+    __mapper_args__ = {
+        "polymorphic_on": kind,
+        "polymorphic_abstract": True,
+    }
 
     NameType = Annotated[str, Field(min_length=1, max_length=100)]
 
@@ -25,7 +33,13 @@ class Subject(Base):
     ResponseSchema = InputSchema.extend(columns=[id])
 
     __table_args__ = (
-        Index("unique_index_subjects_tutor_id_name", "tutor_id", "name", unique=True),
+        Index(
+            "unique_index_tags_kind_tutor_id_name",
+            kind,
+            tutor_id,
+            name,
+            unique=True,
+        ),
     )
 
     @classmethod
@@ -58,3 +72,16 @@ class Subject(Base):
             .order_by(cls.name)
             .limit(limit)
         )
+
+    @classmethod
+    async def find_all_by_ids(cls, tag_ids: list[int]) -> Sequence[Self]:
+        return await db.get_all(select(cls).filter(cls.id.in_(tag_ids)))
+
+
+class SubjectTag(Tag):
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": TagKind.SUBJECT,
+        "polymorphic_load": "inline",
+    }

@@ -1,14 +1,14 @@
-from app.autocomplete.models.subjects_db import Subject
+from app.autocomplete.models.tags_db import Tag
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
-class SubjectInputFactory(BaseModelFactory[Subject.InputSchema]):
-    __model__ = Subject.InputSchema
+class TagInputFactory(BaseModelFactory[Tag.InputSchema]):
+    __model__ = Tag.InputSchema
 
 
-class SubjectInputMUBFactory(BaseModelFactory[Subject.InputMUBSchema]):
-    __model__ = Subject.InputMUBSchema
+class TagInputMUBFactory(BaseModelFactory[Tag.InputMUBSchema]):
+    __model__ = Tag.InputMUBSchema
 
 
-class SubjectPatchMUBFactory(BasePatchModelFactory[Subject.PatchMUBSchema]):
-    __model__ = Subject.PatchMUBSchema
+class TagPatchMUBFactory(BasePatchModelFactory[Tag.PatchMUBSchema]):
+    __model__ = Tag.PatchMUBSchema

@@ -1,27 +1,11 @@
-from httpx import Response
 from pydantic import TypeAdapter
-from starlette import status
 
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
-from app.common.generic_fluid_interface import Validator
-from app.common.schemas.autocomplete_sch import SubjectSchema
+from app.common.schemas.autocomplete_sch import TagKind, TagSchema
 
-subject_type_adapter = TypeAdapter(SubjectSchema)
-
-
-class SubjectNotFoundException(Exception):
-    pass
-
-
-class SubjectNotFoundHandler(Validator[Response]):
-    async def validate(self, data: Response) -> None:
-        if (
-            data.status_code == status.HTTP_404_NOT_FOUND
-            and data.json()["detail"] == "Subject not found"
-        ):
-            raise SubjectNotFoundException
+tag_id_to_tag_dict_type_adapter = TypeAdapter(dict[int, TagSchema])
 
 
 class AutocompleteBridge(BaseBridge):
@@ -31,12 +15,16 @@ class AutocompleteBridge(BaseBridge):
             headers={"X-Api-Key": settings.api_key},
         )
 
-    async def retrieve_subject(self, subject_id: int) -> SubjectSchema:
+    async def retrieve_multiple_tags(
+        self, kind: TagKind, tag_ids: list[int]
+    ) -> dict[int, TagSchema]:
         return (
             await ResponsePipelineBuilder.initialize_from_request(
-                self.client.get(f"/subjects/{subject_id}/")
+                self.client.get(
+                    f"/tag-kinds/{kind}/tags/",
+                    params={"tag_ids": tag_ids},
+                )
             )
-            .validate(SubjectNotFoundHandler())
             .validate_status_code()
-            .validate_json(subject_type_adapter)
+            .validate_json(tag_id_to_tag_dict_type_adapter)
         )

@@ -20,10 +20,10 @@ from app.classrooms.models.classrooms_db import (
     UserClassroomStatus,
 )
 from app.classrooms.models.tutorships_db import Tutorship
-from app.common.bridges.autocomplete_bdg import SubjectNotFoundException
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.autocomplete_sch import TagKind
 from app.common.sqlalchemy_ext import db
 
 router = APIRouterExt(tags=["tutor classrooms"])
@@ -59,9 +59,10 @@ async def validate_subject(
     if new_subject_id == old_subject_id:
         return
 
-    try:
-        await autocomplete_bridge.retrieve_subject(subject_id=new_subject_id)
-    except SubjectNotFoundException:  # noqa: WPS329  # false-positive / broken rule
+    tag_id_to_tag = await autocomplete_bridge.retrieve_multiple_tags(
+        kind=TagKind.SUBJECT, tag_ids=[new_subject_id]
+    )
+    if new_subject_id not in tag_id_to_tag:
         raise SubjectResponses.SUBJECT_NOT_FOUND
 
 
