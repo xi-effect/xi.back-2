@@ -228,6 +228,7 @@ async def test_classroom_material_storage_item_retrieving(
             user_id=tutor_user_id,
             can_upload_files=True,
             can_read_files=True,
+            can_add_library_files=True,
             ydoc_access_level=YDocAccessLevel.READ_WRITE,
         )
     )

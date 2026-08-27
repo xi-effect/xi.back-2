@@ -1,15 +1,18 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from uuid import UUID, uuid4
 
 import aiofiles
+from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum
+from sqlalchemy import DateTime, Enum, Index, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
 
@@ -32,6 +35,20 @@ FILE_KIND_TO_CONTENT_DISPOSITION: dict[FileKind, ContentDisposition] = {
 }
 
 
+class FileCursorSchema(BaseModel):
+    created_at: AwareDatetime
+
+
+class FileFiltersSchema(BaseModel):
+    pass
+
+
+class FileSearchRequestSchema(BaseModel):
+    cursor: FileCursorSchema | None = None
+    limit: Annotated[int, Field(gt=0, lt=100)] = 12
+    filters: FileFiltersSchema
+
+
 class File(Base):
     __tablename__ = "files"
 
@@ -49,17 +66,20 @@ class File(Base):
         DateTime(timezone=True), default=datetime_utc_now
     )
 
-    ResponseSchema = MappedModel.create(
+    __table_args__ = (Index("index_files_owner_id_created_at", owner_id, created_at),)
+
+    BaseResponseSchema = MappedModel.create(
         columns=[
             id,
             name,
             extension,
             kind,
-            content_type,
             size_bytes,
-            created_at,
+            (created_at, AwareDatetime),
         ]
     )
+    ResponseSchema = BaseResponseSchema.extend(columns=[content_type])
+    LibraryResponseSchema = BaseResponseSchema.extend(columns=[uploader_id])
 
     @property
     def path(self) -> Path:
@@ -102,3 +122,18 @@ class File(Base):
     async def delete(self) -> None:
         self.path.unlink(missing_ok=True)
         await super().delete()
+
+    @classmethod
+    async def find_paginated_by_owner_id(
+        cls,
+        owner_id: int,
+        search_params: FileSearchRequestSchema,
+    ) -> Sequence[Self]:
+        stmt = select(cls).filter_by(owner_id=owner_id)
+
+        if search_params.cursor is not None:
+            stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
+
+        return await db.get_all(
+            stmt.order_by(cls.created_at.desc()).limit(search_params.limit)
+        )

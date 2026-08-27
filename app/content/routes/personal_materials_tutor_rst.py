@@ -55,6 +55,7 @@ async def retrieve_personal_material_storage_item(
         material=personal_material,
         user_id=auth_data.user_id,
         can_upload_files=True,
+        can_add_library_files=True,
         ydoc_access_level=YDocAccessLevel.READ_WRITE,
     )
 

@@ -49,7 +49,7 @@ async def test_file_meta_retrieving(
     )
 
 
-async def test_file_reading(
+async def test_file_retrieving(
     authorized_client: TestClient,
     parametrized_file_input_data: FileInputData,
     ydoc_file: YDocFile,
@@ -77,7 +77,7 @@ async def test_file_reading(
     assert response.content == parametrized_file_input_data.processed_content
 
 
-async def test_file_reading_not_modified_by_etag(
+async def test_file_retrieving_not_modified_by_etag(
     authorized_client: TestClient,
     ydoc_file: YDocFile,
     file_etag: str,
@@ -96,7 +96,7 @@ async def test_file_reading_not_modified_by_etag(
     )
 
 
-async def test_file_reading_not_modified_by_datetime(
+async def test_file_retrieving_not_modified_by_datetime(
     authorized_client: TestClient,
     ydoc_file: YDocFile,
     file_etag: str,
@@ -116,7 +116,7 @@ async def test_file_reading_not_modified_by_datetime(
     )
 
 
-async def test_file_reading_invalid_if_modified_since(
+async def test_file_retrieving_invalid_if_modified_since(
     faker: Faker,
     authorized_client: TestClient,
     ydoc_file: YDocFile,
@@ -147,13 +147,41 @@ async def test_file_reading_invalid_if_modified_since(
     )
 
 
-file_reading_request_parametrization = pytest.mark.parametrize(
+file_retrieving_request_parametrization = pytest.mark.parametrize(
     ("method", "postfix"),
     [
-        pytest.param("GET", "/", id="reading"),
+        pytest.param("GET", "/", id="retrieving"),
         pytest.param("GET", "/meta/", id="retrieving_meta"),
     ],
 )
+
+
+@file_retrieving_request_parametrization
+async def test_file_retrieving_insufficient_permissions(
+    authorized_user_id: int,
+    authorized_client: TestClient,
+    content_token_generator: ContentTokenGeneratorProtocol,
+    material_id: UUID,
+    ydoc_file: YDocFile,
+    method: str,
+    postfix: str,
+) -> None:
+    content_token = content_token_generator(
+        material_id,
+        ydoc_file.ydoc_id,
+        authorized_user_id,
+        can_read_files=False,
+    )
+
+    assert_response(
+        authorized_client.request(
+            method=method,
+            url=f"/api/protected/content-service/files/{ydoc_file.file_id}{postfix}",
+            headers={"X-Content-Token": content_token},
+        ),
+        expected_code=status.HTTP_403_FORBIDDEN,
+        expected_json={"detail": "Insufficient content token permissions"},
+    )
 
 
 @pytest.mark.parametrize(
@@ -185,8 +213,8 @@ file_reading_request_parametrization = pytest.mark.parametrize(
         ),
     ],
 )
-@file_reading_request_parametrization
-async def test_file_reading_invalid_token(
+@file_retrieving_request_parametrization
+async def test_file_retrieving_invalid_token(
     authorized_client: TestClient,
     ydoc_file: YDocFile,
     content_token: str,
@@ -204,35 +232,7 @@ async def test_file_reading_invalid_token(
     )
 
 
-@file_reading_request_parametrization
-async def test_file_reading_insufficient_permissions(
-    authorized_user_id: int,
-    authorized_client: TestClient,
-    content_token_generator: ContentTokenGeneratorProtocol,
-    material_id: UUID,
-    ydoc_file: YDocFile,
-    method: str,
-    postfix: str,
-) -> None:
-    content_token = content_token_generator(
-        material_id,
-        ydoc_file.ydoc_id,
-        authorized_user_id,
-        can_read_files=False,
-    )
-
-    assert_response(
-        authorized_client.request(
-            method=method,
-            url=f"/api/protected/content-service/files/{ydoc_file.file_id}{postfix}",
-            headers={"X-Content-Token": content_token},
-        ),
-        expected_code=status.HTTP_403_FORBIDDEN,
-        expected_json={"detail": "Insufficient content token permissions"},
-    )
-
-
-@file_reading_request_parametrization
+@file_retrieving_request_parametrization
 async def test_file_not_finding(
     authorized_client: TestClient,
     missing_file_id: UUID,

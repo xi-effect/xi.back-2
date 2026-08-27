@@ -360,11 +360,6 @@ def parametrized_file_input_data(
 
 
 @pytest.fixture()
-def file_owner_id(faker: Faker) -> int:
-    return faker.pyint(min_value=1, max_value=1000000)
-
-
-@pytest.fixture()
 def file_uploader_id(faker: Faker) -> int:
     return faker.pyint(min_value=1, max_value=1000000)
 
@@ -372,13 +367,13 @@ def file_uploader_id(faker: Faker) -> int:
 @pytest.fixture()
 async def file(
     active_session: ActiveSession,
+    tutor_user_id: int,
     parametrized_file_input_data: FileInputData,
-    file_owner_id: int,
     file_uploader_id: int,
 ) -> AsyncIterator[File]:
     async with active_session():
         file = await File.create(
-            owner_id=file_owner_id,
+            owner_id=tutor_user_id,
             uploader_id=file_uploader_id,
             name=parametrized_file_input_data.stem,
             extension=parametrized_file_input_data.extension,
