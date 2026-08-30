@@ -186,6 +186,30 @@ def missing_ydoc_id() -> UUID:
     return uuid4()
 
 
+CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
+    ("image/avif", "avif"),
+    ("image/bmp", "bmp"),
+    ("image/gif", "gif"),
+    ("image/x-icon", "ico"),
+    ("image/jpeg", "jpe"),
+    ("image/jpeg", "jpeg"),
+    ("image/jpeg", "jpg"),
+    ("image/jpx", "jpx"),
+    ("image/png", "png"),
+    ("image/tiff", "tif"),
+    ("image/tiff", "tiff"),
+    ("image/webp", "webp"),
+    ("application/pdf", "pdf"),
+    ("audio/aac", "aac"),
+    ("audio/mpeg", "mp3"),
+    ("audio/mp4", "m4a"),
+    ("audio/ogg", "ogg"),
+    ("audio/x-flac", "flac"),
+    ("audio/x-wav", "wav"),
+    (PRESENTATION_CONTENT_TYPE, "pptx"),
+]
+
+
 @pytest.fixture()
 def uncategorized_file_content(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
