@@ -1,11 +1,21 @@
 from datetime import datetime
+from io import BytesIO
 from os import stat
 from typing import Any
 
+from PIL import Image
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
 
 from app.content.models.files_db import File
+
+
+def convert_image_content_to_webp(image_content: bytes) -> bytes:
+    image = Image.open(BytesIO(image_content))
+    converted_image_buffer = BytesIO()
+    image.save(converted_image_buffer, format="webp")
+    converted_image_buffer.seek(0)
+    return converted_image_buffer.read()
 
 
 def parse_http_datetime(value: str) -> datetime:
