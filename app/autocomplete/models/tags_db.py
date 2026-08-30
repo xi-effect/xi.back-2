@@ -85,3 +85,15 @@ class SubjectTag(Tag):
         "polymorphic_identity": TagKind.SUBJECT,
         "polymorphic_load": "inline",
     }
+
+
+class GenericTag(Tag):
+    __tablename__ = None
+
+    __mapper_args__ = {
+        "polymorphic_identity": TagKind.GENERIC,
+        "polymorphic_load": "inline",
+    }
+
+
+AnyTag = SubjectTag | GenericTag

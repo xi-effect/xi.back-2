@@ -1,16 +1,17 @@
 import string
 from collections.abc import AsyncIterator
-from typing import Final
+from typing import Final, assert_never
 
 import pytest
 from faker import Faker
 from starlette.testclient import TestClient
 
-from app.autocomplete.models.tags_db import SubjectTag, Tag
+from app.autocomplete.models.tags_db import AnyTag, GenericTag, SubjectTag, Tag
 from app.common.dependencies.authorization_dep import ProxyAuthData
+from app.common.schemas.autocomplete_sch import TagKind
 from tests.autocomplete import factories
 from tests.common.active_session import ActiveSession
-from tests.common.types import AnyJSON
+from tests.common.types import AnyJSON, PytestRequest
 from tests.factories import ProxyAuthDataFactory
 
 
@@ -41,65 +42,81 @@ def outsider_client(
     return TestClient(client.app, headers=outsider_auth_data.as_headers)
 
 
+@pytest.fixture(params=[TagKind.SUBJECT, TagKind.GENERIC])
+def parametrized_tag_kind(request: PytestRequest[TagKind]) -> TagKind:
+    return request.param
+
+
 @pytest.fixture()
-async def subject_tag(
+def tag_class(parametrized_tag_kind: TagKind) -> type[AnyTag]:
+    match parametrized_tag_kind:
+        case TagKind.SUBJECT:
+            return SubjectTag
+        case TagKind.GENERIC:
+            return GenericTag
+        case _:
+            assert_never(parametrized_tag_kind)
+
+
+@pytest.fixture()
+async def tag(
     active_session: ActiveSession,
     tutor_user_id: int,
-) -> AsyncIterator[SubjectTag]:
+    tag_class: type[AnyTag],
+) -> AsyncIterator[AnyTag]:
     async with active_session():
-        subject_tag: SubjectTag = await SubjectTag.create(
+        tag: AnyTag = await tag_class.create(
             **factories.TagInputFactory.build_python(),
             tutor_id=tutor_user_id,
         )
 
-    yield subject_tag
+    yield tag
 
     async with active_session():
-        await SubjectTag.delete_by_kwargs(id=subject_tag.id)
+        await tag_class.delete_by_kwargs(id=tag.id)
 
 
 @pytest.fixture()
-async def subject_tag_mub_data(subject_tag: SubjectTag) -> AnyJSON:
-    return Tag.ResponseMUBSchema.model_validate(subject_tag).model_dump(mode="json")
+async def tag_mub_data(tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseMUBSchema.model_validate(tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def subject_tag_data(subject_tag: SubjectTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(subject_tag).model_dump(mode="json")
+async def tag_data(tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def other_subject_tag(
+async def other_tag(
     active_session: ActiveSession,
     tutor_user_id: int,
-) -> AsyncIterator[SubjectTag]:
+    tag_class: type[AnyTag],
+) -> AsyncIterator[AnyTag]:
     async with active_session():
-        other_subject_tag: SubjectTag = await SubjectTag.create(
+        other_tag: AnyTag = await tag_class.create(
             **factories.TagInputFactory.build_python(),
             tutor_id=tutor_user_id,
         )
 
-    yield other_subject_tag
+    yield other_tag
 
     async with active_session():
-        await SubjectTag.delete_by_kwargs(id=other_subject_tag.id)
+        await tag_class.delete_by_kwargs(id=other_tag.id)
 
 
 @pytest.fixture()
-async def other_subject_tag_data(other_subject_tag: SubjectTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(other_subject_tag).model_dump(mode="json")
+async def other_tag_data(other_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(other_tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def deleted_subject_tag_id(
-    active_session: ActiveSession, subject_tag: SubjectTag
-) -> int:
+async def deleted_tag_id(active_session: ActiveSession, tag: AnyTag) -> int:
     async with active_session():
-        await subject_tag.delete()
-    return subject_tag.id
+        await tag.delete()
+    return tag.id
 
 
-SUBJECT_TAG_LIST_SIZE: Final[int] = 8
+TAG_LIST_SIZE: Final[int] = 8
 
 
 def quarter_of_ascii_letters_any_case(quarter_index: int) -> str:
@@ -108,26 +125,26 @@ def quarter_of_ascii_letters_any_case(quarter_index: int) -> str:
 
 
 @pytest.fixture()
-async def common_subject_tag_name_prefix(faker: Faker) -> str:
+async def common_tag_name_prefix(faker: Faker) -> str:
     return faker.bothify("???", letters=quarter_of_ascii_letters_any_case(0))
 
 
 @pytest.fixture()
-async def even_subject_tag_name_suffix(faker: Faker) -> str:
+async def even_tag_name_suffix(faker: Faker) -> str:
     return faker.bothify("###")
 
 
 @pytest.fixture()
-async def odd_subject_tag_name_suffix(faker: Faker) -> str:
+async def odd_tag_name_suffix(faker: Faker) -> str:
     return faker.bothify("??%", letters=quarter_of_ascii_letters_any_case(1))
 
 
 @pytest.fixture()
-async def excluded_from_subject_tag_names(faker: Faker) -> str:
+async def excluded_from_tag_names(faker: Faker) -> str:
     return faker.bothify("???", letters=quarter_of_ascii_letters_any_case(2))
 
 
-def generate_subject_tag_name(
+def generate_tag_name(
     faker: Faker,
     prefix: str,
     suffix: str,
@@ -141,27 +158,26 @@ def generate_subject_tag_name(
 
 
 @pytest.fixture()
-async def subject_tags(
+async def tags(
     faker: Faker,
     active_session: ActiveSession,
     tutor_user_id: int,
-    common_subject_tag_name_prefix: str,
-    even_subject_tag_name_suffix: str,
-    odd_subject_tag_name_suffix: str,
-) -> AsyncIterator[list[SubjectTag]]:
-    subject_tags: list[SubjectTag] = []
+    tag_class: type[AnyTag],
+    common_tag_name_prefix: str,
+    even_tag_name_suffix: str,
+    odd_tag_name_suffix: str,
+) -> AsyncIterator[list[AnyTag]]:
+    tags: list[AnyTag] = []
     unique_letters = quarter_of_ascii_letters_any_case(3)
     async with active_session():
-        for i in range(SUBJECT_TAG_LIST_SIZE):
-            subject_tags.append(
-                await SubjectTag.create(
-                    name=generate_subject_tag_name(
+        for i in range(TAG_LIST_SIZE):
+            tags.append(
+                await tag_class.create(
+                    name=generate_tag_name(
                         faker=faker,
-                        prefix=common_subject_tag_name_prefix,
+                        prefix=common_tag_name_prefix,
                         suffix=(
-                            even_subject_tag_name_suffix
-                            if i % 2 == 0
-                            else odd_subject_tag_name_suffix
+                            even_tag_name_suffix if i % 2 == 0 else odd_tag_name_suffix
                         ),
                         unique_letter=unique_letters[i],
                     ),
@@ -169,9 +185,9 @@ async def subject_tags(
                 )
             )
 
-    subject_tags.sort(key=lambda subject_tag: subject_tag.name)
-    yield subject_tags
+    tags.sort(key=lambda tag: tag.name)
+    yield tags
 
     async with active_session():
-        for subject_tag in subject_tags:
-            await subject_tag.delete()
+        for tag in tags:
+            await tag.delete()
