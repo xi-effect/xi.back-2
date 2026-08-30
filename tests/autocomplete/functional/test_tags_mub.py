@@ -4,7 +4,8 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.autocomplete.models.tags_db import SubjectTag
+from app.autocomplete.models.tags_db import AnyTag
+from app.common.schemas.autocomplete_sch import TagKind
 from tests.autocomplete import factories
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
@@ -14,74 +15,80 @@ from tests.common.types import AnyJSON
 pytestmark = pytest.mark.anyio
 
 
-async def test_subject_tag_creation(
+async def test_tag_creation(
     active_session: ActiveSession,
     mub_client: TestClient,
+    parametrized_tag_kind: TagKind,
+    tag_class: type[AnyTag],
 ) -> None:
-    subject_tag_input_data = factories.TagInputMUBFactory.build_json()
-    subject_tag_id: int = assert_response(
+    tag_input_data = factories.TagInputMUBFactory.build_json()
+    tag_id: int = assert_response(
         mub_client.post(
-            "/mub/autocomplete-service/tag-kinds/subject/tags/",
-            json=subject_tag_input_data,
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
+            json=tag_input_data,
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
-            **subject_tag_input_data,
+            **tag_input_data,
             "id": int,
         },
     ).json()["id"]
 
     async with active_session():
-        subject_tag = await SubjectTag.find_first_by_id(subject_tag_id)
-        assert subject_tag is not None
-        await subject_tag.delete()
+        tag = await tag_class.find_first_by_id(tag_id)
+        assert tag is not None
+        await tag.delete()
 
 
-async def test_subject_tag_creation_tag_already_exists(
+async def test_tag_creation_tag_already_exists(
     mub_client: TestClient,
-    subject_tag_mub_data: AnyJSON,
+    parametrized_tag_kind: TagKind,
+    tag_mub_data: AnyJSON,
 ) -> None:
     assert_response(
         mub_client.post(
-            "/mub/autocomplete-service/tag-kinds/subject/tags/",
-            json=subject_tag_mub_data,
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
+            json=tag_mub_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Tag already exists"},
     )
 
 
-async def test_subject_tag_updating(
+async def test_tag_updating(
     mub_client: TestClient,
-    subject_tag_mub_data: AnyJSON,
+    parametrized_tag_kind: TagKind,
+    tag_mub_data: AnyJSON,
 ) -> None:
-    patch_subject_tag_data = factories.TagPatchMUBFactory.build_json()
+    patch_tag_data = factories.TagPatchMUBFactory.build_json()
 
     assert_response(
         mub_client.patch(
-            f"/mub/autocomplete-service/tag-kinds/subject/tags/{subject_tag_mub_data["id"]}/",
-            json=patch_subject_tag_data,
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tag_mub_data["id"]}/",
+            json=patch_tag_data,
         ),
         expected_json={
-            **subject_tag_mub_data,
-            **patch_subject_tag_data,
+            **tag_mub_data,
+            **patch_tag_data,
         },
     )
 
 
-async def test_subject_tag_deleting(
+async def test_tag_deleting(
     active_session: ActiveSession,
     mub_client: TestClient,
-    subject_tag: SubjectTag,
+    parametrized_tag_kind: TagKind,
+    tag_class: type[AnyTag],
+    tag: AnyTag,
 ) -> None:
     assert_nodata_response(
         mub_client.delete(
-            f"/mub/autocomplete-service/tag-kinds/subject/tags/{subject_tag.id}/"
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tag.id}/"
         )
     )
 
     async with active_session():
-        assert await SubjectTag.find_first_by_id(subject_tag.id) is None
+        assert await tag_class.find_first_by_id(tag.id) is None
 
 
 @pytest.mark.parametrize(
@@ -91,16 +98,17 @@ async def test_subject_tag_deleting(
         pytest.param("DELETE", None, id="delete"),
     ],
 )
-async def test_subject_tag_not_finding(
+async def test_tag_not_finding(
     mub_client: TestClient,
-    deleted_subject_tag_id: int,
+    parametrized_tag_kind: TagKind,
+    deleted_tag_id: int,
     method: str,
     body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         mub_client.request(
             method=method,
-            url=f"/mub/autocomplete-service/tag-kinds/subject/tags/{deleted_subject_tag_id}/",
+            url=f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{deleted_tag_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,

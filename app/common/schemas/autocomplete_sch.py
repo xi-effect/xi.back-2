@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class TagKind(StrEnum):
     SUBJECT = auto()
+    GENERIC = auto()
 
 
 class TagSchema(BaseModel):
