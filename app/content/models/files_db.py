@@ -40,7 +40,11 @@ class FileCursorSchema(BaseModel):
 
 
 class FileFiltersSchema(BaseModel):
-    pass
+    kinds: Annotated[
+        set[FileKind] | None,
+        Field(min_length=1, max_length=len(FileKind)),
+    ] = None
+    is_uploaded_by_owner: bool | None = None
 
 
 class FileSearchRequestSchema(BaseModel):
@@ -130,6 +134,15 @@ class File(Base):
         search_params: FileSearchRequestSchema,
     ) -> Sequence[Self]:
         stmt = select(cls).filter_by(owner_id=owner_id)
+
+        if search_params.filters.kinds is not None:
+            stmt = stmt.filter(cls.kind.in_(search_params.filters.kinds))
+
+        if search_params.filters.is_uploaded_by_owner is not None:
+            if search_params.filters.is_uploaded_by_owner:
+                stmt = stmt.filter(cls.uploader_id == cls.owner_id)
+            else:
+                stmt = stmt.filter(cls.uploader_id != cls.owner_id)
 
         if search_params.cursor is not None:
             stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
