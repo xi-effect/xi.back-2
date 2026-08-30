@@ -12,19 +12,19 @@ pytestmark = pytest.mark.anyio
 async def test_retrieving_multiple_tags(
     internal_client: TestClient,
     parametrized_tag_kind: TagKind,
-    tag: AnyTag,
-    tag_data: AnyJSON,
-    other_tag: AnyTag,
-    other_tag_data: AnyJSON,
+    tutor_tag: AnyTag,
+    tutor_tag_data: AnyJSON,
+    other_tutor_tag: AnyTag,
+    other_tutor_tag_data: AnyJSON,
 ) -> None:
     assert_response(
         internal_client.get(
             f"/internal/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
-            params={"tag_ids": [tag.id, other_tag.id]},
+            params={"tag_ids": [tutor_tag.id, other_tutor_tag.id]},
         ),
         expected_json={
-            str(tag.id): tag_data,
-            str(other_tag.id): other_tag_data,
+            str(tutor_tag.id): tutor_tag_data,
+            str(other_tutor_tag.id): other_tutor_tag_data,
         },
     )
 
@@ -32,12 +32,12 @@ async def test_retrieving_multiple_tags(
 async def test_retrieving_multiple_tags_tag_not_found(
     internal_client: TestClient,
     parametrized_tag_kind: TagKind,
-    deleted_tag_id: int,
+    deleted_tutor_tag_id: int,
 ) -> None:
     assert_response(
         internal_client.get(
             f"/internal/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
-            params={"tag_ids": [deleted_tag_id]},
+            params={"tag_ids": [deleted_tutor_tag_id]},
         ),
         expected_json={},
     )

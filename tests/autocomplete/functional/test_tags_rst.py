@@ -111,12 +111,12 @@ async def test_tag_autocompleting(
 async def test_tag_retrieving(
     tutor_client: TestClient,
     parametrized_tag_kind: TagKind,
-    tag: AnyTag,
-    tag_data: AnyJSON,
+    tutor_tag: AnyTag,
+    tutor_tag_data: AnyJSON,
 ) -> None:
     assert_response(
         tutor_client.get(
-            f"/api/protected/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tag.id}/"
+            f"/api/protected/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tutor_tag.id}/"
         ),
-        expected_json=tag_data,
+        expected_json=tutor_tag_data,
     )

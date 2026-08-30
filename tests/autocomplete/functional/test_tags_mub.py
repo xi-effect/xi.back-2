@@ -22,6 +22,7 @@ async def test_tag_creation(
     tag_class: type[AnyTag],
 ) -> None:
     tag_input_data = factories.TagInputMUBFactory.build_json()
+
     tag_id: int = assert_response(
         mub_client.post(
             f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
@@ -43,12 +44,12 @@ async def test_tag_creation(
 async def test_tag_creation_tag_already_exists(
     mub_client: TestClient,
     parametrized_tag_kind: TagKind,
-    tag_mub_data: AnyJSON,
+    tutor_tag_mub_data: AnyJSON,
 ) -> None:
     assert_response(
         mub_client.post(
             f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/",
-            json=tag_mub_data,
+            json=tutor_tag_mub_data,
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Tag already exists"},
@@ -58,17 +59,17 @@ async def test_tag_creation_tag_already_exists(
 async def test_tag_updating(
     mub_client: TestClient,
     parametrized_tag_kind: TagKind,
-    tag_mub_data: AnyJSON,
+    tutor_tag_mub_data: AnyJSON,
 ) -> None:
     patch_tag_data = factories.TagPatchMUBFactory.build_json()
 
     assert_response(
         mub_client.patch(
-            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tag_mub_data["id"]}/",
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tutor_tag_mub_data["id"]}/",
             json=patch_tag_data,
         ),
         expected_json={
-            **tag_mub_data,
+            **tutor_tag_mub_data,
             **patch_tag_data,
         },
     )
@@ -79,16 +80,16 @@ async def test_tag_deleting(
     mub_client: TestClient,
     parametrized_tag_kind: TagKind,
     tag_class: type[AnyTag],
-    tag: AnyTag,
+    tutor_tag: AnyTag,
 ) -> None:
     assert_nodata_response(
         mub_client.delete(
-            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tag.id}/"
+            f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{tutor_tag.id}/"
         )
     )
 
     async with active_session():
-        assert await tag_class.find_first_by_id(tag.id) is None
+        assert await tag_class.find_first_by_id(tutor_tag.id) is None
 
 
 @pytest.mark.parametrize(
@@ -101,14 +102,14 @@ async def test_tag_deleting(
 async def test_tag_not_finding(
     mub_client: TestClient,
     parametrized_tag_kind: TagKind,
-    deleted_tag_id: int,
+    deleted_tutor_tag_id: int,
     method: str,
     body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         mub_client.request(
             method=method,
-            url=f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{deleted_tag_id}/",
+            url=f"/mub/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/{deleted_tutor_tag_id}/",
             json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,

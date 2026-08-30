@@ -2,9 +2,13 @@ from collections.abc import Sequence
 
 from starlette import status
 
-from app.autocomplete.dependencies.tags_dep import TagByKindAndID, TagClassByKind
+from app.autocomplete.dependencies.tags_dep import (
+    ExistingTagResponses,
+    TagByKindAndID,
+    TagClassByKind,
+)
 from app.autocomplete.models.tags_db import AnyTag, Tag
-from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.fastapi_ext import APIRouterExt
 
 router = APIRouterExt(tags=["tags mub"])
 
@@ -25,10 +29,6 @@ async def list_tags(
         offset=offset,
         limit=limit,
     )
-
-
-class ExistingTagResponses(Responses):
-    TAG_ALREADY_EXISTS = status.HTTP_409_CONFLICT, "Tag already exists"
 
 
 @router.post(

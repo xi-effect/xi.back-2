@@ -6,6 +6,10 @@ class TagInputFactory(BaseModelFactory[Tag.InputSchema]):
     __model__ = Tag.InputSchema
 
 
+class TagPatchFactory(BasePatchModelFactory[Tag.PatchSchema]):
+    __model__ = Tag.PatchSchema
+
+
 class TagInputMUBFactory(BaseModelFactory[Tag.InputMUBSchema]):
     __model__ = Tag.InputMUBSchema
 

@@ -59,61 +59,78 @@ def tag_class(parametrized_tag_kind: TagKind) -> type[AnyTag]:
 
 
 @pytest.fixture()
-async def tag(
+async def tutor_tag(
     active_session: ActiveSession,
     tutor_user_id: int,
     tag_class: type[AnyTag],
 ) -> AsyncIterator[AnyTag]:
     async with active_session():
-        tag: AnyTag = await tag_class.create(
+        tutor_tag: AnyTag = await tag_class.create(
             **factories.TagInputFactory.build_python(),
             tutor_id=tutor_user_id,
         )
 
-    yield tag
+    yield tutor_tag
 
     async with active_session():
-        await tag_class.delete_by_kwargs(id=tag.id)
+        await tag_class.delete_by_kwargs(id=tutor_tag.id)
 
 
 @pytest.fixture()
-async def tag_mub_data(tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseMUBSchema.model_validate(tag).model_dump(mode="json")
+async def tutor_tag_mub_data(tutor_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseMUBSchema.model_validate(tutor_tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def tag_data(tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(tag).model_dump(mode="json")
+async def tutor_tag_data(tutor_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(tutor_tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def other_tag(
+async def other_tutor_tag(
     active_session: ActiveSession,
     tutor_user_id: int,
     tag_class: type[AnyTag],
 ) -> AsyncIterator[AnyTag]:
     async with active_session():
-        other_tag: AnyTag = await tag_class.create(
+        other_tutor_tag: AnyTag = await tag_class.create(
             **factories.TagInputFactory.build_python(),
             tutor_id=tutor_user_id,
         )
 
-    yield other_tag
+    yield other_tutor_tag
 
     async with active_session():
-        await tag_class.delete_by_kwargs(id=other_tag.id)
+        await tag_class.delete_by_kwargs(id=other_tutor_tag.id)
 
 
 @pytest.fixture()
-async def other_tag_data(other_tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(other_tag).model_dump(mode="json")
+async def other_tutor_tag_data(other_tutor_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(other_tutor_tag).model_dump(mode="json")
 
 
 @pytest.fixture()
-async def deleted_tag_id(active_session: ActiveSession, tag: AnyTag) -> int:
+async def shared_tag(
+    active_session: ActiveSession,
+    tag_class: type[AnyTag],
+) -> AsyncIterator[AnyTag]:
     async with active_session():
-        await tag.delete()
-    return tag.id
+        shared_tag: AnyTag = await tag_class.create(
+            **factories.TagInputFactory.build_python(),
+            tutor_id=None,
+        )
+
+    yield shared_tag
+
+    async with active_session():
+        await tag_class.delete_by_kwargs(id=shared_tag.id)
+
+
+@pytest.fixture()
+async def deleted_tutor_tag_id(active_session: ActiveSession, tutor_tag: AnyTag) -> int:
+    async with active_session():
+        await tutor_tag.delete()
+    return tutor_tag.id
 
 
 TAG_LIST_SIZE: Final[int] = 8

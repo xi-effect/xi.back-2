@@ -2,7 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from app.autocomplete.routes import tags_int, tags_mub, tags_rst
+from app.autocomplete.routes import tags_int, tags_mub, tags_rst, tags_tutor_rst
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
@@ -15,6 +15,7 @@ authorized_router = APIRouterExt(
     prefix="/api/protected/autocomplete-service",
 )
 authorized_router.include_router(tags_rst.router)
+authorized_router.include_router(tags_tutor_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
