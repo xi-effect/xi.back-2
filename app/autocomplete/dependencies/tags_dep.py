@@ -4,6 +4,7 @@ from fastapi import Depends, Path
 from starlette import status
 
 from app.autocomplete.models.tags_db import AnyTag, GenericTag, SubjectTag
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
 from app.common.schemas.autocomplete_sch import TagKind
 
@@ -37,3 +38,24 @@ async def get_tag_by_kind_and_id(
 
 
 TagByKindAndID = Annotated[AnyTag, Depends(get_tag_by_kind_and_id)]
+
+
+class MyTagResponses(Responses):
+    TAG_ACCESS_DENIED = status.HTTP_403_FORBIDDEN, "Tag access denied"
+
+
+@with_responses(MyTagResponses)
+async def get_my_tag_by_kind_and_id(
+    tag: TagByKindAndID,
+    auth_data: AuthorizationData,
+) -> AnyTag:
+    if tag.tutor_id != auth_data.user_id:
+        raise MyTagResponses.TAG_ACCESS_DENIED
+    return tag
+
+
+MyTagByKindAndID = Annotated[AnyTag, Depends(get_my_tag_by_kind_and_id)]
+
+
+class ExistingTagResponses(Responses):
+    TAG_ALREADY_EXISTS = status.HTTP_409_CONFLICT, "Tag already exists"
