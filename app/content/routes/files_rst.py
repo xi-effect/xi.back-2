@@ -1,8 +1,6 @@
-from io import BytesIO
 from pathlib import Path
 
 from fastapi import Depends, UploadFile
-from PIL import Image
 from starlette import status
 from starlette.responses import Response
 
@@ -19,6 +17,7 @@ from app.content.dependencies.files_dep import (
     MyFileByID,
 )
 from app.content.dependencies.uploads_dep import (
+    UploadFileKind,
     ValidatedAudioUpload,
     ValidatedDocumentUpload,
     ValidatedImageUpload,
@@ -33,7 +32,7 @@ from app.content.services import files_svc
 router = APIRouterExt(tags=["files"])
 
 
-async def upload_file(
+async def create_file_from_upload(
     ydoc: YDoc,
     auth_data: AuthorizationData,
     upload_content: bytes,
@@ -63,12 +62,46 @@ async def upload_file(
 
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
+WEBP_CONTENT_TYPE = "image/webp"
 
+
+@router.post(
+    "/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.ResponseSchema,
+    summary="Upload a new file",
+    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
+)
+async def upload_file(
+    ydoc: ContentTokenYDoc,
+    auth_data: AuthorizationData,
+    upload: UploadFile,
+    file_kind: UploadFileKind,
+) -> File:
+    if file_kind is FileKind.IMAGE:
+        upload_content = files_svc.convert_image_content_to_webp(await upload.read())
+        content_type = WEBP_CONTENT_TYPE
+    else:
+        upload_content = await upload.read()
+        content_type = upload.content_type or DEFAULT_CONTENT_TYPE
+
+    return await create_file_from_upload(
+        ydoc=ydoc,
+        auth_data=auth_data,
+        upload_content=upload_content,
+        upload_filename=upload.filename,
+        file_kind=file_kind,
+        content_type=content_type,
+    )
+
+
+# TODO remove after xi.tutor switches to POST /files/
 @router.post(
     "/file-kinds/uncategorized/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    summary="Upload a new uncategorized file",
+    summary="Use `POST /api/protected/content-service/files/` instead",
+    deprecated=True,
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_uncategorized_file(
@@ -76,7 +109,7 @@ async def upload_uncategorized_file(
     auth_data: AuthorizationData,
     upload: UploadFile,
 ) -> File:
-    return await upload_file(
+    return await create_file_from_upload(
         ydoc=ydoc,
         auth_data=auth_data,
         upload_content=await upload.read(),
@@ -90,7 +123,8 @@ async def upload_uncategorized_file(
     "/file-kinds/image/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    summary="Upload a new image file",
+    summary="Use `POST /api/protected/content-service/files/` instead",
+    deprecated=True,
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_image_file(
@@ -98,18 +132,13 @@ async def upload_image_file(
     auth_data: AuthorizationData,
     upload: ValidatedImageUpload,
 ) -> File:
-    image = Image.open(BytesIO(await upload.read()))
-    processed_image = BytesIO()
-    image.save(processed_image, format="webp")
-    processed_image.seek(0)
-
-    return await upload_file(
+    return await create_file_from_upload(
         ydoc=ydoc,
         auth_data=auth_data,
-        upload_content=processed_image.read(),
+        upload_content=files_svc.convert_image_content_to_webp(await upload.read()),
         upload_filename=upload.filename,
         file_kind=FileKind.IMAGE,
-        content_type="image/webp",
+        content_type=WEBP_CONTENT_TYPE,
     )
 
 
@@ -117,7 +146,8 @@ async def upload_image_file(
     "/file-kinds/document/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    summary="Upload a new document file",
+    summary="Use `POST /api/protected/content-service/files/` instead",
+    deprecated=True,
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_document_file(
@@ -125,7 +155,7 @@ async def upload_document_file(
     auth_data: AuthorizationData,
     upload: ValidatedDocumentUpload,
 ) -> File:
-    return await upload_file(
+    return await create_file_from_upload(
         ydoc=ydoc,
         auth_data=auth_data,
         upload_content=await upload.read(),
@@ -139,7 +169,8 @@ async def upload_document_file(
     "/file-kinds/audio/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    summary="Upload a new audio file",
+    summary="Use `POST /api/protected/content-service/files/` instead",
+    deprecated=True,
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_audio_file(
@@ -147,7 +178,7 @@ async def upload_audio_file(
     auth_data: AuthorizationData,
     upload: ValidatedAudioUpload,
 ) -> File:
-    return await upload_file(
+    return await create_file_from_upload(
         ydoc=ydoc,
         auth_data=auth_data,
         upload_content=await upload.read(),
@@ -161,7 +192,8 @@ async def upload_audio_file(
     "/file-kinds/presentation/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    summary="Upload a new presentation file",
+    summary="Use `POST /api/protected/content-service/files/` instead",
+    deprecated=True,
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
 async def upload_presentation_file(
@@ -169,7 +201,7 @@ async def upload_presentation_file(
     auth_data: AuthorizationData,
     upload: ValidatedPresentationUpload,
 ) -> File:
-    return await upload_file(
+    return await create_file_from_upload(
         ydoc=ydoc,
         auth_data=auth_data,
         upload_content=await upload.read(),
