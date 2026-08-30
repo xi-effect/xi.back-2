@@ -36,6 +36,11 @@ def outsider_auth_data() -> ProxyAuthData:
 
 
 @pytest.fixture()
+def outsider_user_id(outsider_auth_data: ProxyAuthData) -> int:
+    return outsider_auth_data.user_id
+
+
+@pytest.fixture()
 def outsider_client(
     client: TestClient, outsider_auth_data: ProxyAuthData
 ) -> TestClient:
@@ -124,6 +129,34 @@ async def shared_tag(
 
     async with active_session():
         await tag_class.delete_by_kwargs(id=shared_tag.id)
+
+
+@pytest.fixture()
+async def shared_tag_data(shared_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(shared_tag).model_dump(mode="json")
+
+
+@pytest.fixture()
+async def outsider_tag(
+    active_session: ActiveSession,
+    outsider_user_id: int,
+    tag_class: type[AnyTag],
+) -> AsyncIterator[AnyTag]:
+    async with active_session():
+        outsider_tag: AnyTag = await tag_class.create(
+            **factories.TagInputFactory.build_python(),
+            tutor_id=outsider_user_id,
+        )
+
+    yield outsider_tag
+
+    async with active_session():
+        await tag_class.delete_by_kwargs(id=outsider_tag.id)
+
+
+@pytest.fixture()
+async def outsider_tag_data(outsider_tag: AnyTag) -> AnyJSON:
+    return Tag.ResponseSchema.model_validate(outsider_tag).model_dump(mode="json")
 
 
 @pytest.fixture()

@@ -92,8 +92,15 @@ class Tag(Base):
         )
 
     @classmethod
-    async def find_all_by_ids(cls, tag_ids: list[int]) -> Sequence[Self]:
-        return await db.get_all(select(cls).filter(cls.id.in_(tag_ids)))
+    async def find_all_by_ids(
+        cls,
+        tag_ids: list[int],
+        tutor_id: int | None = None,
+    ) -> Sequence[Self]:
+        stmt = select(cls).filter(cls.id.in_(tag_ids))
+        if tutor_id is not None:
+            stmt = stmt.filter(or_(cls.tutor_id == tutor_id, cls.tutor_id.is_(None)))
+        return await db.get_all(stmt)
 
 
 class SubjectTag(Tag):
