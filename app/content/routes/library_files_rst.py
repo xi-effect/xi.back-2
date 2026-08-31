@@ -1,18 +1,26 @@
 from collections.abc import Sequence
+from typing import Annotated
 
-from fastapi import UploadFile
+from fastapi import Body, UploadFile
 from starlette import status
 from starlette.responses import Response
 
+from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.autocomplete_sch import TagKind
 from app.content.dependencies.files_dep import (
     IfModifiedSinceHeader,
     IfNoneMatchHeader,
     MyLibraryFileByID,
 )
 from app.content.dependencies.uploads_dep import UploadFileKind
-from app.content.models.files_db import ClassroomFile, File, FileSearchRequestSchema
+from app.content.models.files_db import (
+    ClassroomFile,
+    File,
+    FileSearchRequestSchema,
+    FileTag,
+)
 from app.content.services import files_svc
 
 router = APIRouterExt(tags=["library files"])
@@ -84,6 +92,38 @@ async def retrieve_library_file(
 )
 async def list_library_file_classroom_ids(file: MyLibraryFileByID) -> Sequence[int]:
     return await ClassroomFile.find_all_classroom_ids_by_file_id(file_id=file.id)
+
+
+class TagResponses(Responses):
+    TAG_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Tag not found"
+
+
+@router.put(
+    path="/roles/tutor/files/{file_id}/tags/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=TagResponses.responses(),
+    summary="Set tags for a library file by id",
+)
+async def set_library_file_tags(
+    auth_data: AuthorizationData,
+    file: MyLibraryFileByID,
+    tag_ids: Annotated[
+        set[int],
+        Body(embed=True, max_length=FileTag.max_count_per_file),
+    ],
+) -> None:
+    if len(tag_ids) != 0:
+        tag_id_to_tag = await autocomplete_bridge.retrieve_multiple_tags(
+            kind=TagKind.GENERIC,
+            tag_ids=list(tag_ids),
+            tutor_id=auth_data.user_id,
+        )
+        if not tag_ids.issubset(tag_id_to_tag.keys()):
+            raise TagResponses.TAG_NOT_FOUND
+    await FileTag.replace_all_by_file_id(
+        file_id=file.id,
+        tag_ids=tag_ids,
+    )
 
 
 @router.delete(

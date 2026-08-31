@@ -25,6 +25,7 @@ from app.content.models.files_db import (
     ContentDisposition,
     File,
     FileKind,
+    FileTag,
 )
 from app.content.models.materials_db import (
     ClassroomMaterial,
@@ -419,6 +420,7 @@ async def file(
             kind=parametrized_file_input_data.kind,
             content_type=parametrized_file_input_data.stored_content_type,
             size_bytes=len(parametrized_file_input_data.processed_content),
+            file_tags=[],
         )
 
     file.path.parent.mkdir(parents=True, exist_ok=True)
@@ -437,6 +439,24 @@ def file_data(file: File) -> AnyJSON:
     return File.ResponseSchema.model_validate(file, from_attributes=True).model_dump(
         mode="json"
     )
+
+
+@pytest.fixture()
+async def file_tag_ids(
+    active_session: ActiveSession,
+    id_provider: IDProvider,
+    file: File,
+) -> AsyncIterator[list[int]]:
+    tag_ids = [id_provider.generate_id() for _ in range(FileTag.max_count_per_file)]
+
+    async with active_session():
+        for tag_id in tag_ids:
+            await FileTag.create(file_id=file.id, tag_id=tag_id)
+
+    yield tag_ids
+
+    async with active_session():
+        await FileTag.delete_by_kwargs(file_id=file.id)
 
 
 @pytest.fixture()

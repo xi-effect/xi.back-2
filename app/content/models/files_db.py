@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, Literal, Self
+from typing import Annotated, ClassVar, Literal, Self
 from uuid import UUID, uuid4
 
 import aiofiles
@@ -10,7 +10,7 @@ from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Select, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base, settings
 from app.common.sqlalchemy_ext import db
@@ -46,6 +46,7 @@ class FileFiltersSchema(BaseModel):
         Field(min_length=1, max_length=len(FileKind)),
     ] = None
     is_uploaded_by_owner: bool | None = None
+    tag_ids: Annotated[set[int] | None, Field(min_length=1, max_length=5)] = None
 
 
 class FileSearchRequestSchema(BaseModel):
@@ -71,7 +72,15 @@ class File(Base):
         DateTime(timezone=True), default=datetime_utc_now
     )
 
+    file_tags: Mapped[list["FileTag"]] = relationship(
+        lazy="selectin", passive_deletes="all"
+    )
+
     __table_args__ = (Index("index_files_owner_id_created_at", owner_id, created_at),)
+
+    @property
+    def tag_ids(self) -> list[int]:
+        return [file_tag.tag_id for file_tag in self.file_tags]
 
     BaseResponseSchema = MappedModel.create(
         columns=[
@@ -81,7 +90,8 @@ class File(Base):
             kind,
             size_bytes,
             (created_at, AwareDatetime),
-        ]
+        ],
+        properties=[tag_ids],
     )
     ResponseSchema = BaseResponseSchema.extend(columns=[content_type])
     TutorResponseSchema = BaseResponseSchema.extend(columns=[uploader_id])
@@ -119,6 +129,7 @@ class File(Base):
             kind=file_kind,
             content_type=content_type,
             size_bytes=len(content),
+            file_tags=[],
         )
         file.path.parent.mkdir(parents=True, exist_ok=True)
         async with aiofiles.open(file.path, "wb") as f:
@@ -144,6 +155,14 @@ class File(Base):
                 stmt = stmt.filter(cls.uploader_id == cls.owner_id)
             else:
                 stmt = stmt.filter(cls.uploader_id != cls.owner_id)
+
+        if search_params.filters.tag_ids is not None:
+            for tag_id in search_params.filters.tag_ids:
+                stmt = stmt.filter(
+                    select(FileTag)
+                    .filter(FileTag.file_id == cls.id, FileTag.tag_id == tag_id)
+                    .exists()
+                )
 
         if search_params.cursor is not None:
             stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
@@ -209,3 +228,27 @@ class ClassroomFile(Base):
             .order_by(cls.classroom_id),
             limit=100,
         )
+
+
+class FileTag(Base):
+    __tablename__ = "file_tags"
+
+    max_count_per_file: ClassVar[int] = 5
+
+    file_id: Mapped[UUID] = mapped_column(
+        ForeignKey(File.id, ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tag_id: Mapped[int] = mapped_column(primary_key=True)
+
+    @classmethod
+    async def replace_all_by_file_id(
+        cls,
+        file_id: UUID,
+        tag_ids: set[int],
+    ) -> None:
+        await cls.delete_by_kwargs(file_id=file_id)
+        if len(tag_ids) != 0:
+            await cls.create_batch(
+                {"file_id": file_id, "tag_id": tag_id} for tag_id in tag_ids
+            )

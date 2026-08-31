@@ -86,6 +86,7 @@ async def test_file_uploading(
             "content_type": parametrized_file_input_data.stored_content_type,
             "size_bytes": len(parametrized_file_input_data.processed_content),
             "created_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -179,6 +180,7 @@ async def test_file_uploading_with_unrecognized_content(
             "content_type": content_type,
             "size_bytes": len(uncategorized_file_content),
             "created_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -374,6 +376,7 @@ async def test_kind_specific_file_uploading(
             "content_type": parametrized_file_input_data.stored_content_type,
             "size_bytes": len(parametrized_file_input_data.processed_content),
             "created_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
