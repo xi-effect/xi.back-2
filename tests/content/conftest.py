@@ -20,7 +20,12 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
-from app.content.models.files_db import ContentDisposition, File, FileKind
+from app.content.models.files_db import (
+    ClassroomFile,
+    ContentDisposition,
+    File,
+    FileKind,
+)
 from app.content.models.materials_db import (
     ClassroomMaterial,
     ClassroomNoteMaterial,
@@ -476,6 +481,27 @@ def missing_file_id() -> UUID:
 @pytest.fixture()
 def classroom_id(faker: Faker) -> int:
     return faker.random_int()
+
+
+@pytest.fixture()
+async def classroom_file(
+    active_session: ActiveSession,
+    file: File,
+    classroom_id: int,
+) -> AsyncIterator[ClassroomFile]:
+    async with active_session():
+        classroom_file = await ClassroomFile.create(
+            file_id=file.id,
+            classroom_id=classroom_id,
+        )
+
+    yield classroom_file
+
+    async with active_session():
+        await ClassroomFile.delete_by_kwargs(
+            file_id=classroom_file.file_id,
+            classroom_id=classroom_file.classroom_id,
+        )
 
 
 @pytest.fixture()

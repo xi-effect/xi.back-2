@@ -84,7 +84,7 @@ async def test_library_files_listing(
             },
         ),
         expected_json=[
-            repackage_json(File.LibraryResponseSchema, file)
+            repackage_json(File.TutorResponseSchema, file)
             for file in library_files
             if cursor is None or file.created_at < cursor.created_at
         ][:limit],
@@ -112,7 +112,7 @@ async def test_library_files_listing_filtered_by_kinds(
             },
         ),
         expected_json=[
-            repackage_json(File.LibraryResponseSchema, file)
+            repackage_json(File.TutorResponseSchema, file)
             for file in library_files
             if file.kind in kinds
         ],
@@ -140,7 +140,7 @@ async def test_library_files_listing_filtered_by_is_uploaded_by_owner(
             },
         ),
         expected_json=[
-            repackage_json(File.LibraryResponseSchema, file)
+            repackage_json(File.TutorResponseSchema, file)
             for file in library_files
             if is_uploaded_by_owner == (file.uploader_id == file.owner_id)
         ],

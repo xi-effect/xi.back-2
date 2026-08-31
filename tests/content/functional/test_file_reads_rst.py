@@ -57,8 +57,6 @@ async def test_file_retrieving(
     file_last_modified: str,
     file_read_content_token: str,
 ) -> None:
-    content_disposition = parametrized_file_input_data.content_disposition
-
     response = assert_response(
         authorized_client.get(
             f"/api/protected/content-service/files/{ydoc_file.file_id}/",
@@ -69,11 +67,13 @@ async def test_file_retrieving(
             "Last-Modified": file_last_modified,
             "Content-Type": parametrized_file_input_data.stored_content_type,
             "Content-Disposition": (
-                f'{content_disposition}; filename="{parametrized_file_input_data.stored_name}"'
+                f"{parametrized_file_input_data.content_disposition};"
+                f' filename="{parametrized_file_input_data.stored_name}"'
             ),
         },
         expected_json=None,
     )
+
     assert response.content == parametrized_file_input_data.processed_content
 
 
