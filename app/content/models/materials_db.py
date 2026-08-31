@@ -14,6 +14,8 @@ from sqlalchemy import (
     Select,
     String,
     and_,
+    insert,
+    literal,
     select,
     update,
 )
@@ -372,6 +374,23 @@ class MaterialTag(Base):
             await cls.create_batch(
                 {"material_id": material_id, "tag_id": tag_id} for tag_id in tag_ids
             )
+
+    @classmethod
+    async def duplicate_all_by_material_id(
+        cls,
+        source_material_id: UUID,
+        target_material_id: UUID,
+    ) -> None:
+        await db.session.execute(
+            insert(cls).from_select(
+                [cls.material_id, cls.tag_id],
+                (
+                    select(literal(target_material_id), cls.tag_id)
+                    .select_from(cls)
+                    .filter_by(material_id=source_material_id)
+                ),
+            )
+        )
 
 
 AnyNamedMaterial = PersonalMaterial | ClassroomMaterial
