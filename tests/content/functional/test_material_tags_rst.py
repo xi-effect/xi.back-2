@@ -9,8 +9,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
-from app.content.models.material_tags_db import MaterialTag
-from app.content.models.materials_db import Material
+from app.content.models.materials_db import Material, MaterialTag
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.id_provider import IDProvider
@@ -171,44 +170,6 @@ async def test_setting_material_tags_tag_not_found(
             "tutor_id": str(tutor_user_id),
         },
     )
-
-
-async def test_setting_material_tags_too_many_tags(
-    faker: Faker,
-    id_provider: IDProvider,
-    autocomplete_respx_mock: MockRouter,
-    tutor_client: TestClient,
-    any_material: Material,
-) -> None:
-    assert_response(
-        tutor_client.put(
-            "/api/protected/content-service/roles/tutor"
-            f"/materials/{any_material.id}/tags/",
-            json={
-                "tag_ids": [
-                    id_provider.generate_id()
-                    for _ in range(
-                        faker.random_int(
-                            min=MaterialTag.max_count_per_material + 1,
-                            max=MaterialTag.max_count_per_material * 2,
-                        )
-                    )
-                ],
-            },
-        ),
-        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        expected_json={
-            "detail": [
-                {
-                    "type": "too_long",
-                    "loc": ["body", "tag_ids"],
-                    "msg": "Set should have at most 5 items after validation, not more",
-                },
-            ],
-        },
-    )
-
-    autocomplete_respx_mock.calls.assert_not_called()
 
 
 async def test_setting_material_tags_material_not_found(

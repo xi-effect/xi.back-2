@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, Literal, Self, assert_never
+from typing import Annotated, ClassVar, Literal, Self, assert_never
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field
@@ -49,6 +49,7 @@ class MaterialCursorSchema(BaseModel):
 
 class BaseMaterialFiltersSchema(BaseModel):
     content_kind: YDocContentKind | None = None
+    tag_ids: Annotated[set[int] | None, Field(min_length=1, max_length=5)] = None
 
 
 class PersonalMaterialScopeSchema(BaseModel):
@@ -97,6 +98,7 @@ class ClassroomMaterialSearchRequestSchema(BaseMaterialSearchRequestSchema):
             limit=self.limit,
             filters=AnyMaterialFiltersSchema(
                 content_kind=self.filters.content_kind,
+                tag_ids=self.filters.tag_ids,
                 scope=ClassroomMaterialScopeSchema(classroom_ids=[classroom_id]),
             ),
         )
@@ -158,6 +160,17 @@ class Material(Base):
 
         if search_params.filters.content_kind is not None:
             stmt = stmt.filter(YDoc.content_kind == search_params.filters.content_kind)
+
+        if search_params.filters.tag_ids is not None:
+            for tag_id in search_params.filters.tag_ids:
+                stmt = stmt.filter(
+                    select(MaterialTag)
+                    .filter(
+                        MaterialTag.material_id == cls.id,
+                        MaterialTag.tag_id == tag_id,
+                    )
+                    .exists()
+                )
 
         if search_params.cursor is not None:
             stmt = stmt.filter(cls.updated_at < search_params.cursor.updated_at)
@@ -335,6 +348,30 @@ Index(
     unique=True,
     postgresql_where=Material.access_kind == MaterialAccessKind.CLASSROOM_NOTE,
 )
+
+
+class MaterialTag(Base):
+    __tablename__ = "material_tags"
+
+    max_count_per_material: ClassVar[int] = 5
+
+    material_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Material.id, ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tag_id: Mapped[int] = mapped_column(primary_key=True)
+
+    @classmethod
+    async def replace_all_by_material_id(
+        cls,
+        material_id: UUID,
+        tag_ids: set[int],
+    ) -> None:
+        await cls.delete_by_kwargs(material_id=material_id)
+        if len(tag_ids) != 0:
+            await cls.create_batch(
+                {"material_id": material_id, "tag_id": tag_id} for tag_id in tag_ids
+            )
 
 
 AnyNamedMaterial = PersonalMaterial | ClassroomMaterial
