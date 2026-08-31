@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+from fastapi import UploadFile
 from starlette import status
 from starlette.responses import Response
 
@@ -10,6 +11,7 @@ from app.content.dependencies.files_dep import (
     IfNoneMatchHeader,
     MyLibraryFileByID,
 )
+from app.content.dependencies.uploads_dep import UploadFileKind
 from app.content.models.files_db import File, FileSearchRequestSchema
 from app.content.services import files_svc
 
@@ -28,6 +30,25 @@ async def list_library_files(
     return await File.find_paginated_by_owner_id(
         owner_id=auth_data.user_id,
         search_params=data,
+    )
+
+
+@router.post(
+    path="/roles/tutor/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.LibraryResponseSchema,
+    summary="Upload a new library file for the current user",
+)
+async def upload_library_file(
+    auth_data: AuthorizationData,
+    upload: UploadFile,
+    file_kind: UploadFileKind,
+) -> File:
+    return await files_svc.create_file_from_upload(
+        upload=upload,
+        file_kind=file_kind,
+        owner_id=auth_data.user_id,
+        uploader_id=auth_data.user_id,
     )
 
 

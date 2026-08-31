@@ -13,7 +13,6 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider
-from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File, FileKind
@@ -22,7 +21,11 @@ from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.content import factories
-from tests.content.conftest import ContentTokenGeneratorProtocol, FileInputData
+from tests.content.conftest import (
+    CONTENT_TYPES_AND_FILE_EXTENSIONS,
+    ContentTokenGeneratorProtocol,
+    FileInputData,
+)
 
 pytestmark = pytest.mark.anyio
 
@@ -132,30 +135,6 @@ async def test_file_uploading(
             assert real_file_content == parametrized_file_input_data.processed_content
 
         await file.delete()
-
-
-CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
-    ("image/avif", "avif"),
-    ("image/bmp", "bmp"),
-    ("image/gif", "gif"),
-    ("image/x-icon", "ico"),
-    ("image/jpeg", "jpe"),
-    ("image/jpeg", "jpeg"),
-    ("image/jpeg", "jpg"),
-    ("image/jpx", "jpx"),
-    ("image/png", "png"),
-    ("image/tiff", "tif"),
-    ("image/tiff", "tiff"),
-    ("image/webp", "webp"),
-    ("application/pdf", "pdf"),
-    ("audio/aac", "aac"),
-    ("audio/mpeg", "mp3"),
-    ("audio/mp4", "m4a"),
-    ("audio/ogg", "ogg"),
-    ("audio/x-flac", "flac"),
-    ("audio/x-wav", "wav"),
-    (PRESENTATION_CONTENT_TYPE, "pptx"),
-]
 
 
 @freeze_time()

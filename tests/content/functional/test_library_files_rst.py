@@ -1,17 +1,132 @@
+import random
+from io import BytesIO
 from uuid import UUID
 
 import pytest
 from faker import Faker
+from freezegun import freeze_time
+from PIL import Image
+from pydantic_marshals.contains import assert_contains
+from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.utils import repackage_json
-from tests.content.conftest import FileInputData
+from tests.content.conftest import CONTENT_TYPES_AND_FILE_EXTENSIONS, FileInputData
 
 pytestmark = pytest.mark.anyio
+
+
+@freeze_time()
+async def test_library_file_uploading(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    parametrized_file_input_data: FileInputData,
+) -> None:
+    file_id: UUID = assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/files/",
+            files={
+                "upload": (
+                    parametrized_file_input_data.name,
+                    parametrized_file_input_data.input_content,
+                    parametrized_file_input_data.content_type,
+                )
+            },
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            "id": UUID,
+            "name": parametrized_file_input_data.stem,
+            "extension": parametrized_file_input_data.extension,
+            "kind": parametrized_file_input_data.kind,
+            "uploader_id": tutor_user_id,
+            "size_bytes": len(parametrized_file_input_data.processed_content),
+            "created_at": datetime_utc_now(),
+        },
+    ).json()["id"]
+
+    async with active_session():
+        file = await File.find_first_by_id(file_id)
+        assert file is not None
+
+        assert_contains(
+            {"owner_id": file.owner_id, "content_type": file.content_type},
+            {
+                "owner_id": tutor_user_id,
+                "content_type": parametrized_file_input_data.stored_content_type,
+            },
+        )
+
+        assert file.path.is_file()
+        with file.path.open("rb") as f:
+            real_file_content = f.read()
+
+        if parametrized_file_input_data.content_type.startswith("image/"):
+            image_result = Image.open(BytesIO(real_file_content))
+            try:
+                image_result.verify()
+            except Exception as e:
+                raise AssertionError("Invalid resulting image") from e
+
+            assert_contains(
+                {
+                    "image_format": image_result.format,
+                    "image_content": real_file_content,
+                },
+                {
+                    "image_format": "WEBP",
+                    "image_content": parametrized_file_input_data.processed_content,
+                },
+            )
+        else:
+            assert real_file_content == parametrized_file_input_data.processed_content
+
+        await file.delete()
+
+
+@pytest.mark.parametrize(
+    "file_input_data",
+    [
+        pytest.param(lf("webp_image_file_input_data"), id="webp"),
+        pytest.param(lf("png_image_file_input_data"), id="png"),
+        pytest.param(lf("pdf_document_file_input_data"), id="pdf"),
+        pytest.param(lf("wav_audio_file_input_data"), id="wav"),
+        pytest.param(lf("pptx_presentation_file_input_data"), id="pptx"),
+    ],
+)
+async def test_library_file_uploading_content_type_mismatch(
+    faker: Faker,
+    tutor_client: TestClient,
+    file_input_data: FileInputData,
+) -> None:
+    content_type, file_extension = random.choice(
+        [
+            (content_type, file_extension)
+            for content_type, file_extension in CONTENT_TYPES_AND_FILE_EXTENSIONS
+            if content_type != file_input_data.content_type
+        ]
+    )
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/files/",
+            files={
+                "upload": (
+                    faker.file_name(extension=file_extension),
+                    file_input_data.input_content,
+                    content_type,
+                )
+            },
+        ),
+        expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+        expected_json={"detail": "File content doesn't match the content-type header"},
+    )
 
 
 async def test_library_file_meta_retrieving(
