@@ -1,12 +1,9 @@
-from pathlib import Path
-
 from fastapi import Depends, UploadFile
 from starlette import status
 from starlette.responses import Response
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
-from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
 from app.content.dependencies.content_token_dep import (
     ensure_content_token_allows_reading_files,
     ensure_content_token_allows_uploading_files,
@@ -16,49 +13,13 @@ from app.content.dependencies.files_dep import (
     IfNoneMatchHeader,
     MyFileByID,
 )
-from app.content.dependencies.uploads_dep import (
-    UploadFileKind,
-    ValidatedAudioUpload,
-    ValidatedDocumentUpload,
-    ValidatedImageUpload,
-    ValidatedPresentationUpload,
-)
+from app.content.dependencies.uploads_dep import UploadFileKind
 from app.content.dependencies.ydocs_dep import ContentTokenYDoc
-from app.content.models.files_db import File, FileKind
+from app.content.models.files_db import File
 from app.content.models.ydoc_files_db import YDocFile
-from app.content.models.ydocs_db import YDoc
 from app.content.services import files_svc
 
 router = APIRouterExt(tags=["files"])
-
-
-# TODO (237) remove with the deprecated kind-specific endpoints below
-async def create_file_in_ydoc_from_upload(
-    ydoc: YDoc,
-    auth_data: AuthorizationData,
-    upload_content: bytes,
-    upload_filename: str | None,
-    file_kind: FileKind,
-    content_type: str,
-) -> File:
-    filename = Path(upload_filename or "upload")
-
-    file = await File.create_with_content(
-        content=upload_content,
-        owner_id=ydoc.owner_id,
-        uploader_id=auth_data.user_id,
-        name=filename.stem,
-        extension=filename.suffix.lstrip("."),
-        file_kind=file_kind,
-        content_type=content_type,
-    )
-
-    await YDocFile.create(
-        ydoc_id=ydoc.id,
-        file_id=file.id,
-    )
-
-    return file
 
 
 @router.post(
@@ -87,126 +48,6 @@ async def upload_file(
     )
 
     return file
-
-
-# TODO (237) remove after xi.tutor switches to POST /files/
-@router.post(
-    "/file-kinds/uncategorized/files/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=File.ResponseSchema,
-    summary="Use `POST /api/protected/content-service/files/` instead",
-    deprecated=True,
-    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
-)
-async def upload_uncategorized_file(
-    ydoc: ContentTokenYDoc,
-    auth_data: AuthorizationData,
-    upload: UploadFile,
-) -> File:
-    return await create_file_in_ydoc_from_upload(
-        ydoc=ydoc,
-        auth_data=auth_data,
-        upload_content=await upload.read(),
-        upload_filename=upload.filename,
-        file_kind=FileKind.UNCATEGORIZED,
-        content_type=upload.content_type or files_svc.DEFAULT_CONTENT_TYPE,
-    )
-
-
-# TODO (237) remove after xi.tutor switches to POST /files/
-@router.post(
-    "/file-kinds/image/files/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=File.ResponseSchema,
-    summary="Use `POST /api/protected/content-service/files/` instead",
-    deprecated=True,
-    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
-)
-async def upload_image_file(
-    ydoc: ContentTokenYDoc,
-    auth_data: AuthorizationData,
-    upload: ValidatedImageUpload,
-) -> File:
-    return await create_file_in_ydoc_from_upload(
-        ydoc=ydoc,
-        auth_data=auth_data,
-        upload_content=files_svc.convert_image_content_to_webp(await upload.read()),
-        upload_filename=upload.filename,
-        file_kind=FileKind.IMAGE,
-        content_type=files_svc.WEBP_CONTENT_TYPE,
-    )
-
-
-# TODO (237) remove after xi.tutor switches to POST /files/
-@router.post(
-    "/file-kinds/document/files/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=File.ResponseSchema,
-    summary="Use `POST /api/protected/content-service/files/` instead",
-    deprecated=True,
-    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
-)
-async def upload_document_file(
-    ydoc: ContentTokenYDoc,
-    auth_data: AuthorizationData,
-    upload: ValidatedDocumentUpload,
-) -> File:
-    return await create_file_in_ydoc_from_upload(
-        ydoc=ydoc,
-        auth_data=auth_data,
-        upload_content=await upload.read(),
-        upload_filename=upload.filename,
-        file_kind=FileKind.DOCUMENT,
-        content_type="application/pdf",
-    )
-
-
-# TODO (237) remove after xi.tutor switches to POST /files/
-@router.post(
-    "/file-kinds/audio/files/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=File.ResponseSchema,
-    summary="Use `POST /api/protected/content-service/files/` instead",
-    deprecated=True,
-    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
-)
-async def upload_audio_file(
-    ydoc: ContentTokenYDoc,
-    auth_data: AuthorizationData,
-    upload: ValidatedAudioUpload,
-) -> File:
-    return await create_file_in_ydoc_from_upload(
-        ydoc=ydoc,
-        auth_data=auth_data,
-        upload_content=await upload.read(),
-        upload_filename=upload.filename,
-        file_kind=FileKind.AUDIO,
-        content_type=upload.content_type or files_svc.DEFAULT_CONTENT_TYPE,
-    )
-
-
-# TODO (237) remove after xi.tutor switches to POST /files/
-@router.post(
-    "/file-kinds/presentation/files/",
-    status_code=status.HTTP_201_CREATED,
-    response_model=File.ResponseSchema,
-    summary="Use `POST /api/protected/content-service/files/` instead",
-    deprecated=True,
-    dependencies=[Depends(ensure_content_token_allows_uploading_files)],
-)
-async def upload_presentation_file(
-    ydoc: ContentTokenYDoc,
-    auth_data: AuthorizationData,
-    upload: ValidatedPresentationUpload,
-) -> File:
-    return await create_file_in_ydoc_from_upload(
-        ydoc=ydoc,
-        auth_data=auth_data,
-        upload_content=await upload.read(),
-        upload_filename=upload.filename,
-        file_kind=FileKind.PRESENTATION,
-        content_type=PRESENTATION_CONTENT_TYPE,
-    )
 
 
 @router.get(
