@@ -254,6 +254,14 @@ class FileInputData:
         return "image/webp" if self.kind == FileKind.IMAGE else self.content_type
 
     @property
+    def stored_extension(self) -> str:
+        return "webp" if self.kind == FileKind.IMAGE else self.extension
+
+    @property
+    def stored_name(self) -> str:
+        return f"{self.stem}.{self.stored_extension}"
+
+    @property
     def content_disposition(self) -> ContentDisposition:
         attachment_kinds = {FileKind.UNCATEGORIZED, FileKind.PRESENTATION}
         return "attachment" if self.kind in attachment_kinds else "inline"
@@ -400,7 +408,7 @@ async def file(
             owner_id=tutor_user_id,
             uploader_id=file_uploader_id,
             name=parametrized_file_input_data.stem,
-            extension=parametrized_file_input_data.extension,
+            extension=parametrized_file_input_data.stored_extension,
             kind=parametrized_file_input_data.kind,
             content_type=parametrized_file_input_data.stored_content_type,
             size_bytes=len(parametrized_file_input_data.processed_content),

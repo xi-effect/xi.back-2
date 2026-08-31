@@ -23,6 +23,7 @@ def convert_image_content_to_webp(image_content: bytes) -> bytes:
 DEFAULT_CONTENT_TYPE = "application/octet-stream"
 
 WEBP_CONTENT_TYPE = "image/webp"
+WEBP_EXTENSION = "webp"
 
 
 async def create_file_from_upload(
@@ -31,21 +32,23 @@ async def create_file_from_upload(
     owner_id: int,
     uploader_id: int,
 ) -> File:
+    filename = Path(upload.filename or "upload")
+
     if file_kind is FileKind.IMAGE:
         upload_content = convert_image_content_to_webp(await upload.read())
         content_type = WEBP_CONTENT_TYPE
+        extension = WEBP_EXTENSION
     else:
         upload_content = await upload.read()
         content_type = upload.content_type or DEFAULT_CONTENT_TYPE
-
-    filename = Path(upload.filename or "upload")
+        extension = filename.suffix.lstrip(".")
 
     return await File.create_with_content(
         content=upload_content,
         owner_id=owner_id,
         uploader_id=uploader_id,
         name=filename.stem,
-        extension=filename.suffix.lstrip("."),
+        extension=extension,
         file_kind=file_kind,
         content_type=content_type,
     )
