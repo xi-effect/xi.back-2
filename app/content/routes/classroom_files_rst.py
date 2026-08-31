@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from typing import Annotated
 
-from fastapi import Depends, Path
+from fastapi import Depends, Path, UploadFile
 from starlette import status
 from starlette.responses import Response
 
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.content.dependencies.classroom_files_dep import (
     ClassroomFileByIDs,
@@ -16,6 +17,7 @@ from app.content.dependencies.files_dep import (
     IfNoneMatchHeader,
     MyLibraryFileByID,
 )
+from app.content.dependencies.uploads_dep import UploadFileKind
 from app.content.models.files_db import ClassroomFile, File, FileSearchRequestSchema
 from app.content.services import files_svc
 
@@ -40,6 +42,28 @@ async def list_classroom_files(
         classroom_id=classroom_id,
         search_params=data,
     )
+
+
+@router.post(
+    path="/roles/tutor/classrooms/{classroom_id}/files/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=File.TutorResponseSchema,
+    summary="Upload a new file to a classroom by id",
+)
+async def upload_file_to_classroom(
+    auth_data: AuthorizationData,
+    classroom_id: Annotated[int, Path()],
+    upload: UploadFile,
+    file_kind: UploadFileKind,
+) -> File:
+    file = await files_svc.create_file_from_upload(
+        upload=upload,
+        file_kind=file_kind,
+        owner_id=auth_data.user_id,
+        uploader_id=auth_data.user_id,
+    )
+    await ClassroomFile.create(file_id=file.id, classroom_id=classroom_id)
+    return file
 
 
 @router.put(
