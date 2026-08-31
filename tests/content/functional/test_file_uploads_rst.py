@@ -81,7 +81,7 @@ async def test_file_uploading(
         expected_json={
             "id": UUID,
             "name": parametrized_file_input_data.stem,
-            "extension": parametrized_file_input_data.extension,
+            "extension": parametrized_file_input_data.stored_extension,
             "kind": parametrized_file_input_data.kind,
             "content_type": parametrized_file_input_data.stored_content_type,
             "size_bytes": len(parametrized_file_input_data.processed_content),
