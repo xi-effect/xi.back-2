@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Path
+from fastapi import Path, Query
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -17,6 +17,7 @@ from app.content.models.materials_db import (
     ClassroomMaterial,
     ClassroomMaterialSearchRequestSchema,
     Material,
+    MaterialTag,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
@@ -78,6 +79,7 @@ async def duplicate_material_to_classroom(
     auth_data: AuthorizationData,
     classroom_id: Annotated[int, Path()],
     input_data: DuplicateMaterialInputSchema,
+    should_copy_tags: Annotated[bool, Query()] = True,
 ) -> ClassroomMaterial:
     source_material = await Material.find_first_by_id(input_data.source_id)
     if source_material is None:
@@ -93,11 +95,17 @@ async def duplicate_material_to_classroom(
         source_ydoc_id=source_material.main_ydoc_id,
         target_ydoc_id=main_ydoc.id,
     )
-    return await ClassroomMaterial.create(
+    classroom_material = await ClassroomMaterial.create(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"source_id"}),
         classroom_id=classroom_id,
     )
+    if should_copy_tags:
+        await MaterialTag.duplicate_all_by_material_id(
+            source_material_id=source_material.id,
+            target_material_id=classroom_material.id,
+        )
+    return classroom_material
 
 
 @router.get(
