@@ -105,10 +105,10 @@ async def test_tag_deleting(
 
 
 @pytest.mark.parametrize(
-    ("method", "to_tag_id"),
+    ("method", "to_tag_id", "body_factory"),
     [
-        pytest.param("POST", False, id="create"),
-        pytest.param("PATCH", True, id="update"),
+        pytest.param("POST", False, factories.TagInputFactory, id="create"),
+        pytest.param("PATCH", True, factories.TagPatchFactory, id="update"),
     ],
 )
 @pytest.mark.parametrize(
@@ -124,6 +124,7 @@ async def test_tag_already_existing(
     tutor_tag: AnyTag,
     method: str,
     to_tag_id: bool,
+    body_factory: type[BaseModelFactory[Any]],
     existing_tag: AnyTag,
 ) -> None:
     postfix = f"{tutor_tag.id}/" if to_tag_id else ""
@@ -135,7 +136,7 @@ async def test_tag_already_existing(
                 "/api/protected/autocomplete-service/roles/tutor"
                 f"/tag-kinds/{parametrized_tag_kind}/tags/{postfix}"
             ),
-            json={"name": existing_tag.name},
+            json=body_factory.build_json(name=existing_tag.name),
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Tag already exists"},
