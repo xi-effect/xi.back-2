@@ -3,7 +3,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-from pydantic_marshals.contains import assert_contains
+from pydantic_marshals.contains import UnorderedLiteralCollection, assert_contains
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -40,6 +40,7 @@ async def test_personal_material_creation(
             "id": UUID,
             "access_kind": "personal",
             "updated_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -75,13 +76,17 @@ async def test_personal_material_retrieving(
     tutor_client: TestClient,
     personal_material: PersonalMaterial,
     personal_material_data: AnyJSON,
+    personal_material_tag_ids: list[int],
 ) -> None:
     assert_response(
         tutor_client.get(
             "/api/protected/content-service/roles/tutor"
             f"/personal-materials/{personal_material.id}/"
         ),
-        expected_json=personal_material_data,
+        expected_json={
+            **personal_material_data,
+            "tag_ids": UnorderedLiteralCollection(personal_material_tag_ids),
+        },
     )
 
 
@@ -119,6 +124,7 @@ async def test_personal_material_updating(
     tutor_client: TestClient,
     personal_material: PersonalMaterial,
     personal_material_data: AnyJSON,
+    personal_material_tag_ids: list[int],
 ) -> None:
     patch_data = factories.PersonalMaterialPatchFactory.build_json()
 
@@ -128,7 +134,11 @@ async def test_personal_material_updating(
             f"/personal-materials/{personal_material.id}/",
             json=patch_data,
         ),
-        expected_json={**personal_material_data, **patch_data},
+        expected_json={
+            **personal_material_data,
+            **patch_data,
+            "tag_ids": UnorderedLiteralCollection(personal_material_tag_ids),
+        },
     )
 
 

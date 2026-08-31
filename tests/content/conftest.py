@@ -30,11 +30,13 @@ from app.content.models.materials_db import (
     ClassroomMaterial,
     ClassroomNoteMaterial,
     Material,
+    MaterialTag,
     PersonalMaterial,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
+from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON, PytestRequest
 from tests.content import factories
 from tests.factories import ProxyAuthDataFactory
@@ -505,6 +507,13 @@ async def classroom_file(
 
 
 @pytest.fixture()
+def material_tag_ids(id_provider: IDProvider) -> list[int]:
+    return [
+        id_provider.generate_id() for _ in range(MaterialTag.max_count_per_material)
+    ]
+
+
+@pytest.fixture()
 async def personal_material(
     faker: Faker,
     active_session: ActiveSession,
@@ -523,6 +532,7 @@ async def personal_material(
         personal_material = await PersonalMaterial.create(
             main_ydoc=main_ydoc,
             tutor_id=tutor_user_id,
+            material_tags=[],
             **input_data,
         )
 
@@ -551,6 +561,22 @@ async def deleted_personal_material_id(
 
 
 @pytest.fixture()
+async def personal_material_tag_ids(
+    active_session: ActiveSession,
+    personal_material: PersonalMaterial,
+    material_tag_ids: list[int],
+) -> AsyncIterator[list[int]]:
+    async with active_session():
+        for tag_id in material_tag_ids:
+            await MaterialTag.create(material_id=personal_material.id, tag_id=tag_id)
+
+    yield material_tag_ids
+
+    async with active_session():
+        await MaterialTag.delete_by_kwargs(material_id=personal_material.id)
+
+
+@pytest.fixture()
 async def classroom_material(
     faker: Faker,
     active_session: ActiveSession,
@@ -570,6 +596,7 @@ async def classroom_material(
         classroom_material = await ClassroomMaterial.create(
             main_ydoc=main_ydoc,
             classroom_id=classroom_id,
+            material_tags=[],
             **input_data,
         )
 
@@ -597,6 +624,22 @@ async def deleted_classroom_material_id(
     async with active_session():
         await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
     return classroom_material.id
+
+
+@pytest.fixture()
+async def classroom_material_tag_ids(
+    active_session: ActiveSession,
+    classroom_material: ClassroomMaterial,
+    material_tag_ids: list[int],
+) -> AsyncIterator[list[int]]:
+    async with active_session():
+        for tag_id in material_tag_ids:
+            await MaterialTag.create(material_id=classroom_material.id, tag_id=tag_id)
+
+    yield material_tag_ids
+
+    async with active_session():
+        await MaterialTag.delete_by_kwargs(material_id=classroom_material.id)
 
 
 @pytest.fixture()

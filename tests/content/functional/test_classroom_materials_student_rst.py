@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
+from pydantic_marshals.contains import UnorderedLiteralCollection
 from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -22,6 +23,7 @@ async def test_classroom_material_retrieving(
     student_client: TestClient,
     classroom_material: ClassroomMaterial,
     classroom_material_data: AnyJSON,
+    classroom_material_tag_ids: list[int],
 ) -> None:
     student_access_mode = random.choice(
         [MaterialAccessMode.READ_WRITE, MaterialAccessMode.READ_ONLY]
@@ -40,6 +42,7 @@ async def test_classroom_material_retrieving(
         expected_json={
             **classroom_material_data,
             "student_access_mode": student_access_mode,
+            "tag_ids": UnorderedLiteralCollection(classroom_material_tag_ids),
         },
     )
 
