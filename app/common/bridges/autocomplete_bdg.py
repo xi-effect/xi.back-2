@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
@@ -16,13 +18,19 @@ class AutocompleteBridge(BaseBridge):
         )
 
     async def retrieve_multiple_tags(
-        self, kind: TagKind, tag_ids: list[int]
+        self,
+        kind: TagKind,
+        tag_ids: list[int],
+        tutor_id: int | None = None,
     ) -> dict[int, TagSchema]:
+        params: dict[str, Any] = {"tag_ids": tag_ids}
+        if tutor_id is not None:
+            params["tutor_id"] = tutor_id
         return (
             await ResponsePipelineBuilder.initialize_from_request(
                 self.client.get(
                     f"/tag-kinds/{kind}/tags/",
-                    params={"tag_ids": tag_ids},
+                    params=params,
                 )
             )
             .validate_status_code()

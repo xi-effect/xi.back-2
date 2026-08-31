@@ -18,7 +18,9 @@ router = APIRouterExt(tags=["tags internal"])
 async def retrieve_multiple_tags(
     tag_class: TagClassByKind,
     tag_ids: Annotated[list[int], Query(min_length=1, max_length=100)],
+    tutor_id: Annotated[int | None, Query()] = None,
 ) -> dict[str, AnyTag]:
     return {
-        str(tag.id): tag for tag in await tag_class.find_all_by_ids(tag_ids=tag_ids)
+        str(tag.id): tag
+        for tag in await tag_class.find_all_by_ids(tag_ids=tag_ids, tutor_id=tutor_id)
     }
