@@ -9,6 +9,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.common.utils.mimetypes import add_missing_mime_to_mimetypes
 from app.content.routes import (
+    classroom_files_rst,
     classroom_materials_student_rst,
     classroom_materials_tutor_rst,
     classroom_notes_tutor_rst,
@@ -29,6 +30,7 @@ authorized_router = APIRouterExt(
 authorized_router.include_router(files_rst.router)
 authorized_router.include_router(ydoc_files_rst.router)
 authorized_router.include_router(library_files_rst.router)
+authorized_router.include_router(classroom_files_rst.router)
 authorized_router.include_router(materials_tutor_rst.router)
 authorized_router.include_router(personal_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_tutor_rst.router)

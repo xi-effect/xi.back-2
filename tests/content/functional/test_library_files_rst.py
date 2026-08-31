@@ -12,9 +12,10 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
-from app.content.models.files_db import File
+from app.content.models.files_db import ClassroomFile, File
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.id_provider import IDProvider
 from tests.common.utils import repackage_json
 from tests.content.conftest import CONTENT_TYPES_AND_FILE_EXTENSIONS, FileInputData
 
@@ -137,7 +138,7 @@ async def test_library_file_meta_retrieving(
         tutor_client.get(
             f"/api/protected/content-service/roles/tutor/files/{file.id}/meta/"
         ),
-        expected_json=repackage_json(File.LibraryResponseSchema, file),
+        expected_json=repackage_json(File.TutorResponseSchema, file),
     )
 
 
@@ -148,8 +149,6 @@ async def test_library_file_retrieving(
     file_etag: str,
     file_last_modified: str,
 ) -> None:
-    content_disposition = parametrized_file_input_data.content_disposition
-
     response = assert_response(
         tutor_client.get(
             f"/api/protected/content-service/roles/tutor/files/{file.id}/"
@@ -159,11 +158,13 @@ async def test_library_file_retrieving(
             "Last-Modified": file_last_modified,
             "Content-Type": parametrized_file_input_data.stored_content_type,
             "Content-Disposition": (
-                f'{content_disposition}; filename="{parametrized_file_input_data.stored_name}"'
+                f"{parametrized_file_input_data.content_disposition};"
+                f' filename="{parametrized_file_input_data.stored_name}"'
             ),
         },
         expected_json=None,
     )
+
     assert response.content == parametrized_file_input_data.processed_content
 
 
@@ -225,6 +226,29 @@ async def test_library_file_retrieving_invalid_if_modified_since(
     )
 
 
+async def test_library_file_classroom_ids_listing(
+    faker: Faker,
+    active_session: ActiveSession,
+    id_provider: IDProvider,
+    tutor_client: TestClient,
+    file: File,
+) -> None:
+    classroom_ids = [id_provider.generate_id() for _ in range(faker.random_int(2, 5))]
+    async with active_session():
+        for classroom_id in classroom_ids:
+            await ClassroomFile.create(
+                file_id=file.id,
+                classroom_id=classroom_id,
+            )
+
+    assert_response(
+        tutor_client.get(
+            f"/api/protected/content-service/roles/tutor/files/{file.id}/classroom-ids/"
+        ),
+        expected_json=classroom_ids,
+    )
+
+
 async def test_library_file_deleting(
     active_session: ActiveSession,
     tutor_client: TestClient,
@@ -247,6 +271,7 @@ library_file_request_parametrization = pytest.mark.parametrize(
     [
         pytest.param("GET", "/", id="retrieving"),
         pytest.param("GET", "/meta/", id="retrieving_meta"),
+        pytest.param("GET", "/classroom-ids/", id="listing_classroom_ids"),
         pytest.param("DELETE", "/", id="deleting"),
     ],
 )

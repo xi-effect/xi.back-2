@@ -8,7 +8,8 @@ from uuid import UUID, uuid4
 import aiofiles
 from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, Index, select
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Select, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
@@ -83,7 +84,8 @@ class File(Base):
         ]
     )
     ResponseSchema = BaseResponseSchema.extend(columns=[content_type])
-    LibraryResponseSchema = BaseResponseSchema.extend(columns=[uploader_id])
+    TutorResponseSchema = BaseResponseSchema.extend(columns=[uploader_id])
+    StudentResponseSchema = BaseResponseSchema.extend()
 
     @property
     def path(self) -> Path:
@@ -128,12 +130,11 @@ class File(Base):
         await super().delete()
 
     @classmethod
-    async def find_paginated_by_owner_id(
+    def select_by_search_params(
         cls,
-        owner_id: int,
         search_params: FileSearchRequestSchema,
-    ) -> Sequence[Self]:
-        stmt = select(cls).filter_by(owner_id=owner_id)
+    ) -> Select[tuple[Self]]:
+        stmt = select(cls)
 
         if search_params.filters.kinds is not None:
             stmt = stmt.filter(cls.kind.in_(search_params.filters.kinds))
@@ -147,6 +148,64 @@ class File(Base):
         if search_params.cursor is not None:
             stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
 
+        return stmt.order_by(cls.created_at.desc()).limit(search_params.limit)
+
+    @classmethod
+    async def find_paginated_by_owner_id(
+        cls,
+        owner_id: int,
+        search_params: FileSearchRequestSchema,
+    ) -> Sequence[Self]:
         return await db.get_all(
-            stmt.order_by(cls.created_at.desc()).limit(search_params.limit)
+            cls.select_by_search_params(search_params).filter_by(owner_id=owner_id)
+        )
+
+    @classmethod
+    async def find_paginated_by_classroom_id(
+        cls,
+        classroom_id: int,
+        search_params: FileSearchRequestSchema,
+    ) -> Sequence[Self]:
+        return await db.get_all(
+            cls.select_by_search_params(search_params)
+            .join(ClassroomFile)
+            .filter(ClassroomFile.classroom_id == classroom_id)
+        )
+
+
+class ClassroomFile(Base):
+    __tablename__ = "classroom_files"
+
+    file_id: Mapped[UUID] = mapped_column(
+        ForeignKey(File.id, ondelete="CASCADE"),
+        primary_key=True,
+    )
+    classroom_id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    @classmethod
+    async def find_first_by_ids(
+        cls,
+        file_id: UUID,
+        classroom_id: int,
+    ) -> Self | None:
+        return await cls.find_first_by_kwargs(
+            file_id=file_id,
+            classroom_id=classroom_id,
+        )
+
+    @classmethod
+    async def upsert_by_ids(cls, file_id: UUID, classroom_id: int) -> None:
+        await db.session.execute(
+            insert(cls)
+            .values(file_id=file_id, classroom_id=classroom_id)
+            .on_conflict_do_nothing()
+        )
+
+    @classmethod
+    async def find_all_classroom_ids_by_file_id(cls, file_id: UUID) -> Sequence[int]:
+        return await db.get_all_with_assumed_limit(
+            select(cls.classroom_id)
+            .filter_by(file_id=file_id)
+            .order_by(cls.classroom_id),
+            limit=100,
         )

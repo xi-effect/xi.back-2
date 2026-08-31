@@ -12,7 +12,7 @@ from app.content.dependencies.files_dep import (
     MyLibraryFileByID,
 )
 from app.content.dependencies.uploads_dep import UploadFileKind
-from app.content.models.files_db import File, FileSearchRequestSchema
+from app.content.models.files_db import ClassroomFile, File, FileSearchRequestSchema
 from app.content.services import files_svc
 
 router = APIRouterExt(tags=["library files"])
@@ -20,7 +20,7 @@ router = APIRouterExt(tags=["library files"])
 
 @router.post(
     path="/roles/tutor/files/searches/",
-    response_model=list[File.LibraryResponseSchema],
+    response_model=list[File.TutorResponseSchema],
     summary="List paginated library files for the current user",
 )
 async def list_library_files(
@@ -36,7 +36,7 @@ async def list_library_files(
 @router.post(
     path="/roles/tutor/files/",
     status_code=status.HTTP_201_CREATED,
-    response_model=File.LibraryResponseSchema,
+    response_model=File.TutorResponseSchema,
     summary="Upload a new library file for the current user",
 )
 async def upload_library_file(
@@ -54,7 +54,7 @@ async def upload_library_file(
 
 @router.get(
     path="/roles/tutor/files/{file_id}/meta/",
-    response_model=File.LibraryResponseSchema,
+    response_model=File.TutorResponseSchema,
     summary="Retrieve meta of a library file by id",
 )
 async def retrieve_library_file_meta(file: MyLibraryFileByID) -> File:
@@ -63,7 +63,7 @@ async def retrieve_library_file_meta(file: MyLibraryFileByID) -> File:
 
 @router.get(
     path="/roles/tutor/files/{file_id}/",
-    response_model=File.LibraryResponseSchema,
+    response_model=File.TutorResponseSchema,
     summary="Retrieve a library file by id",
 )
 async def retrieve_library_file(
@@ -76,6 +76,14 @@ async def retrieve_library_file(
         if_none_match=if_none_match,
         if_modified_since=if_modified_since,
     )
+
+
+@router.get(
+    path="/roles/tutor/files/{file_id}/classroom-ids/",
+    summary="List all classroom ids for a library file by id",
+)
+async def list_library_file_classroom_ids(file: MyLibraryFileByID) -> Sequence[int]:
+    return await ClassroomFile.find_all_classroom_ids_by_file_id(file_id=file.id)
 
 
 @router.delete(
