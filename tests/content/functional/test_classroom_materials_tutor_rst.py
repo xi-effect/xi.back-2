@@ -49,6 +49,7 @@ async def test_classroom_material_creation(
             "access_kind": "classroom",
             "classroom_id": classroom_id,
             "updated_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -159,6 +160,11 @@ async def test_material_to_classroom_duplication(
             "classroom_id": target_classroom_id,
             "content_kind": any_material.content_kind,
             "updated_at": datetime_utc_now(),
+            "tag_ids": (
+                UnorderedLiteralCollection(any_material_tag_ids)
+                if should_copy_tags
+                else []
+            ),
         },
     ).json()["id"]
 
@@ -192,22 +198,6 @@ async def test_material_to_classroom_duplication(
             )
             is not None
         )
-
-        if should_copy_tags:
-            duplicated_material_tags = await MaterialTag.find_all_by_kwargs(
-                material_id=classroom_material.id
-            )
-            assert_contains(
-                [material_tag.tag_id for material_tag in duplicated_material_tags],
-                UnorderedLiteralCollection(any_material_tag_ids),
-            )
-        else:
-            assert (
-                await MaterialTag.find_first_by_kwargs(
-                    material_id=classroom_material.id
-                )
-                is None
-            )
 
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
@@ -255,6 +245,7 @@ async def test_classroom_material_retrieving(
     tutor_client: TestClient,
     classroom_material: ClassroomMaterial,
     classroom_material_data: AnyJSON,
+    classroom_material_tag_ids: list[int],
 ) -> None:
     assert_response(
         tutor_client.get(
@@ -262,7 +253,10 @@ async def test_classroom_material_retrieving(
             f"/classrooms/{classroom_material.classroom_id}"
             f"/materials/{classroom_material.id}/"
         ),
-        expected_json=classroom_material_data,
+        expected_json={
+            **classroom_material_data,
+            "tag_ids": UnorderedLiteralCollection(classroom_material_tag_ids),
+        },
     )
 
 
@@ -301,6 +295,7 @@ async def test_classroom_material_updating(
     tutor_client: TestClient,
     classroom_material: ClassroomMaterial,
     classroom_material_data: AnyJSON,
+    classroom_material_tag_ids: list[int],
 ) -> None:
     patch_data = factories.ClassroomMaterialPatchFactory.build_json()
 
@@ -311,7 +306,11 @@ async def test_classroom_material_updating(
             f"/materials/{classroom_material.id}/",
             json=patch_data,
         ),
-        expected_json={**classroom_material_data, **patch_data},
+        expected_json={
+            **classroom_material_data,
+            **patch_data,
+            "tag_ids": UnorderedLiteralCollection(classroom_material_tag_ids),
+        },
     )
 
 

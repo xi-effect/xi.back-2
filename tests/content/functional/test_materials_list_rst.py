@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator, Iterator, Sequence
 from typing import assert_never
 
 import pytest
+from pydantic_marshals.contains import UnorderedLiteralCollection
 from starlette.testclient import TestClient
 
 from app.content.models.materials_db import (
@@ -18,6 +19,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON
+from tests.common.utils import repackage_json
 from tests.content import factories
 
 pytestmark = pytest.mark.anyio
@@ -63,6 +65,7 @@ async def materials(
                     await PersonalMaterial.create(
                         main_ydoc=main_ydoc,
                         tutor_id=tutor_user_id,
+                        material_tags=[],
                         **input_data,
                     )
                 )
@@ -78,16 +81,19 @@ async def materials(
                     await ClassroomMaterial.create(
                         main_ydoc=main_ydoc,
                         classroom_id=classroom_ids[classroom_index - 1],
+                        material_tags=[],
                         **input_data,
                     )
                 )
 
     materials.sort(key=lambda material: material.updated_at, reverse=True)
 
-    async with active_session():
+    async with active_session() as session:
         for i, material in enumerate(materials):
-            for tag_id in tag_ids[: i % (TAG_COUNT + 1)]:
-                await MaterialTag.create(material_id=material.id, tag_id=tag_id)
+            session.add(material)
+            material.material_tags = [
+                MaterialTag(tag_id=tag_id) for tag_id in tag_ids[: i % (TAG_COUNT + 1)]
+            ]
 
     yield materials
 
@@ -102,15 +108,19 @@ def convert_materials(materials: Sequence[AnyNamedMaterial]) -> Iterator[AnyJSON
     for material in materials:
         match material:
             case PersonalMaterial():
-                yield PersonalMaterial.ResponseSchema.model_validate(
-                    material, from_attributes=True
-                ).model_dump(mode="json")
+                material_data = repackage_json(
+                    PersonalMaterial.ResponseSchema, material
+                )
             case ClassroomMaterial():
-                yield ClassroomMaterial.ResponseSchema.model_validate(
-                    material, from_attributes=True
-                ).model_dump(mode="json")
+                material_data = repackage_json(
+                    ClassroomMaterial.ResponseSchema, material
+                )
             case _:
                 assert_never(material)
+        yield {
+            **material_data,
+            "tag_ids": UnorderedLiteralCollection(material.tag_ids),
+        }
 
 
 @pytest.mark.parametrize(
@@ -311,8 +321,8 @@ async def test_materials_listing_filtered_by_tag_ids(
             convert_materials(
                 [
                     material
-                    for i, material in enumerate(materials)
-                    if filter_tag_ids.issubset(tag_ids[: i % (TAG_COUNT + 1)])
+                    for material in materials
+                    if filter_tag_ids.issubset(material.tag_ids)
                 ]
             )
         ),

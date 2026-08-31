@@ -1,7 +1,8 @@
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterator, Sequence
 from typing import Literal
 
 import pytest
+from pydantic_marshals.contains import UnorderedLiteralCollection
 from starlette.testclient import TestClient
 
 from app.content.models.materials_db import (
@@ -13,6 +14,8 @@ from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.id_provider import IDProvider
+from tests.common.types import AnyJSON
+from tests.common.utils import repackage_json
 from tests.content import factories
 
 pytestmark = pytest.mark.anyio
@@ -53,6 +56,7 @@ async def classroom_materials(
                 await ClassroomMaterial.create(
                     main_ydoc=main_ydoc,
                     classroom_id=classroom_id,
+                    material_tags=[],
                     **input_data,
                 )
             )
@@ -62,13 +66,12 @@ async def classroom_materials(
         reverse=True,
     )
 
-    async with active_session():
+    async with active_session() as session:
         for i, classroom_material in enumerate(classroom_materials):
-            for tag_id in tag_ids[: i % (TAG_COUNT + 1)]:
-                await MaterialTag.create(
-                    material_id=classroom_material.id,
-                    tag_id=tag_id,
-                )
+            session.add(classroom_material)
+            classroom_material.material_tags = [
+                MaterialTag(tag_id=tag_id) for tag_id in tag_ids[: i % (TAG_COUNT + 1)]
+            ]
 
     yield classroom_materials
 
@@ -77,6 +80,18 @@ async def classroom_materials(
             await MaterialTag.delete_by_kwargs(material_id=classroom_material.id)
             await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
             await YDoc.delete_by_kwargs(id=classroom_material.main_ydoc_id)
+
+
+def convert_classroom_materials(
+    classroom_materials: Sequence[ClassroomMaterial],
+) -> Iterator[AnyJSON]:
+    yield from (
+        {
+            **repackage_json(ClassroomMaterial.ResponseSchema, classroom_material),
+            "tag_ids": UnorderedLiteralCollection(classroom_material.tag_ids),
+        }
+        for classroom_material in classroom_materials
+    )
 
 
 classroom_material_list_role_parametrization = pytest.mark.parametrize(
@@ -142,14 +157,19 @@ async def test_classroom_materials_listing(
                 "filters": {"content_kind": content_kind},
             },
         ),
-        expected_json=[
-            ClassroomMaterial.ResponseSchema.model_validate(
-                classroom_material, from_attributes=True
-            ).model_dump(mode="json")
-            for classroom_material in filtered_classroom_materials
-            if classroom_material.content_kind == content_kind
-            and (cursor is None or classroom_material.updated_at < cursor.updated_at)
-        ][:limit],
+        expected_json=list(
+            convert_classroom_materials(
+                [
+                    classroom_material
+                    for classroom_material in filtered_classroom_materials
+                    if classroom_material.content_kind == content_kind
+                    and (
+                        cursor is None
+                        or classroom_material.updated_at < cursor.updated_at
+                    )
+                ][:limit]
+            )
+        ),
     )
 
 
@@ -195,13 +215,18 @@ async def test_classroom_materials_listing_any_kind(
                 "filters": {},
             },
         ),
-        expected_json=[
-            ClassroomMaterial.ResponseSchema.model_validate(
-                classroom_material, from_attributes=True
-            ).model_dump(mode="json")
-            for classroom_material in filtered_classroom_materials
-            if (cursor is None or classroom_material.updated_at < cursor.updated_at)
-        ][:limit],
+        expected_json=list(
+            convert_classroom_materials(
+                [
+                    classroom_material
+                    for classroom_material in filtered_classroom_materials
+                    if (
+                        cursor is None
+                        or classroom_material.updated_at < cursor.updated_at
+                    )
+                ][:limit]
+            )
+        ),
     )
 
 
@@ -233,16 +258,21 @@ async def test_classroom_materials_listing_filtered_by_tag_ids(
                 "filters": {"tag_ids": list(filter_tag_ids)},
             },
         ),
-        expected_json=[
-            ClassroomMaterial.ResponseSchema.model_validate(
-                classroom_material, from_attributes=True
-            ).model_dump(mode="json")
-            for i, classroom_material in enumerate(classroom_materials)
-            if (
-                is_tutor
-                or classroom_material.student_access_mode
-                in {MaterialAccessMode.READ_ONLY, MaterialAccessMode.READ_WRITE}
+        expected_json=list(
+            convert_classroom_materials(
+                [
+                    classroom_material
+                    for classroom_material in classroom_materials
+                    if (
+                        is_tutor
+                        or classroom_material.student_access_mode
+                        in {
+                            MaterialAccessMode.READ_ONLY,
+                            MaterialAccessMode.READ_WRITE,
+                        }
+                    )
+                    and filter_tag_ids.issubset(classroom_material.tag_ids)
+                ]
             )
-            and filter_tag_ids.issubset(tag_ids[: i % (TAG_COUNT + 1)])
-        ],
+        ),
     )

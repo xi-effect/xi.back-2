@@ -14,8 +14,6 @@ from sqlalchemy import (
     Select,
     String,
     and_,
-    insert,
-    literal,
     select,
     update,
 )
@@ -117,6 +115,10 @@ class Material(Base):
     main_ydoc_id: Mapped[UUID] = mapped_column(ForeignKey(YDoc.id), unique=True)
     main_ydoc: Mapped[YDoc] = relationship(lazy="joined")
 
+    material_tags: Mapped[list["MaterialTag"]] = relationship(
+        lazy="selectin", passive_deletes="all"
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
     )
@@ -124,6 +126,10 @@ class Material(Base):
     @property
     def content_kind(self) -> YDocContentKind:
         return self.main_ydoc.content_kind
+
+    @property
+    def tag_ids(self) -> list[int]:
+        return [material_tag.tag_id for material_tag in self.material_tags]
 
     __mapper_args__ = {
         "polymorphic_on": access_kind,
@@ -134,7 +140,8 @@ class Material(Base):
 
     ContentKindSchema = MappedModel.create(properties=[content_kind])
     BaseResponseSchema = ContentKindSchema.extend(
-        columns=[id, (updated_at, AwareDatetime)]
+        columns=[id, (updated_at, AwareDatetime)],
+        properties=[tag_ids],
     )
 
     @classmethod
@@ -374,23 +381,6 @@ class MaterialTag(Base):
             await cls.create_batch(
                 {"material_id": material_id, "tag_id": tag_id} for tag_id in tag_ids
             )
-
-    @classmethod
-    async def duplicate_all_by_material_id(
-        cls,
-        source_material_id: UUID,
-        target_material_id: UUID,
-    ) -> None:
-        await db.session.execute(
-            insert(cls).from_select(
-                [cls.material_id, cls.tag_id],
-                (
-                    select(literal(target_material_id), cls.tag_id)
-                    .select_from(cls)
-                    .filter_by(material_id=source_material_id)
-                ),
-            )
-        )
 
 
 AnyNamedMaterial = PersonalMaterial | ClassroomMaterial

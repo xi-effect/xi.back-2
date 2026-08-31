@@ -29,6 +29,7 @@ async def create_personal_material(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"content_kind"}),
         tutor_id=auth_data.user_id,
+        material_tags=[],
     )
 
 

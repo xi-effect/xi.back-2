@@ -61,6 +61,7 @@ async def create_classroom_material(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"content_kind"}),
         classroom_id=classroom_id,
+        material_tags=[],
     )
 
 
@@ -95,17 +96,19 @@ async def duplicate_material_to_classroom(
         source_ydoc_id=source_material.main_ydoc_id,
         target_ydoc_id=main_ydoc.id,
     )
-    classroom_material = await ClassroomMaterial.create(
+    return await ClassroomMaterial.create(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"source_id"}),
         classroom_id=classroom_id,
+        material_tags=(
+            [
+                MaterialTag(tag_id=material_tag.tag_id)
+                for material_tag in source_material.material_tags
+            ]
+            if should_copy_tags
+            else []
+        ),
     )
-    if should_copy_tags:
-        await MaterialTag.duplicate_all_by_material_id(
-            source_material_id=source_material.id,
-            target_material_id=classroom_material.id,
-        )
-    return classroom_material
 
 
 @router.get(
