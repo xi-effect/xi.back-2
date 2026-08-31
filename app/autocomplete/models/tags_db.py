@@ -7,7 +7,7 @@ from sqlalchemy import Enum, Index, String, or_, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
-from app.common.schemas.autocomplete_sch import TagKind
+from app.common.schemas.autocomplete_sch import TagColor, TagKind
 from app.common.sqlalchemy_ext import db
 
 
@@ -19,6 +19,7 @@ class Tag(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[TagKind] = mapped_column(Enum(TagKind))
     name: Mapped[str] = mapped_column(String(100))
+    color: Mapped[TagColor] = mapped_column(Enum(TagColor))
     tutor_id: Mapped[int | None] = mapped_column(default=None)
 
     __mapper_args__ = {
@@ -28,7 +29,7 @@ class Tag(Base):
 
     NameType = Annotated[str, Field(min_length=1, max_length=100)]
 
-    InputSchema = MappedModel.create(columns=[(name, NameType)])
+    InputSchema = MappedModel.create(columns=[(name, NameType), color])
     PatchSchema = InputSchema.as_patch()
     InputMUBSchema = InputSchema.extend(columns=[tutor_id])
     PatchMUBSchema = InputMUBSchema.as_patch()

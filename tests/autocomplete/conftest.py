@@ -223,13 +223,17 @@ async def tags(
         for i in range(TAG_LIST_SIZE):
             tags.append(
                 await tag_class.create(
-                    name=generate_tag_name(
-                        faker=faker,
-                        prefix=common_tag_name_prefix,
-                        suffix=(
-                            even_tag_name_suffix if i % 2 == 0 else odd_tag_name_suffix
+                    **factories.TagInputFactory.build_python(
+                        name=generate_tag_name(
+                            faker=faker,
+                            prefix=common_tag_name_prefix,
+                            suffix=(
+                                even_tag_name_suffix
+                                if i % 2 == 0
+                                else odd_tag_name_suffix
+                            ),
+                            unique_letter=unique_letters[i],
                         ),
-                        unique_letter=unique_letters[i],
                     ),
                     tutor_id=None if i % 2 == 0 else tutor_user_id,
                 )
