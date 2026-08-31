@@ -10,6 +10,7 @@ from app.content.models.materials_db import (
     ClassroomMaterial,
     Material,
     MaterialAccessKind,
+    MaterialTag,
     PersonalMaterial,
 )
 from app.content.models.ydocs_db import YDoc, YDocContentKind
@@ -23,7 +24,8 @@ pytestmark = pytest.mark.anyio
 
 YDOC_CONTENT_KINDS = list(YDocContentKind)
 CLASSROOM_COUNT = 2
-MATERIALS_LIST_SIZE_PER_KIND = 2 * (CLASSROOM_COUNT + 1)
+TAG_COUNT = 2
+MATERIALS_LIST_SIZE_PER_KIND = (TAG_COUNT + 1) * (CLASSROOM_COUNT + 1)
 MATERIALS_LIST_SIZE = MATERIALS_LIST_SIZE_PER_KIND * len(YDOC_CONTENT_KINDS)
 
 
@@ -33,10 +35,16 @@ def classroom_ids(id_provider: IDProvider) -> Sequence[int]:
 
 
 @pytest.fixture()
+def tag_ids(id_provider: IDProvider) -> Sequence[int]:
+    return [id_provider.generate_id() for _ in range(TAG_COUNT)]
+
+
+@pytest.fixture()
 async def materials(
     active_session: ActiveSession,
     tutor_user_id: int,
     classroom_ids: Sequence[int],
+    tag_ids: Sequence[int],
 ) -> AsyncIterator[Sequence[AnyNamedMaterial]]:
     materials: list[AnyNamedMaterial] = []
     async with active_session():
@@ -76,10 +84,16 @@ async def materials(
 
     materials.sort(key=lambda material: material.updated_at, reverse=True)
 
+    async with active_session():
+        for i, material in enumerate(materials):
+            for tag_id in tag_ids[: i % (TAG_COUNT + 1)]:
+                await MaterialTag.create(material_id=material.id, tag_id=tag_id)
+
     yield materials
 
     async with active_session():
         for material in materials:
+            await MaterialTag.delete_by_kwargs(material_id=material.id)
             await Material.delete_by_kwargs(id=material.id)
             await YDoc.delete_by_kwargs(id=material.main_ydoc_id)
 
@@ -264,6 +278,41 @@ async def test_materials_listing_filtered_by_classroom_ids(
                     for material in materials
                     if isinstance(material, ClassroomMaterial)
                     and material.classroom_id in filter_classroom_ids
+                ]
+            )
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "tag_indexes",
+    [
+        pytest.param([0], id="single_tag"),
+        pytest.param([0, 1], id="multiple_tags"),
+    ],
+)
+async def test_materials_listing_filtered_by_tag_ids(
+    tutor_client: TestClient,
+    tag_ids: Sequence[int],
+    materials: Sequence[AnyNamedMaterial],
+    tag_indexes: list[int],
+) -> None:
+    filter_tag_ids = {tag_ids[tag_index] for tag_index in tag_indexes}
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/materials/searches/",
+            json={
+                "limit": MATERIALS_LIST_SIZE,
+                "filters": {"tag_ids": list(filter_tag_ids)},
+            },
+        ),
+        expected_json=list(
+            convert_materials(
+                [
+                    material
+                    for i, material in enumerate(materials)
+                    if filter_tag_ids.issubset(tag_ids[: i % (TAG_COUNT + 1)])
                 ]
             )
         ),

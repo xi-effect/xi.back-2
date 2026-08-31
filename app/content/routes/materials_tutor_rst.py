@@ -9,12 +9,12 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.autocomplete_sch import TagKind
 from app.content.dependencies.materials_dep import MyMaterialByID
-from app.content.models.material_tags_db import MaterialTag
 from app.content.models.materials_db import (
     NAMED_MATERIAL_ACCESS_KINDS,
     AnyMaterialSearchRequestSchema,
     AnyNamedMaterialResponseSchema,
     Material,
+    MaterialTag,
 )
 
 router = APIRouterExt(tags=["tutor materials"])
