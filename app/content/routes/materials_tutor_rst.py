@@ -13,8 +13,8 @@ from app.content.models.materials_db import (
     NAMED_MATERIAL_ACCESS_KINDS,
     AnyMaterialSearchRequestSchema,
     AnyNamedMaterialResponseSchema,
-    Material,
     MaterialTag,
+    NamedMaterial,
 )
 
 router = APIRouterExt(tags=["tutor materials"])
@@ -28,8 +28,8 @@ router = APIRouterExt(tags=["tutor materials"])
 async def list_materials(
     auth_data: AuthorizationData,
     data: AnyMaterialSearchRequestSchema,
-) -> Sequence[Material]:
-    return await Material.find_paginated_by_owner_id(
+) -> Sequence[NamedMaterial]:
+    return await NamedMaterial.find_paginated_by_owner_id(
         owner_id=auth_data.user_id,
         default_allowed_access_kinds=NAMED_MATERIAL_ACCESS_KINDS,
         search_params=data,

@@ -46,6 +46,7 @@ class FileFiltersSchema(BaseModel):
         Field(min_length=1, max_length=len(FileKind)),
     ] = None
     is_uploaded_by_owner: bool | None = None
+    search: Annotated[str | None, Field(min_length=1, max_length=100)] = None
     tag_ids: Annotated[set[int] | None, Field(min_length=1, max_length=5)] = None
 
 
@@ -155,6 +156,14 @@ class File(Base):
                 stmt = stmt.filter(cls.uploader_id == cls.owner_id)
             else:
                 stmt = stmt.filter(cls.uploader_id != cls.owner_id)
+
+        if search_params.filters.search is not None:
+            stmt = stmt.filter(
+                cls.name.icontains(
+                    search_params.filters.search.lower(),
+                    autoescape=True,
+                )
+            )
 
         if search_params.filters.tag_ids is not None:
             for tag_id in search_params.filters.tag_ids:
