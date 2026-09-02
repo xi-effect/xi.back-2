@@ -30,11 +30,11 @@ def new_password(faker: Faker) -> str:
     return faker.password()
 
 
+@freeze_time()
 async def test_requesting_password_reset(
     client: TestClient,
     send_email_message_mock: AsyncMock,
     user: User,
-    new_password: str,
 ) -> None:
     assert_nodata_response(
         client.post(
