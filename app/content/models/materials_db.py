@@ -49,6 +49,7 @@ class MaterialCursorSchema(BaseModel):
 
 class BaseMaterialFiltersSchema(BaseModel):
     content_kind: YDocContentKind | None = None
+    search: Annotated[str | None, Field(min_length=1, max_length=100)] = None
     tag_ids: Annotated[set[int] | None, Field(min_length=1, max_length=5)] = None
 
 
@@ -98,6 +99,7 @@ class ClassroomMaterialSearchRequestSchema(BaseMaterialSearchRequestSchema):
             limit=self.limit,
             filters=AnyMaterialFiltersSchema(
                 content_kind=self.filters.content_kind,
+                search=self.filters.search,
                 tag_ids=self.filters.tag_ids,
                 scope=ClassroomMaterialScopeSchema(classroom_ids=[classroom_id]),
             ),
@@ -145,64 +147,6 @@ class Material(Base):
     )
 
     @classmethod
-    def select_by_search_params(
-        cls,
-        search_params: AnyMaterialSearchRequestSchema,
-    ) -> Select[tuple[Self]]:
-        stmt = select(cls)
-
-        scope = search_params.filters.scope
-        if scope is not None:
-            stmt = stmt.filter_by(access_kind=scope.access_kind)
-            match scope:
-                case PersonalMaterialScopeSchema():
-                    pass
-                case ClassroomMaterialScopeSchema():
-                    if scope.classroom_ids is not None:
-                        stmt = stmt.filter(
-                            ClassroomMaterial.classroom_id.in_(scope.classroom_ids)
-                        )
-                case _:
-                    assert_never(scope)
-
-        stmt = stmt.join(cls.main_ydoc).options(contains_eager(cls.main_ydoc))
-
-        if search_params.filters.content_kind is not None:
-            stmt = stmt.filter(YDoc.content_kind == search_params.filters.content_kind)
-
-        if search_params.filters.tag_ids is not None:
-            for tag_id in search_params.filters.tag_ids:
-                stmt = stmt.filter(
-                    select(MaterialTag)
-                    .filter(
-                        MaterialTag.material_id == cls.id,
-                        MaterialTag.tag_id == tag_id,
-                    )
-                    .exists()
-                )
-
-        if search_params.cursor is not None:
-            stmt = stmt.filter(cls.updated_at < search_params.cursor.updated_at)
-
-        return stmt.order_by(cls.updated_at.desc()).limit(search_params.limit)
-
-    @classmethod
-    async def find_paginated_by_owner_id(
-        cls,
-        owner_id: int,
-        default_allowed_access_kinds: Iterable[MaterialAccessKind],
-        search_params: AnyMaterialSearchRequestSchema,
-    ) -> Sequence[Self]:
-        stmt = cls.select_by_search_params(search_params=search_params).filter(
-            YDoc.owner_id == owner_id
-        )
-
-        if search_params.filters.scope is None:
-            stmt = stmt.filter(cls.access_kind.in_(default_allowed_access_kinds))
-
-        return await db.get_all(stmt)
-
-    @classmethod
     async def update_main_ydoc_content(
         cls,
         main_ydoc_id: UUID,
@@ -242,6 +186,72 @@ class NamedMaterial(Material):
     BaseInputSchema = NameSchema.extend(bases=[Material.ContentKindSchema])
     BasePatchSchema = NameSchema.as_patch()
     BaseResponseSchema = NameSchema.extend(bases=[Material.BaseResponseSchema])
+
+    @classmethod
+    def select_by_search_params(
+        cls,
+        search_params: AnyMaterialSearchRequestSchema,
+    ) -> Select[tuple[Self]]:
+        stmt = select(cls)
+
+        scope = search_params.filters.scope
+        if scope is not None:
+            stmt = stmt.filter_by(access_kind=scope.access_kind)
+            match scope:
+                case PersonalMaterialScopeSchema():
+                    pass
+                case ClassroomMaterialScopeSchema():
+                    if scope.classroom_ids is not None:
+                        stmt = stmt.filter(
+                            ClassroomMaterial.classroom_id.in_(scope.classroom_ids)
+                        )
+                case _:
+                    assert_never(scope)
+
+        stmt = stmt.join(cls.main_ydoc).options(contains_eager(cls.main_ydoc))
+
+        if search_params.filters.content_kind is not None:
+            stmt = stmt.filter(YDoc.content_kind == search_params.filters.content_kind)
+
+        if search_params.filters.search is not None:
+            stmt = stmt.filter(
+                cls.name.icontains(
+                    search_params.filters.search.lower(),
+                    autoescape=True,
+                )
+            )
+
+        if search_params.filters.tag_ids is not None:
+            for tag_id in search_params.filters.tag_ids:
+                stmt = stmt.filter(
+                    select(MaterialTag)
+                    .filter(
+                        MaterialTag.material_id == cls.id,
+                        MaterialTag.tag_id == tag_id,
+                    )
+                    .exists()
+                )
+
+        if search_params.cursor is not None:
+            stmt = stmt.filter(cls.updated_at < search_params.cursor.updated_at)
+
+        return stmt.order_by(cls.updated_at.desc()).limit(search_params.limit)
+
+    @classmethod
+    async def find_paginated_by_owner_id(
+        cls,
+        owner_id: int,
+        default_allowed_access_kinds: Iterable[MaterialAccessKind],
+        search_params: AnyMaterialSearchRequestSchema,
+    ) -> Sequence[Self]:
+        stmt = cls.select_by_search_params(search_params=search_params).filter(
+            YDoc.owner_id == owner_id
+        )
+
+        if search_params.filters.scope is None:
+            stmt = stmt.filter(cls.access_kind.in_(default_allowed_access_kinds))
+
+        return await db.get_all(stmt)
 
 
 class PersonalMaterial(NamedMaterial):

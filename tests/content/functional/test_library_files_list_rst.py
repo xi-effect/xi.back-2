@@ -1,9 +1,9 @@
 from collections.abc import AsyncIterator, Iterator, Sequence
-from pathlib import Path
 
 import pytest
 from faker import Faker
 from pydantic_marshals.contains import UnorderedLiteralCollection
+from pytest_lazy_fixtures import lf
 from starlette.testclient import TestClient
 
 from app.content.models.files_db import File, FileKind, FileTag
@@ -12,6 +12,7 @@ from tests.common.assert_contains_ext import assert_response
 from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON
 from tests.common.utils import repackage_json
+from tests.content.conftest import generate_name
 
 pytestmark = pytest.mark.anyio
 
@@ -32,19 +33,26 @@ async def library_files(
     active_session: ActiveSession,
     tutor_user_id: int,
     student_user_id: int,
+    common_name_prefix: str,
+    even_name_suffix: str,
+    odd_name_suffix: str,
     tag_ids: Sequence[int],
 ) -> AsyncIterator[Sequence[File]]:
     uploader_ids = (tutor_user_id, student_user_id)
     library_files: list[File] = []
     async with active_session():
         for i in range(LIBRARY_FILES_LIST_SIZE):
-            filename = Path(faker.file_name())
+            name = generate_name(
+                faker=faker,
+                prefix=common_name_prefix,
+                suffix=even_name_suffix if i % 2 == 0 else odd_name_suffix,
+            )
             library_files.append(
                 await File.create(
                     owner_id=tutor_user_id,
                     uploader_id=uploader_ids[i // len(FILE_KINDS) % UPLOADER_COUNT],
-                    name=filename.stem,
-                    extension=filename.suffix.lstrip("."),
+                    name=name,
+                    extension=faker.file_extension(),
                     kind=FILE_KINDS[i % len(FILE_KINDS)],
                     content_type=faker.mime_type(),
                     size_bytes=faker.pyint(min_value=1, max_value=1000000),
@@ -214,6 +222,39 @@ async def test_library_files_listing_filtered_by_tag_ids(
                     for file in library_files
                     if filter_tag_ids.issubset(file.tag_ids)
                 ]
+            )
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("search", "swap_case"),
+    [
+        pytest.param(lf("common_name_prefix"), False, id="any-original_case"),
+        pytest.param(lf("common_name_prefix"), True, id="any-swapped_case"),
+        pytest.param(lf("even_name_suffix"), False, id="even_only"),
+        pytest.param(lf("odd_name_suffix"), False, id="odd_only-original_case"),
+        pytest.param(lf("odd_name_suffix"), True, id="odd_only-swapped_case"),
+        pytest.param(lf("excluded_from_names"), False, id="no_results"),
+    ],
+)
+async def test_library_files_listing_filtered_by_search(
+    tutor_client: TestClient,
+    library_files: Sequence[File],
+    search: str,
+    swap_case: bool,
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/files/searches/",
+            json={
+                "limit": LIBRARY_FILES_LIST_SIZE,
+                "filters": {"search": search.swapcase() if swap_case else search},
+            },
+        ),
+        expected_json=list(
+            convert_library_files(
+                [file for file in library_files if search.lower() in file.name.lower()]
             )
         ),
     )
