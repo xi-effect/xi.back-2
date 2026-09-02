@@ -34,7 +34,7 @@ class Tag(Base):
     InputMUBSchema = InputSchema.extend(columns=[tutor_id])
     PatchMUBSchema = InputMUBSchema.as_patch()
     ResponseMUBSchema = InputMUBSchema.extend(columns=[id])
-    ResponseSchema = InputSchema.extend(columns=[id])
+    ResponseSchema = InputSchema.extend(columns=[tutor_id, id])
 
     __table_args__ = (
         Index(
@@ -59,6 +59,15 @@ class Tag(Base):
             .order_by(cls.name)
         )
         return await db.get_paginated(stmt, offset, limit)
+
+    @classmethod
+    async def find_all_by_tutor_id(cls, tutor_id: int | None) -> Sequence[Self]:
+        stmt = (
+            select(cls)
+            .filter(or_(cls.tutor_id == tutor_id, cls.tutor_id.is_(None)))
+            .order_by(cls.name)
+        )
+        return await db.get_all_with_assumed_limit(stmt, limit=200)
 
     @classmethod
     async def is_present_by_name(cls, name: str, tutor_id: int | None) -> bool:

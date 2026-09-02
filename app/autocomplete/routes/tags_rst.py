@@ -12,6 +12,18 @@ router = APIRouterExt(tags=["tags"])
 
 
 @router.get(
+    "/tag-kinds/{tag_kind}/tags/",
+    response_model=list[Tag.ResponseSchema],
+    summary="List all tags for the current user",
+)
+async def list_tags(
+    auth_data: AuthorizationData,
+    tag_class: TagClassByKind,
+) -> Sequence[AnyTag]:
+    return await tag_class.find_all_by_tutor_id(tutor_id=auth_data.user_id)
+
+
+@router.get(
     "/tag-kinds/{tag_kind}/autocomplete-suggestions/",
     response_model=list[Tag.ResponseSchema],
     summary="Retrieve tag suggestions for autocomplete for the current user",

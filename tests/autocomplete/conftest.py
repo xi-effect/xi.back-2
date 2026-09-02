@@ -110,11 +110,6 @@ async def other_tutor_tag(
 
 
 @pytest.fixture()
-async def other_tutor_tag_data(other_tutor_tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(other_tutor_tag).model_dump(mode="json")
-
-
-@pytest.fixture()
 async def shared_tag(
     active_session: ActiveSession,
     tag_class: type[AnyTag],
@@ -129,11 +124,6 @@ async def shared_tag(
 
     async with active_session():
         await tag_class.delete_by_kwargs(id=shared_tag.id)
-
-
-@pytest.fixture()
-async def shared_tag_data(shared_tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(shared_tag).model_dump(mode="json")
 
 
 @pytest.fixture()
@@ -152,11 +142,6 @@ async def outsider_tag(
 
     async with active_session():
         await tag_class.delete_by_kwargs(id=outsider_tag.id)
-
-
-@pytest.fixture()
-async def outsider_tag_data(outsider_tag: AnyTag) -> AnyJSON:
-    return Tag.ResponseSchema.model_validate(outsider_tag).model_dump(mode="json")
 
 
 @pytest.fixture()

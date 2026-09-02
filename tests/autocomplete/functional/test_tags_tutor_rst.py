@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
@@ -37,13 +36,13 @@ async def test_tag_creation(
         expected_json={
             **tag_input_data,
             "id": int,
+            "tutor_id": tutor_user_id,
         },
     ).json()["id"]
 
     async with active_session():
         tag = await tag_class.find_first_by_id(tag_id)
         assert tag is not None
-        assert_contains(tag, {"tutor_id": tutor_user_id})
         await tag.delete()
 
 
