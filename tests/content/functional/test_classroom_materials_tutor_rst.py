@@ -4,8 +4,9 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from faker import Faker
 from freezegun import freeze_time
-from pydantic_marshals.contains import assert_contains
+from pydantic_marshals.contains import UnorderedLiteralCollection, assert_contains
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -13,11 +14,12 @@ from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccessLevel
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File
-from app.content.models.materials_db import ClassroomMaterial, Material
+from app.content.models.materials_db import ClassroomMaterial, Material, MaterialTag
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.id_provider import IDProvider
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.content import factories
@@ -47,6 +49,7 @@ async def test_classroom_material_creation(
             "access_kind": "classroom",
             "classroom_id": classroom_id,
             "updated_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -98,7 +101,37 @@ async def any_material_ydoc_file(
         )
 
 
+@pytest.fixture()
+async def any_material_tag_ids(
+    faker: Faker,
+    active_session: ActiveSession,
+    id_provider: IDProvider,
+    any_material: Material,
+) -> AsyncIterator[list[int]]:
+    tag_ids = [
+        id_provider.generate_id()
+        for _ in range(faker.random_int(min=1, max=MaterialTag.max_count_per_material))
+    ]
+
+    async with active_session():
+        await MaterialTag.create_batch(
+            {"material_id": any_material.id, "tag_id": tag_id} for tag_id in tag_ids
+        )
+
+    yield tag_ids
+
+    async with active_session():
+        await MaterialTag.delete_by_kwargs(material_id=any_material.id)
+
+
 @freeze_time()
+@pytest.mark.parametrize(
+    "should_copy_tags",
+    [
+        pytest.param(True, id="with_tag_copying"),
+        pytest.param(False, id="no_tag_copying"),
+    ],
+)
 async def test_material_to_classroom_duplication(
     active_session: ActiveSession,
     tutor_user_id: int,
@@ -106,6 +139,8 @@ async def test_material_to_classroom_duplication(
     classroom_id: int,
     any_material: Material,
     any_material_ydoc_file: YDocFile,
+    any_material_tag_ids: list[int],
+    should_copy_tags: bool,
 ) -> None:
     input_data = factories.ClassroomMaterialDuplicateInputFactory.build_json()
     target_classroom_id: int = randint(classroom_id + 1, classroom_id + 1000)
@@ -115,6 +150,7 @@ async def test_material_to_classroom_duplication(
             "/api/protected/content-service/roles/tutor"
             f"/classrooms/{target_classroom_id}/material-duplicates/",
             json={**input_data, "source_id": str(any_material.id)},
+            params={"should_copy_tags": should_copy_tags},
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
@@ -124,6 +160,11 @@ async def test_material_to_classroom_duplication(
             "classroom_id": target_classroom_id,
             "content_kind": any_material.content_kind,
             "updated_at": datetime_utc_now(),
+            "tag_ids": (
+                UnorderedLiteralCollection(any_material_tag_ids)
+                if should_copy_tags
+                else []
+            ),
         },
     ).json()["id"]
 
@@ -204,6 +245,7 @@ async def test_classroom_material_retrieving(
     tutor_client: TestClient,
     classroom_material: ClassroomMaterial,
     classroom_material_data: AnyJSON,
+    classroom_material_tag_ids: list[int],
 ) -> None:
     assert_response(
         tutor_client.get(
@@ -211,7 +253,10 @@ async def test_classroom_material_retrieving(
             f"/classrooms/{classroom_material.classroom_id}"
             f"/materials/{classroom_material.id}/"
         ),
-        expected_json=classroom_material_data,
+        expected_json={
+            **classroom_material_data,
+            "tag_ids": UnorderedLiteralCollection(classroom_material_tag_ids),
+        },
     )
 
 
@@ -228,6 +273,7 @@ async def test_classroom_material_storage_item_retrieving(
             user_id=tutor_user_id,
             can_upload_files=True,
             can_read_files=True,
+            can_add_library_files=True,
             ydoc_access_level=YDocAccessLevel.READ_WRITE,
         )
     )
@@ -249,6 +295,7 @@ async def test_classroom_material_updating(
     tutor_client: TestClient,
     classroom_material: ClassroomMaterial,
     classroom_material_data: AnyJSON,
+    classroom_material_tag_ids: list[int],
 ) -> None:
     patch_data = factories.ClassroomMaterialPatchFactory.build_json()
 
@@ -259,7 +306,11 @@ async def test_classroom_material_updating(
             f"/materials/{classroom_material.id}/",
             json=patch_data,
         ),
-        expected_json={**classroom_material_data, **patch_data},
+        expected_json={
+            **classroom_material_data,
+            **patch_data,
+            "tag_ids": UnorderedLiteralCollection(classroom_material_tag_ids),
+        },
     )
 
 

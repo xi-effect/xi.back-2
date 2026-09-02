@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Path
+from fastapi import Path, Query
 from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
@@ -17,6 +17,7 @@ from app.content.models.materials_db import (
     ClassroomMaterial,
     ClassroomMaterialSearchRequestSchema,
     Material,
+    MaterialTag,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
@@ -60,6 +61,7 @@ async def create_classroom_material(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"content_kind"}),
         classroom_id=classroom_id,
+        material_tags=[],
     )
 
 
@@ -78,6 +80,7 @@ async def duplicate_material_to_classroom(
     auth_data: AuthorizationData,
     classroom_id: Annotated[int, Path()],
     input_data: DuplicateMaterialInputSchema,
+    should_copy_tags: Annotated[bool, Query()] = True,
 ) -> ClassroomMaterial:
     source_material = await Material.find_first_by_id(input_data.source_id)
     if source_material is None:
@@ -97,6 +100,14 @@ async def duplicate_material_to_classroom(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"source_id"}),
         classroom_id=classroom_id,
+        material_tags=(
+            [
+                MaterialTag(tag_id=material_tag.tag_id)
+                for material_tag in source_material.material_tags
+            ]
+            if should_copy_tags
+            else []
+        ),
     )
 
 
@@ -123,6 +134,7 @@ async def retrieve_classroom_material_storage_item(
         material=classroom_material,
         user_id=auth_data.user_id,
         can_upload_files=True,
+        can_add_library_files=True,
         ydoc_access_level=YDocAccessLevel.READ_WRITE,
     )
 

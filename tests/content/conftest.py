@@ -20,16 +20,24 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
-from app.content.models.files_db import ContentDisposition, File, FileKind
+from app.content.models.files_db import (
+    ClassroomFile,
+    ContentDisposition,
+    File,
+    FileKind,
+    FileTag,
+)
 from app.content.models.materials_db import (
     ClassroomMaterial,
     ClassroomNoteMaterial,
     Material,
+    MaterialTag,
     PersonalMaterial,
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc, YDocContentKind
 from tests.common.active_session import ActiveSession
+from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON, PytestRequest
 from tests.content import factories
 from tests.factories import ProxyAuthDataFactory
@@ -186,6 +194,30 @@ def missing_ydoc_id() -> UUID:
     return uuid4()
 
 
+CONTENT_TYPES_AND_FILE_EXTENSIONS: list[tuple[str, str]] = [
+    ("image/avif", "avif"),
+    ("image/bmp", "bmp"),
+    ("image/gif", "gif"),
+    ("image/x-icon", "ico"),
+    ("image/jpeg", "jpe"),
+    ("image/jpeg", "jpeg"),
+    ("image/jpeg", "jpg"),
+    ("image/jpx", "jpx"),
+    ("image/png", "png"),
+    ("image/tiff", "tif"),
+    ("image/tiff", "tiff"),
+    ("image/webp", "webp"),
+    ("application/pdf", "pdf"),
+    ("audio/aac", "aac"),
+    ("audio/mpeg", "mp3"),
+    ("audio/mp4", "m4a"),
+    ("audio/ogg", "ogg"),
+    ("audio/x-flac", "flac"),
+    ("audio/x-wav", "wav"),
+    (PRESENTATION_CONTENT_TYPE, "pptx"),
+]
+
+
 @pytest.fixture()
 def uncategorized_file_content(faker: Faker) -> bytes:
     return faker.bin_file(raw=True)  # type: ignore[no-any-return]
@@ -228,6 +260,14 @@ class FileInputData:
     @property
     def stored_content_type(self) -> str:
         return "image/webp" if self.kind == FileKind.IMAGE else self.content_type
+
+    @property
+    def stored_extension(self) -> str:
+        return "webp" if self.kind == FileKind.IMAGE else self.extension
+
+    @property
+    def stored_name(self) -> str:
+        return f"{self.stem}.{self.stored_extension}"
 
     @property
     def content_disposition(self) -> ContentDisposition:
@@ -360,11 +400,6 @@ def parametrized_file_input_data(
 
 
 @pytest.fixture()
-def file_owner_id(faker: Faker) -> int:
-    return faker.pyint(min_value=1, max_value=1000000)
-
-
-@pytest.fixture()
 def file_uploader_id(faker: Faker) -> int:
     return faker.pyint(min_value=1, max_value=1000000)
 
@@ -372,19 +407,20 @@ def file_uploader_id(faker: Faker) -> int:
 @pytest.fixture()
 async def file(
     active_session: ActiveSession,
+    tutor_user_id: int,
     parametrized_file_input_data: FileInputData,
-    file_owner_id: int,
     file_uploader_id: int,
 ) -> AsyncIterator[File]:
     async with active_session():
         file = await File.create(
-            owner_id=file_owner_id,
+            owner_id=tutor_user_id,
             uploader_id=file_uploader_id,
             name=parametrized_file_input_data.stem,
-            extension=parametrized_file_input_data.extension,
+            extension=parametrized_file_input_data.stored_extension,
             kind=parametrized_file_input_data.kind,
             content_type=parametrized_file_input_data.stored_content_type,
             size_bytes=len(parametrized_file_input_data.processed_content),
+            file_tags=[],
         )
 
     file.path.parent.mkdir(parents=True, exist_ok=True)
@@ -403,6 +439,24 @@ def file_data(file: File) -> AnyJSON:
     return File.ResponseSchema.model_validate(file, from_attributes=True).model_dump(
         mode="json"
     )
+
+
+@pytest.fixture()
+async def file_tag_ids(
+    active_session: ActiveSession,
+    id_provider: IDProvider,
+    file: File,
+) -> AsyncIterator[list[int]]:
+    tag_ids = [id_provider.generate_id() for _ in range(FileTag.max_count_per_file)]
+
+    async with active_session():
+        for tag_id in tag_ids:
+            await FileTag.create(file_id=file.id, tag_id=tag_id)
+
+    yield tag_ids
+
+    async with active_session():
+        await FileTag.delete_by_kwargs(file_id=file.id)
 
 
 @pytest.fixture()
@@ -452,6 +506,34 @@ def classroom_id(faker: Faker) -> int:
 
 
 @pytest.fixture()
+async def classroom_file(
+    active_session: ActiveSession,
+    file: File,
+    classroom_id: int,
+) -> AsyncIterator[ClassroomFile]:
+    async with active_session():
+        classroom_file = await ClassroomFile.create(
+            file_id=file.id,
+            classroom_id=classroom_id,
+        )
+
+    yield classroom_file
+
+    async with active_session():
+        await ClassroomFile.delete_by_kwargs(
+            file_id=classroom_file.file_id,
+            classroom_id=classroom_file.classroom_id,
+        )
+
+
+@pytest.fixture()
+def material_tag_ids(id_provider: IDProvider) -> list[int]:
+    return [
+        id_provider.generate_id() for _ in range(MaterialTag.max_count_per_material)
+    ]
+
+
+@pytest.fixture()
 async def personal_material(
     faker: Faker,
     active_session: ActiveSession,
@@ -470,6 +552,7 @@ async def personal_material(
         personal_material = await PersonalMaterial.create(
             main_ydoc=main_ydoc,
             tutor_id=tutor_user_id,
+            material_tags=[],
             **input_data,
         )
 
@@ -498,6 +581,22 @@ async def deleted_personal_material_id(
 
 
 @pytest.fixture()
+async def personal_material_tag_ids(
+    active_session: ActiveSession,
+    personal_material: PersonalMaterial,
+    material_tag_ids: list[int],
+) -> AsyncIterator[list[int]]:
+    async with active_session():
+        for tag_id in material_tag_ids:
+            await MaterialTag.create(material_id=personal_material.id, tag_id=tag_id)
+
+    yield material_tag_ids
+
+    async with active_session():
+        await MaterialTag.delete_by_kwargs(material_id=personal_material.id)
+
+
+@pytest.fixture()
 async def classroom_material(
     faker: Faker,
     active_session: ActiveSession,
@@ -517,6 +616,7 @@ async def classroom_material(
         classroom_material = await ClassroomMaterial.create(
             main_ydoc=main_ydoc,
             classroom_id=classroom_id,
+            material_tags=[],
             **input_data,
         )
 
@@ -544,6 +644,22 @@ async def deleted_classroom_material_id(
     async with active_session():
         await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
     return classroom_material.id
+
+
+@pytest.fixture()
+async def classroom_material_tag_ids(
+    active_session: ActiveSession,
+    classroom_material: ClassroomMaterial,
+    material_tag_ids: list[int],
+) -> AsyncIterator[list[int]]:
+    async with active_session():
+        for tag_id in material_tag_ids:
+            await MaterialTag.create(material_id=classroom_material.id, tag_id=tag_id)
+
+    yield material_tag_ids
+
+    async with active_session():
+        await MaterialTag.delete_by_kwargs(material_id=classroom_material.id)
 
 
 @pytest.fixture()
