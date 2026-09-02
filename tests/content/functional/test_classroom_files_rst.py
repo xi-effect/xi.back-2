@@ -8,7 +8,7 @@ from faker import Faker
 from freezegun import freeze_time
 from PIL import Image
 from pydantic import BaseModel
-from pydantic_marshals.contains import assert_contains
+from pydantic_marshals.contains import UnorderedLiteralCollection, assert_contains
 from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
@@ -52,6 +52,7 @@ async def test_uploading_file_to_classroom(
             "uploader_id": tutor_user_id,
             "size_bytes": len(parametrized_file_input_data.processed_content),
             "created_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -241,6 +242,7 @@ classroom_file_role_response_parametrization = pytest.mark.parametrize(
 async def test_classroom_file_meta_retrieving(
     authorized_client: TestClient,
     file: File,
+    file_tag_ids: list[int],
     classroom_id: int,
     classroom_file: ClassroomFile,
     role: Literal["student", "tutor"],
@@ -251,7 +253,10 @@ async def test_classroom_file_meta_retrieving(
             f"/api/protected/content-service/roles/{role}"
             f"/classrooms/{classroom_id}/files/{file.id}/meta/"
         ),
-        expected_json=repackage_json(response_schema, file),
+        expected_json={
+            **repackage_json(response_schema, file),
+            "tag_ids": UnorderedLiteralCollection(file_tag_ids),
+        },
     )
 
 

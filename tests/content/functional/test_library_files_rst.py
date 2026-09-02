@@ -6,7 +6,7 @@ import pytest
 from faker import Faker
 from freezegun import freeze_time
 from PIL import Image
-from pydantic_marshals.contains import assert_contains
+from pydantic_marshals.contains import UnorderedLiteralCollection, assert_contains
 from pytest_lazy_fixtures import lf
 from starlette import status
 from starlette.testclient import TestClient
@@ -49,6 +49,7 @@ async def test_library_file_uploading(
             "uploader_id": tutor_user_id,
             "size_bytes": len(parametrized_file_input_data.processed_content),
             "created_at": datetime_utc_now(),
+            "tag_ids": [],
         },
     ).json()["id"]
 
@@ -133,12 +134,16 @@ async def test_library_file_uploading_content_type_mismatch(
 async def test_library_file_meta_retrieving(
     tutor_client: TestClient,
     file: File,
+    file_tag_ids: list[int],
 ) -> None:
     assert_response(
         tutor_client.get(
             f"/api/protected/content-service/roles/tutor/files/{file.id}/meta/"
         ),
-        expected_json=repackage_json(File.TutorResponseSchema, file),
+        expected_json={
+            **repackage_json(File.TutorResponseSchema, file),
+            "tag_ids": UnorderedLiteralCollection(file_tag_ids),
+        },
     )
 
 

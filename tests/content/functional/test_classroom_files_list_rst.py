@@ -1,22 +1,31 @@
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Iterator, Sequence
 from pathlib import Path
 from typing import Literal
 
 import pytest
 from faker import Faker
 from pydantic import BaseModel
+from pydantic_marshals.contains import UnorderedLiteralCollection
 from starlette.testclient import TestClient
 
-from app.content.models.files_db import ClassroomFile, File, FileKind
+from app.content.models.files_db import ClassroomFile, File, FileKind, FileTag
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.id_provider import IDProvider
+from tests.common.types import AnyJSON
 from tests.common.utils import repackage_json
 
 pytestmark = pytest.mark.anyio
 
 FILE_KINDS = list(FileKind)
 UPLOADER_COUNT = 2
-CLASSROOM_FILES_LIST_SIZE = UPLOADER_COUNT * len(FILE_KINDS)
+TAG_COUNT = 2
+CLASSROOM_FILES_LIST_SIZE = UPLOADER_COUNT * len(FILE_KINDS) * (TAG_COUNT + 1)
+
+
+@pytest.fixture()
+def tag_ids(id_provider: IDProvider) -> Sequence[int]:
+    return [id_provider.generate_id() for _ in range(TAG_COUNT)]
 
 
 @pytest.fixture()
@@ -26,6 +35,7 @@ async def classroom_files(
     tutor_user_id: int,
     student_user_id: int,
     classroom_id: int,
+    tag_ids: Sequence[int],
 ) -> AsyncIterator[Sequence[File]]:
     uploader_ids = (tutor_user_id, student_user_id)
     classroom_files: list[File] = []
@@ -34,12 +44,13 @@ async def classroom_files(
             filename = Path(faker.file_name())
             file = await File.create(
                 owner_id=tutor_user_id,
-                uploader_id=uploader_ids[i // len(FILE_KINDS)],
+                uploader_id=uploader_ids[i // len(FILE_KINDS) % UPLOADER_COUNT],
                 name=filename.stem,
                 extension=filename.suffix.lstrip("."),
                 kind=FILE_KINDS[i % len(FILE_KINDS)],
                 content_type=faker.mime_type(),
                 size_bytes=faker.pyint(min_value=1, max_value=1000000),
+                file_tags=[],
             )
             await ClassroomFile.create(
                 file_id=file.id,
@@ -49,11 +60,32 @@ async def classroom_files(
 
     classroom_files.sort(key=lambda file: file.created_at, reverse=True)
 
+    async with active_session() as session:
+        for i, file in enumerate(classroom_files):
+            session.add(file)
+            file.file_tags = [
+                FileTag(tag_id=tag_id) for tag_id in tag_ids[: i % (TAG_COUNT + 1)]
+            ]
+
     yield classroom_files
 
     async with active_session():
         for file in classroom_files:
+            await FileTag.delete_by_kwargs(file_id=file.id)
             await File.delete_by_kwargs(id=file.id)
+
+
+def convert_classroom_files(
+    files: Sequence[File],
+    response_schema: type[BaseModel],
+) -> Iterator[AnyJSON]:
+    yield from (
+        {
+            **repackage_json(response_schema, file),
+            "tag_ids": UnorderedLiteralCollection(file.tag_ids),
+        }
+        for file in files
+    )
 
 
 classroom_file_list_role_parametrization = pytest.mark.parametrize(
@@ -103,11 +135,16 @@ async def test_classroom_files_listing(
                 "filters": {},
             },
         ),
-        expected_json=[
-            repackage_json(response_schema, file)
-            for file in classroom_files
-            if cursor is None or file.created_at < cursor.created_at
-        ][:limit],
+        expected_json=list(
+            convert_classroom_files(
+                [
+                    file
+                    for file in classroom_files
+                    if cursor is None or file.created_at < cursor.created_at
+                ][:limit],
+                response_schema,
+            )
+        ),
     )
 
 
@@ -136,11 +173,12 @@ async def test_classroom_files_listing_filtered_by_kinds(
                 "filters": {"kinds": kinds},
             },
         ),
-        expected_json=[
-            repackage_json(response_schema, file)
-            for file in classroom_files
-            if file.kind in kinds
-        ],
+        expected_json=list(
+            convert_classroom_files(
+                [file for file in classroom_files if file.kind in kinds],
+                response_schema,
+            )
+        ),
     )
 
 
@@ -169,9 +207,55 @@ async def test_classroom_files_listing_filtered_by_is_uploaded_by_owner(
                 "filters": {"is_uploaded_by_owner": is_uploaded_by_owner},
             },
         ),
-        expected_json=[
-            repackage_json(response_schema, file)
-            for file in classroom_files
-            if is_uploaded_by_owner == (file.uploader_id == file.owner_id)
-        ],
+        expected_json=list(
+            convert_classroom_files(
+                [
+                    file
+                    for file in classroom_files
+                    if is_uploaded_by_owner == (file.uploader_id == file.owner_id)
+                ],
+                response_schema,
+            )
+        ),
+    )
+
+
+@classroom_file_list_role_parametrization
+@pytest.mark.parametrize(
+    "tag_indexes",
+    [
+        pytest.param([0], id="single_tag"),
+        pytest.param([0, 1], id="multiple_tags"),
+    ],
+)
+async def test_classroom_files_listing_filtered_by_tag_ids(
+    authorized_client: TestClient,
+    classroom_id: int,
+    tag_ids: Sequence[int],
+    classroom_files: Sequence[File],
+    role: Literal["student", "tutor"],
+    response_schema: type[BaseModel],
+    tag_indexes: list[int],
+) -> None:
+    filter_tag_ids = {tag_ids[tag_index] for tag_index in tag_indexes}
+
+    assert_response(
+        authorized_client.post(
+            f"/api/protected/content-service/roles/{role}"
+            f"/classrooms/{classroom_id}/files/searches/",
+            json={
+                "limit": CLASSROOM_FILES_LIST_SIZE,
+                "filters": {"tag_ids": list(filter_tag_ids)},
+            },
+        ),
+        expected_json=list(
+            convert_classroom_files(
+                [
+                    file
+                    for file in classroom_files
+                    if filter_tag_ids.issubset(file.tag_ids)
+                ],
+                response_schema,
+            )
+        ),
     )
