@@ -7,8 +7,23 @@ from app.common.schemas.autocomplete_sch import TagKind
 from tests.autocomplete.conftest import TAG_LIST_SIZE
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
+from tests.common.utils import repackage_json
 
 pytestmark = pytest.mark.anyio
+
+
+async def test_listing_tags(
+    tutor_client: TestClient,
+    parametrized_tag_kind: TagKind,
+    outsider_tag: AnyTag,
+    tags: list[AnyTag],
+) -> None:
+    assert_response(
+        tutor_client.get(
+            f"/api/protected/autocomplete-service/tag-kinds/{parametrized_tag_kind}/tags/"
+        ),
+        expected_json=[repackage_json(Tag.ResponseSchema, tag) for tag in tags],
+    )
 
 
 @pytest.mark.parametrize(
