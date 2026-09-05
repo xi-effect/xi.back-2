@@ -1,3 +1,4 @@
+import string
 import wave
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -709,3 +710,36 @@ async def deleted_any_material_id(
     async with active_session():
         await Material.delete_by_kwargs(id=any_material.id)
     return any_material.id
+
+
+def quarter_of_ascii_letters_any_case(quarter_index: int) -> str:
+    letters = string.ascii_lowercase[quarter_index::4]
+    return letters + letters.upper()
+
+
+@pytest.fixture()
+def common_name_prefix(faker: Faker) -> str:
+    return faker.bothify("???", letters=quarter_of_ascii_letters_any_case(0))
+
+
+@pytest.fixture()
+def even_name_suffix(faker: Faker) -> str:
+    return faker.bothify("###")
+
+
+@pytest.fixture()
+def odd_name_suffix(faker: Faker) -> str:
+    return faker.bothify("??%", letters=quarter_of_ascii_letters_any_case(1))
+
+
+@pytest.fixture()
+def excluded_from_names(faker: Faker) -> str:
+    return faker.bothify("???", letters=quarter_of_ascii_letters_any_case(2))
+
+
+def generate_name(faker: Faker, prefix: str, suffix: str) -> str:
+    random_part: str = faker.bothify(
+        "?" * faker.random_int(min=0, max=90),
+        letters=quarter_of_ascii_letters_any_case(3),
+    )
+    return prefix + random_part + suffix

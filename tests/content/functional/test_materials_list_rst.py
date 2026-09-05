@@ -2,7 +2,9 @@ from collections.abc import AsyncIterator, Iterator, Sequence
 from typing import assert_never
 
 import pytest
+from faker import Faker
 from pydantic_marshals.contains import UnorderedLiteralCollection
+from pytest_lazy_fixtures import lf
 from starlette.testclient import TestClient
 
 from app.content.models.materials_db import (
@@ -21,6 +23,7 @@ from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON
 from tests.common.utils import repackage_json
 from tests.content import factories
+from tests.content.conftest import generate_name
 
 pytestmark = pytest.mark.anyio
 
@@ -43,8 +46,12 @@ def tag_ids(id_provider: IDProvider) -> Sequence[int]:
 
 @pytest.fixture()
 async def materials(
+    faker: Faker,
     active_session: ActiveSession,
     tutor_user_id: int,
+    common_name_prefix: str,
+    even_name_suffix: str,
+    odd_name_suffix: str,
     classroom_ids: Sequence[int],
     tag_ids: Sequence[int],
 ) -> AsyncIterator[Sequence[AnyNamedMaterial]]:
@@ -53,9 +60,15 @@ async def materials(
         for i in range(MATERIALS_LIST_SIZE):
             content_kind = YDOC_CONTENT_KINDS[i % len(YDOC_CONTENT_KINDS)]
             classroom_index = i // len(YDOC_CONTENT_KINDS) % (CLASSROOM_COUNT + 1)
+            name = generate_name(
+                faker=faker,
+                prefix=common_name_prefix,
+                suffix=even_name_suffix if i % 2 == 0 else odd_name_suffix,
+            )
             if classroom_index == 0:
                 input_data = factories.PersonalMaterialInputFactory.build_python(
                     content_kind=content_kind,
+                    name=name,
                 )
                 main_ydoc = await YDoc.create(
                     owner_id=tutor_user_id,
@@ -72,6 +85,7 @@ async def materials(
             else:
                 input_data = factories.ClassroomMaterialInputFactory.build_python(
                     content_kind=content_kind,
+                    name=name,
                 )
                 main_ydoc = await YDoc.create(
                     owner_id=tutor_user_id,
@@ -323,6 +337,43 @@ async def test_materials_listing_filtered_by_tag_ids(
                     material
                     for material in materials
                     if filter_tag_ids.issubset(material.tag_ids)
+                ]
+            )
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("search", "swap_case"),
+    [
+        pytest.param(lf("common_name_prefix"), False, id="any-original_case"),
+        pytest.param(lf("common_name_prefix"), True, id="any-swapped_case"),
+        pytest.param(lf("even_name_suffix"), False, id="even_only"),
+        pytest.param(lf("odd_name_suffix"), False, id="odd_only-original_case"),
+        pytest.param(lf("odd_name_suffix"), True, id="odd_only-swapped_case"),
+        pytest.param(lf("excluded_from_names"), False, id="no_results"),
+    ],
+)
+async def test_materials_listing_filtered_by_search(
+    tutor_client: TestClient,
+    materials: Sequence[AnyNamedMaterial],
+    search: str,
+    swap_case: bool,
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/materials/searches/",
+            json={
+                "limit": MATERIALS_LIST_SIZE,
+                "filters": {"search": search.swapcase() if swap_case else search},
+            },
+        ),
+        expected_json=list(
+            convert_materials(
+                [
+                    material
+                    for material in materials
+                    if search.lower() in material.name.lower()
                 ]
             )
         ),
