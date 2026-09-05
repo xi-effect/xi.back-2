@@ -1,5 +1,6 @@
 import random
 from io import BytesIO
+from typing import Any
 from uuid import UUID
 
 import pytest
@@ -16,7 +17,9 @@ from app.content.models.files_db import ClassroomFile, File
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.id_provider import IDProvider
+from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.utils import repackage_json
+from tests.content import factories
 from tests.content.conftest import CONTENT_TYPES_AND_FILE_EXTENSIONS, FileInputData
 
 pytestmark = pytest.mark.anyio
@@ -254,6 +257,26 @@ async def test_library_file_classroom_ids_listing(
     )
 
 
+async def test_library_file_updating(
+    tutor_client: TestClient,
+    file: File,
+    file_tag_ids: list[int],
+) -> None:
+    patch_data = factories.FilePatchFactory.build_json()
+
+    assert_response(
+        tutor_client.patch(
+            f"/api/protected/content-service/roles/tutor/files/{file.id}/",
+            json=patch_data,
+        ),
+        expected_json={
+            **repackage_json(File.TutorResponseSchema, file),
+            **patch_data,
+            "tag_ids": UnorderedLiteralCollection(file_tag_ids),
+        },
+    )
+
+
 async def test_library_file_deleting(
     active_session: ActiveSession,
     tutor_client: TestClient,
@@ -272,12 +295,13 @@ async def test_library_file_deleting(
 
 
 library_file_request_parametrization = pytest.mark.parametrize(
-    ("method", "postfix"),
+    ("method", "postfix", "body_factory"),
     [
-        pytest.param("GET", "/", id="retrieving"),
-        pytest.param("GET", "/meta/", id="retrieving_meta"),
-        pytest.param("GET", "/classroom-ids/", id="listing_classroom_ids"),
-        pytest.param("DELETE", "/", id="deleting"),
+        pytest.param("GET", "/", None, id="retrieving"),
+        pytest.param("GET", "/meta/", None, id="retrieving_meta"),
+        pytest.param("GET", "/classroom-ids/", None, id="listing_classroom_ids"),
+        pytest.param("PATCH", "/", factories.FilePatchFactory, id="updating"),
+        pytest.param("DELETE", "/", None, id="deleting"),
     ],
 )
 
@@ -288,11 +312,13 @@ async def test_library_file_access_denied(
     file: File,
     method: str,
     postfix: str,
+    body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         outsider_client.request(
             method,
             f"/api/protected/content-service/roles/tutor/files/{file.id}{postfix}",
+            json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_403_FORBIDDEN,
         expected_json={"detail": "File access denied"},
@@ -305,12 +331,14 @@ async def test_library_file_not_finding(
     missing_file_id: UUID,
     method: str,
     postfix: str,
+    body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         tutor_client.request(
             method,
             "/api/protected/content-service/roles/tutor"
             f"/files/{missing_file_id}{postfix}",
+            json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "File not found"},
