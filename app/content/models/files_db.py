@@ -83,6 +83,9 @@ class File(Base):
     def tag_ids(self) -> list[int]:
         return [file_tag.tag_id for file_tag in self.file_tags]
 
+    NameType = Annotated[str, Field(min_length=1, max_length=100)]
+
+    PatchSchema = MappedModel.create(columns=[(name, NameType)]).as_patch()
     BaseResponseSchema = MappedModel.create(
         columns=[
             id,

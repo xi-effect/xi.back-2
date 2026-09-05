@@ -94,6 +94,19 @@ async def list_library_file_classroom_ids(file: MyLibraryFileByID) -> Sequence[i
     return await ClassroomFile.find_all_classroom_ids_by_file_id(file_id=file.id)
 
 
+@router.patch(
+    path="/roles/tutor/files/{file_id}/",
+    response_model=File.TutorResponseSchema,
+    summary="Update a library file by id",
+)
+async def patch_library_file(
+    file: MyLibraryFileByID,
+    patch_data: File.PatchSchema,
+) -> File:
+    file.update(**patch_data.model_dump(exclude_defaults=True))
+    return file
+
+
 class TagResponses(Responses):
     TAG_NOT_FOUND = status.HTTP_404_NOT_FOUND, "Tag not found"
 
