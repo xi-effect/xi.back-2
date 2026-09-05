@@ -29,6 +29,7 @@ async def create_personal_material(
         main_ydoc=main_ydoc,
         **input_data.model_dump(exclude={"content_kind"}),
         tutor_id=auth_data.user_id,
+        material_tags=[],
     )
 
 
@@ -55,6 +56,7 @@ async def retrieve_personal_material_storage_item(
         material=personal_material,
         user_id=auth_data.user_id,
         can_upload_files=True,
+        can_add_library_files=True,
         ydoc_access_level=YDocAccessLevel.READ_WRITE,
     )
 

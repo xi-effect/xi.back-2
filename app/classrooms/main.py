@@ -3,7 +3,6 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from app.classrooms.routes import (
-    classroom_notes_tutor_rst,
     classrooms_int,
     classrooms_student_rst,
     classrooms_tutor_rst,
@@ -32,7 +31,6 @@ authorized_router.include_router(tutorships_student_rst.router)
 authorized_router.include_router(classrooms_tutor_rst.router)
 authorized_router.include_router(enrollments_tutor_rst.router)
 authorized_router.include_router(classrooms_student_rst.router)
-authorized_router.include_router(classroom_notes_tutor_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],

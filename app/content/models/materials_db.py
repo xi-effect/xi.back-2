@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, Literal, Self, assert_never
+from typing import Annotated, ClassVar, Literal, Self, assert_never
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime, BaseModel, Field
@@ -49,6 +49,8 @@ class MaterialCursorSchema(BaseModel):
 
 class BaseMaterialFiltersSchema(BaseModel):
     content_kind: YDocContentKind | None = None
+    search: Annotated[str | None, Field(min_length=1, max_length=100)] = None
+    tag_ids: Annotated[set[int] | None, Field(min_length=1, max_length=5)] = None
 
 
 class PersonalMaterialScopeSchema(BaseModel):
@@ -97,6 +99,8 @@ class ClassroomMaterialSearchRequestSchema(BaseMaterialSearchRequestSchema):
             limit=self.limit,
             filters=AnyMaterialFiltersSchema(
                 content_kind=self.filters.content_kind,
+                search=self.filters.search,
+                tag_ids=self.filters.tag_ids,
                 scope=ClassroomMaterialScopeSchema(classroom_ids=[classroom_id]),
             ),
         )
@@ -113,6 +117,10 @@ class Material(Base):
     main_ydoc_id: Mapped[UUID] = mapped_column(ForeignKey(YDoc.id), unique=True)
     main_ydoc: Mapped[YDoc] = relationship(lazy="joined")
 
+    material_tags: Mapped[list["MaterialTag"]] = relationship(
+        lazy="selectin", passive_deletes="all"
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
     )
@@ -120,6 +128,10 @@ class Material(Base):
     @property
     def content_kind(self) -> YDocContentKind:
         return self.main_ydoc.content_kind
+
+    @property
+    def tag_ids(self) -> list[int]:
+        return [material_tag.tag_id for material_tag in self.material_tags]
 
     __mapper_args__ = {
         "polymorphic_on": access_kind,
@@ -130,55 +142,9 @@ class Material(Base):
 
     ContentKindSchema = MappedModel.create(properties=[content_kind])
     BaseResponseSchema = ContentKindSchema.extend(
-        columns=[id, (updated_at, AwareDatetime)]
+        columns=[id, (updated_at, AwareDatetime)],
+        properties=[tag_ids],
     )
-
-    @classmethod
-    def select_by_search_params(
-        cls,
-        search_params: AnyMaterialSearchRequestSchema,
-    ) -> Select[tuple[Self]]:
-        stmt = select(cls)
-
-        scope = search_params.filters.scope
-        if scope is not None:
-            stmt = stmt.filter_by(access_kind=scope.access_kind)
-            match scope:
-                case PersonalMaterialScopeSchema():
-                    pass
-                case ClassroomMaterialScopeSchema():
-                    if scope.classroom_ids is not None:
-                        stmt = stmt.filter(
-                            ClassroomMaterial.classroom_id.in_(scope.classroom_ids)
-                        )
-                case _:
-                    assert_never(scope)
-
-        stmt = stmt.join(cls.main_ydoc).options(contains_eager(cls.main_ydoc))
-
-        if search_params.filters.content_kind is not None:
-            stmt = stmt.filter(YDoc.content_kind == search_params.filters.content_kind)
-
-        if search_params.cursor is not None:
-            stmt = stmt.filter(cls.updated_at < search_params.cursor.updated_at)
-
-        return stmt.order_by(cls.updated_at.desc()).limit(search_params.limit)
-
-    @classmethod
-    async def find_paginated_by_owner_id(
-        cls,
-        owner_id: int,
-        default_allowed_access_kinds: Iterable[MaterialAccessKind],
-        search_params: AnyMaterialSearchRequestSchema,
-    ) -> Sequence[Self]:
-        stmt = cls.select_by_search_params(search_params=search_params).filter(
-            YDoc.owner_id == owner_id
-        )
-
-        if search_params.filters.scope is None:
-            stmt = stmt.filter(cls.access_kind.in_(default_allowed_access_kinds))
-
-        return await db.get_all(stmt)
 
     @classmethod
     async def update_main_ydoc_content(
@@ -220,6 +186,72 @@ class NamedMaterial(Material):
     BaseInputSchema = NameSchema.extend(bases=[Material.ContentKindSchema])
     BasePatchSchema = NameSchema.as_patch()
     BaseResponseSchema = NameSchema.extend(bases=[Material.BaseResponseSchema])
+
+    @classmethod
+    def select_by_search_params(
+        cls,
+        search_params: AnyMaterialSearchRequestSchema,
+    ) -> Select[tuple[Self]]:
+        stmt = select(cls)
+
+        scope = search_params.filters.scope
+        if scope is not None:
+            stmt = stmt.filter_by(access_kind=scope.access_kind)
+            match scope:
+                case PersonalMaterialScopeSchema():
+                    pass
+                case ClassroomMaterialScopeSchema():
+                    if scope.classroom_ids is not None:
+                        stmt = stmt.filter(
+                            ClassroomMaterial.classroom_id.in_(scope.classroom_ids)
+                        )
+                case _:
+                    assert_never(scope)
+
+        stmt = stmt.join(cls.main_ydoc).options(contains_eager(cls.main_ydoc))
+
+        if search_params.filters.content_kind is not None:
+            stmt = stmt.filter(YDoc.content_kind == search_params.filters.content_kind)
+
+        if search_params.filters.search is not None:
+            stmt = stmt.filter(
+                cls.name.icontains(
+                    search_params.filters.search.lower(),
+                    autoescape=True,
+                )
+            )
+
+        if search_params.filters.tag_ids is not None:
+            for tag_id in search_params.filters.tag_ids:
+                stmt = stmt.filter(
+                    select(MaterialTag)
+                    .filter(
+                        MaterialTag.material_id == cls.id,
+                        MaterialTag.tag_id == tag_id,
+                    )
+                    .exists()
+                )
+
+        if search_params.cursor is not None:
+            stmt = stmt.filter(cls.updated_at < search_params.cursor.updated_at)
+
+        return stmt.order_by(cls.updated_at.desc()).limit(search_params.limit)
+
+    @classmethod
+    async def find_paginated_by_owner_id(
+        cls,
+        owner_id: int,
+        default_allowed_access_kinds: Iterable[MaterialAccessKind],
+        search_params: AnyMaterialSearchRequestSchema,
+    ) -> Sequence[Self]:
+        stmt = cls.select_by_search_params(search_params=search_params).filter(
+            YDoc.owner_id == owner_id
+        )
+
+        if search_params.filters.scope is None:
+            stmt = stmt.filter(cls.access_kind.in_(default_allowed_access_kinds))
+
+        return await db.get_all(stmt)
 
 
 class PersonalMaterial(NamedMaterial):
@@ -335,6 +367,30 @@ Index(
     unique=True,
     postgresql_where=Material.access_kind == MaterialAccessKind.CLASSROOM_NOTE,
 )
+
+
+class MaterialTag(Base):
+    __tablename__ = "material_tags"
+
+    max_count_per_material: ClassVar[int] = 5
+
+    material_id: Mapped[UUID] = mapped_column(
+        ForeignKey(Material.id, ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tag_id: Mapped[int] = mapped_column(primary_key=True)
+
+    @classmethod
+    async def replace_all_by_material_id(
+        cls,
+        material_id: UUID,
+        tag_ids: set[int],
+    ) -> None:
+        await cls.delete_by_kwargs(material_id=material_id)
+        if len(tag_ids) != 0:
+            await cls.create_batch(
+                {"material_id": material_id, "tag_id": tag_id} for tag_id in tag_ids
+            )
 
 
 AnyNamedMaterial = PersonalMaterial | ClassroomMaterial

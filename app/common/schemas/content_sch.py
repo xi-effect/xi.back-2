@@ -17,6 +17,7 @@ class ContentTokenPayloadSchema(BaseModel):
 
     can_upload_files: bool
     can_read_files: bool
+    can_add_library_files: bool
 
     ydoc_access_level: YDocAccessLevel
 
