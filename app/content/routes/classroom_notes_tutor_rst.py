@@ -48,6 +48,7 @@ async def create_classroom_note(
         material=classroom_note_material,
         user_id=auth_data.user_id,
         can_upload_files=True,
+        can_add_library_files=True,
         ydoc_access_level=YDocAccessLevel.READ_WRITE,
     )
 
@@ -64,5 +65,6 @@ async def retrieve_classroom_note_storage_item(
         material=classroom_note_material,
         user_id=auth_data.user_id,
         can_upload_files=True,
+        can_add_library_files=True,
         ydoc_access_level=YDocAccessLevel.READ_WRITE,
     )

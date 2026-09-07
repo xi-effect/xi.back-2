@@ -1,9 +1,12 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, Path
+from fastapi import Depends, Header, Path
+from pydantic import BeforeValidator
 from starlette import status
 
+from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import Responses, with_responses
 from app.content.dependencies.content_token_dep import (
     ContentTokenPayload,
@@ -11,6 +14,14 @@ from app.content.dependencies.content_token_dep import (
 )
 from app.content.models.files_db import File
 from app.content.models.ydoc_files_db import YDocFile
+from app.content.services import files_svc
+
+IfNoneMatchHeader = Annotated[str, Header()]
+IfModifiedSinceHeader = Annotated[
+    datetime | None,
+    BeforeValidator(files_svc.parse_http_datetime_header),
+    Header(),
+]
 
 
 class FileResponses(Responses):
@@ -44,3 +55,20 @@ async def get_my_file_by_id(
 
 
 MyFileByID = Annotated[File, Depends(get_my_file_by_id)]
+
+
+class MyLibraryFileResponses(Responses):
+    FILE_ACCESS_DENIED = status.HTTP_403_FORBIDDEN, "File access denied"
+
+
+@with_responses(MyLibraryFileResponses)
+async def get_my_library_file_by_id(
+    file: FileByID,
+    auth_data: AuthorizationData,
+) -> File:
+    if file.owner_id != auth_data.user_id:
+        raise MyLibraryFileResponses.FILE_ACCESS_DENIED
+    return file
+
+
+MyLibraryFileByID = Annotated[File, Depends(get_my_library_file_by_id)]

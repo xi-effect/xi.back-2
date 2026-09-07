@@ -16,7 +16,6 @@ from starlette_exporter import PrometheusMiddleware, handle_metrics
 from tmexio import AsyncSocket, EventException, EventName, PydanticPackager
 from tmexio.documentation import OpenAPIBuilder
 
-from app import storage_v2  # noqa: F401  # TODO (218) model metadata
 from app import (
     autocomplete,
     classrooms,
@@ -24,7 +23,6 @@ from app import (
     content,
     datalake,
     invoices,
-    materials,
     notifications,
     pochta,
     scheduler,
@@ -200,7 +198,6 @@ app.include_router(conferences.api_router)
 app.include_router(content.api_router)
 app.include_router(datalake.api_router)
 app.include_router(invoices.api_router)
-app.include_router(materials.api_router)
 app.include_router(notifications.api_router)
 app.include_router(pochta.api_router)
 app.include_router(scheduler.api_router)

@@ -129,6 +129,7 @@ async def test_ydoc_content_retrieving(
             "Content-Type": "application/octet-stream",
         },
     ).content
+
     assert response_content == ydoc.content
 
 

@@ -61,3 +61,12 @@ async def ensure_content_token_allows_reading_files(
     if not content_token_payload.can_read_files:
         raise InsufficientPermissionsResponses.INSUFFICIENT_PERMISSIONS
     return content_token_payload
+
+
+@with_responses(InsufficientPermissionsResponses)
+async def ensure_content_token_allows_adding_library_files(
+    content_token_payload: ContentTokenPayload,
+) -> ContentTokenPayloadSchema:
+    if not content_token_payload.can_add_library_files:
+        raise InsufficientPermissionsResponses.INSUFFICIENT_PERMISSIONS
+    return content_token_payload

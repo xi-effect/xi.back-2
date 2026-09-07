@@ -1,10 +1,15 @@
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
+from app.content.models.files_db import File
 from app.content.models.materials_db import ClassroomMaterial, PersonalMaterial
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
 class ContentTokenPayloadFactory(BaseModelFactory[ContentTokenPayloadSchema]):
     __model__ = ContentTokenPayloadSchema
+
+
+class FilePatchFactory(BasePatchModelFactory[File.PatchSchema]):
+    __model__ = File.PatchSchema
 
 
 class PersonalMaterialInputFactory(BaseModelFactory[PersonalMaterial.InputSchema]):

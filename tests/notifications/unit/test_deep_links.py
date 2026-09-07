@@ -54,13 +54,17 @@ def test_payload_decoding(
 def test_payload_decoding_expired_deep_link(
     mock_stack: MockStack,
     deep_link_provider: deep_links.DeepLinkProvider,
-    deep_link_payload: str,
+    user_id_for_deep_link: int,
 ) -> None:
+    deep_link_payload = deep_link_provider.create_signed_link_payload(
+        user_id=user_id_for_deep_link
+    )
     mock_stack.enter_mock(
         deep_links.DeepLinkProvider,
         "get_current_timestamp",
         return_value=time() + deep_link_provider.ttl + randint(60, 120),
     )
+
     with pytest.raises(deep_links.ExpiredDeepLinkException):
         deep_link_provider.verify_and_decode_signed_link_payload(
             link_payload=deep_link_payload

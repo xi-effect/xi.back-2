@@ -3211,14 +3211,14 @@ typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
 name = "pydantic-marshals"
-version = "0.3.18"
+version = "0.3.19"
 description = "Library for creating partial pydantic models (automatic converters) from different mappings"
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main", "tests"]
 files = [
-    {file = "pydantic_marshals-0.3.18-py3-none-any.whl", hash = "sha256:8de9228494b8027cd408b82e47ad6e28683aec4f671d7ec9b5506ec7e7d52805"},
-    {file = "pydantic_marshals-0.3.18.tar.gz", hash = "sha256:7db0f2700662882fc0e52a008ae73e56c90d18d8ba732cad8328c9706cfb7b3d"},
+    {file = "pydantic_marshals-0.3.19-py3-none-any.whl", hash = "sha256:2f1f272cbe98ffd41ad79fb1a5d2709b1016ebe6c56679cad0cf36207972c643"},
+    {file = "pydantic_marshals-0.3.19.tar.gz", hash = "sha256:f1ca8c257406a9a515a7471a755fbaa864c480378d4ea9aaea973e0fac209860"},
 ]
 
 [package.dependencies]
@@ -4516,4 +4516,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "~=3.12,<3.15"
-content-hash = "b88adf66c13feda15e71c14e03423bee7170fd6617f46588756e32f1ca8aac87"
+content-hash = "aca38984da10bcbbb8f62dcaee97fb4c6f49d2fc728390e7ac8f999958cbd8e2"

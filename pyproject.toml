@@ -23,7 +23,7 @@ uvicorn = {extras = ["standard"], version = "^0.34.2"}
 python-multipart = "^0.0.20"
 sqlalchemy = {extras = ["asyncio"], version = "^2.0.40"}
 psycopg = {extras = ["binary"], version = "3.1.19"}
-pydantic-marshals = {extras = ["sqlalchemy"], version = "0.3.18"}
+pydantic-marshals = {extras = ["sqlalchemy"], version = "0.3.19"}
 alembic = "^1.15.2"
 redis = {extras = ["hiredis"], version = "^5.1.1"}
 filetype = "^1.2.0"
@@ -82,7 +82,7 @@ dlint = "0.14.0"
 pytest = "^8.3.5"
 pytest-cov = "^6.1.1"
 pytest-lazy-fixtures = "^1.4.0"
-pydantic-marshals = {extras = ["assert-contains"], version = "0.3.18"}
+pydantic-marshals = {extras = ["assert-contains"], version = "0.3.19"}
 freezegun = "^1.5.1"
 respx = "^0.22.0"
 polyfactory = "^2.21.0"
@@ -168,6 +168,5 @@ omit = [
   "app/scheduler/*",  # TODO (170)
   "app/common/bridges/classrooms_bdg.py",  # TODO (170)
   "app/common/utils/bitwise.py",  # TODO (170)
-  "app/storage_v2/*",  # TODO (218)
   "app/setup_ci.py",
 ]

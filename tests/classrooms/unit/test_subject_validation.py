@@ -3,7 +3,6 @@ from faker import Faker
 from fastapi import HTTPException
 from pydantic_marshals.contains import assert_contains
 from respx import MockRouter
-from starlette import status
 
 from app.classrooms.routes.classrooms_tutor_rst import (
     SubjectResponses,
@@ -12,7 +11,7 @@ from app.classrooms.routes.classrooms_tutor_rst import (
 from app.common.config import settings
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import PytestRequest
-from tests.factories import SubjectFactory
+from tests.factories import TagFactory
 
 pytestmark = pytest.mark.anyio
 
@@ -41,8 +40,9 @@ async def test_subject_validation(
     old_subject_id: int | None,
 ) -> None:
     autocomplete_bridge_mock = autocomplete_respx_mock.get(
-        f"/subjects/{new_subject_id}/"
-    ).respond(json=SubjectFactory.build_json())
+        "/tag-kinds/subject/tags/",
+        params={"tag_ids": [new_subject_id]},
+    ).respond(json={str(new_subject_id): TagFactory.build_json(id=new_subject_id)})
 
     await validate_subject(
         new_subject_id=new_subject_id,
@@ -61,11 +61,9 @@ async def test_subject_validation_subject_not_found(
     old_subject_id: int | None,
 ) -> None:
     autocomplete_bridge_mock = autocomplete_respx_mock.get(
-        f"/subjects/{new_subject_id}/"
-    ).respond(
-        status_code=status.HTTP_404_NOT_FOUND,
-        json={"detail": "Subject not found"},
-    )
+        "/tag-kinds/subject/tags/",
+        params={"tag_ids": [new_subject_id]},
+    ).respond(json={})
 
     with pytest.raises(HTTPException) as exc_info:
         await validate_subject(

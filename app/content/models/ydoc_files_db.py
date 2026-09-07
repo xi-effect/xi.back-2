@@ -1,7 +1,8 @@
 from typing import Self
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, insert, literal, select
+from sqlalchemy import ForeignKey, literal, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -26,6 +27,14 @@ class YDocFile(Base):
     @classmethod
     async def find_first_by_ids(cls, ydoc_id: UUID, file_id: UUID) -> Self | None:
         return await cls.find_first_by_kwargs(ydoc_id=ydoc_id, file_id=file_id)
+
+    @classmethod
+    async def upsert_by_ids(cls, ydoc_id: UUID, file_id: UUID) -> None:
+        await db.session.execute(
+            insert(cls)
+            .values(ydoc_id=ydoc_id, file_id=file_id)
+            .on_conflict_do_nothing()
+        )
 
     @classmethod
     async def duplicate_all_links_by_ydoc_id(

@@ -73,5 +73,6 @@ async def retrieve_classroom_material_storage_item(
         material=classroom_material,
         user_id=auth_data.user_id,
         can_upload_files=can_upload_files,
+        can_add_library_files=False,
         ydoc_access_level=ydoc_access_level,
     )
