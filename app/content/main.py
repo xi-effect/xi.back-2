@@ -52,6 +52,7 @@ mub_router = APIRouterExt(
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
     (settings.storage_path / "files").mkdir(parents=True, exist_ok=True)
+    (settings.storage_path / "ydocs").mkdir(parents=True, exist_ok=True)
     add_missing_mime_to_mimetypes()
     yield
 
