@@ -1,3 +1,4 @@
+import gzip
 import string
 import wave
 from collections.abc import AsyncIterator
@@ -8,6 +9,7 @@ from pathlib import Path as PathlibPath
 from typing import Any, Protocol
 from uuid import UUID, uuid4
 
+import aiofiles
 import pytest
 from faker import Faker
 from faker_file.providers.pdf_file.generators.pil_generator import (  # type: ignore[import-untyped]
@@ -147,26 +149,46 @@ def ydoc_owner_id(faker: Faker) -> int:
     return faker.pyint(min_value=1, max_value=1000000)
 
 
+async def write_ydoc_content(ydoc: YDoc, content: bytes) -> None:
+    ydoc.path.parent.mkdir(parents=True, exist_ok=True)
+    async with aiofiles.open(ydoc.path, "wb") as f:
+        await f.write(gzip.compress(content))
+
+
 @pytest.fixture()
-async def ydoc(
-    faker: Faker,
+async def ydoc_without_content(
     active_session: ActiveSession,
     ydoc_owner_id: int,
 ) -> AsyncIterator[YDoc]:
-    content: bytes = faker.binary(length=64)
-
     async with active_session():
         ydoc = await YDoc.create(
             owner_id=ydoc_owner_id,
             content_kind=YDocContentKind.NOTE,
-            content=content,
-            size_bytes=len(content),
         )
 
     yield ydoc
 
     async with active_session():
         await YDoc.delete_by_kwargs(id=ydoc.id)
+
+
+@pytest.fixture()
+async def ydoc(
+    faker: Faker,
+    active_session: ActiveSession,
+    ydoc_without_content: YDoc,
+) -> AsyncIterator[YDoc]:
+    content: bytes = faker.binary(length=64)
+
+    async with active_session() as session:
+        session.add(ydoc_without_content)
+        ydoc_without_content.update(size_bytes=len(content))
+
+    await write_ydoc_content(ydoc=ydoc_without_content, content=content)
+
+    yield ydoc_without_content
+
+    ydoc_without_content.path.unlink(missing_ok=True)
 
 
 @pytest.fixture()
@@ -180,12 +202,14 @@ async def other_ydoc(
         ydoc = await YDoc.create(
             owner_id=faker.pyint(min_value=1, max_value=1000000),
             content_kind=YDocContentKind.NOTE,
-            content=content,
             size_bytes=len(content),
         )
 
+    await write_ydoc_content(ydoc=ydoc, content=content)
+
     yield ydoc
 
+    ydoc.path.unlink(missing_ok=True)
     async with active_session():
         await YDoc.delete_by_kwargs(id=ydoc.id)
 
@@ -535,20 +559,16 @@ def material_tag_ids(id_provider: IDProvider) -> list[int]:
 
 
 @pytest.fixture()
-async def personal_material(
-    faker: Faker,
+async def personal_material_without_content(
     active_session: ActiveSession,
     tutor_user_id: int,
 ) -> AsyncIterator[PersonalMaterial]:
     input_data = factories.PersonalMaterialInputFactory.build_python()
-    content: bytes = faker.binary(length=64)
 
     async with active_session():
         main_ydoc = await YDoc.create(
             owner_id=tutor_user_id,
             content_kind=input_data.pop("content_kind"),
-            content=content,
-            size_bytes=len(content),
         )
         personal_material = await PersonalMaterial.create(
             main_ydoc=main_ydoc,
@@ -562,6 +582,28 @@ async def personal_material(
     async with active_session():
         await PersonalMaterial.delete_by_kwargs(id=personal_material.id)
         await YDoc.delete_by_kwargs(id=main_ydoc.id)
+
+
+@pytest.fixture()
+async def personal_material(
+    faker: Faker,
+    active_session: ActiveSession,
+    personal_material_without_content: PersonalMaterial,
+) -> AsyncIterator[PersonalMaterial]:
+    content: bytes = faker.binary(length=64)
+
+    async with active_session() as session:
+        session.add(personal_material_without_content.main_ydoc)
+        personal_material_without_content.main_ydoc.update(size_bytes=len(content))
+
+    await write_ydoc_content(
+        ydoc=personal_material_without_content.main_ydoc,
+        content=content,
+    )
+
+    yield personal_material_without_content
+
+    personal_material_without_content.main_ydoc.path.unlink(missing_ok=True)
 
 
 @pytest.fixture()
@@ -611,7 +653,6 @@ async def classroom_material(
         main_ydoc = await YDoc.create(
             owner_id=tutor_user_id,
             content_kind=input_data.pop("content_kind"),
-            content=content,
             size_bytes=len(content),
         )
         classroom_material = await ClassroomMaterial.create(
@@ -621,8 +662,11 @@ async def classroom_material(
             **input_data,
         )
 
+    await write_ydoc_content(ydoc=main_ydoc, content=content)
+
     yield classroom_material
 
+    main_ydoc.path.unlink(missing_ok=True)
     async with active_session():
         await ClassroomMaterial.delete_by_kwargs(id=classroom_material.id)
         await YDoc.delete_by_kwargs(id=main_ydoc.id)
@@ -676,7 +720,6 @@ async def classroom_note_material(
         main_ydoc = await YDoc.create(
             owner_id=tutor_user_id,
             content_kind=YDocContentKind.NOTE,
-            content=content,
             size_bytes=len(content),
         )
         classroom_note_material = await ClassroomNoteMaterial.create(
@@ -684,8 +727,11 @@ async def classroom_note_material(
             classroom_id=classroom_id,
         )
 
+    await write_ydoc_content(ydoc=main_ydoc, content=content)
+
     yield classroom_note_material
 
+    main_ydoc.path.unlink(missing_ok=True)
     async with active_session():
         await ClassroomNoteMaterial.delete_by_kwargs(id=classroom_note_material.id)
         await YDoc.delete_by_kwargs(id=main_ydoc.id)

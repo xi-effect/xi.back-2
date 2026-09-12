@@ -88,10 +88,7 @@ async def duplicate_material_to_classroom(
     if source_material.main_ydoc.owner_id != auth_data.user_id:
         raise MyMaterialResponses.MATERIAL_ACCESS_DENIED
 
-    main_ydoc = await YDoc.duplicate_by_id(
-        source_ydoc_id=source_material.main_ydoc_id,
-        owner_id=auth_data.user_id,
-    )
+    main_ydoc = await source_material.main_ydoc.duplicate()
     await YDocFile.duplicate_all_links_by_ydoc_id(
         source_ydoc_id=source_material.main_ydoc_id,
         target_ydoc_id=main_ydoc.id,

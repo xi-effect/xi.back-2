@@ -1,3 +1,4 @@
+import gzip
 from uuid import UUID
 
 import pytest
@@ -127,26 +128,56 @@ async def test_ydoc_content_retrieving(
         expected_json=None,
         expected_headers={
             "Content-Type": "application/octet-stream",
+            "Content-Encoding": "gzip",
         },
     ).content
 
-    assert response_content == ydoc.content
+    assert response_content == gzip.decompress(ydoc.path.read_bytes())
+
+
+async def test_ydoc_content_retrieving_without_content(
+    internal_client: TestClient,
+    ydoc_without_content: YDoc,
+) -> None:
+    assert_response(
+        internal_client.get(
+            f"/internal/content-service/ydocs/{ydoc_without_content.id}/content/",
+        ),
+        expected_json=None,
+        expected_headers={
+            "Content-Type": "application/octet-stream",
+            "Content-Encoding": None,
+            "Content-Length": "0",
+        },
+    )
 
 
 @freeze_time()
+@pytest.mark.parametrize(
+    "is_content_gzipped",
+    [
+        pytest.param(False, id="raw_content"),
+        pytest.param(True, id="gzipped_content"),
+    ],
+)
 async def test_ydoc_content_updating(
     faker: Faker,
     active_session: ActiveSession,
     internal_client: TestClient,
     personal_material: PersonalMaterial,
+    is_content_gzipped: bool,
 ) -> None:
     content: bytes = faker.binary(length=64)
+    request_headers = {"Content-Type": "application/octet-stream"}
+    if is_content_gzipped:
+        request_headers["Content-Encoding"] = "gzip"
+        request_headers["X-Size-Bytes"] = str(len(content))
 
     assert_nodata_response(
         internal_client.put(
             f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/",
-            content=content,
-            headers={"Content-Type": "application/octet-stream"},
+            content=gzip.compress(content) if is_content_gzipped else content,
+            headers=request_headers,
         ),
     )
 
@@ -159,7 +190,7 @@ async def test_ydoc_content_updating(
         await session.refresh(main_ydoc)
         assert_contains(
             {
-                "content": await main_ydoc.awaitable_attrs.content,
+                "content": gzip.decompress(main_ydoc.path.read_bytes()),
                 "size_bytes": main_ydoc.size_bytes,
                 "updated_at": main_ydoc.updated_at,
             },
@@ -183,6 +214,8 @@ async def test_ydoc_content_clearing(
         ),
     )
 
+    assert not personal_material.main_ydoc.path.exists()
+
     async with active_session() as session:
         session.add(personal_material)
         await session.refresh(personal_material)
@@ -191,16 +224,8 @@ async def test_ydoc_content_clearing(
         main_ydoc = personal_material.main_ydoc
         await session.refresh(main_ydoc)
         assert_contains(
-            {
-                "content": await main_ydoc.awaitable_attrs.content,
-                "size_bytes": main_ydoc.size_bytes,
-                "updated_at": main_ydoc.updated_at,
-            },
-            {
-                "content": None,
-                "size_bytes": 0,
-                "updated_at": datetime_utc_now(),
-            },
+            main_ydoc,
+            {"size_bytes": 0, "updated_at": datetime_utc_now()},
         )
 
 

@@ -147,20 +147,16 @@ class Material(Base):
     )
 
     @classmethod
-    async def update_main_ydoc_content(
+    async def update_main_ydoc_content_meta(
         cls,
         main_ydoc_id: UUID,
-        content: bytes | None,
+        size_bytes: int,
     ) -> None:
         current_timestamp = datetime_utc_now()
         updated_ydocs = (
             update(YDoc)
             .filter_by(id=main_ydoc_id)
-            .values(
-                content=content,
-                size_bytes=0 if content is None else len(content),
-                updated_at=current_timestamp,
-            )
+            .values(size_bytes=size_bytes, updated_at=current_timestamp)
             .returning(YDoc.id)
             .cte()
         )
