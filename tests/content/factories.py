@@ -1,6 +1,7 @@
 from app.common.schemas.content_sch import ContentTokenPayloadSchema
 from app.content.models.files_db import File
 from app.content.models.materials_db import ClassroomMaterial, PersonalMaterial
+from app.content.models.ydocs_db import YDoc
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 
 
@@ -34,3 +35,7 @@ class ClassroomMaterialPatchFactory(
     BasePatchModelFactory[ClassroomMaterial.PatchSchema]
 ):
     __model__ = ClassroomMaterial.PatchSchema
+
+
+class YDocContentMetaInputFactory(BaseModelFactory[YDoc.ContentMetaInputSchema]):
+    __model__ = YDoc.ContentMetaInputSchema
