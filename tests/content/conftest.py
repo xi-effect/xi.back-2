@@ -156,39 +156,27 @@ async def write_ydoc_content(ydoc: YDoc, content: bytes) -> None:
 
 
 @pytest.fixture()
-async def ydoc_without_content(
+async def ydoc(
+    faker: Faker,
     active_session: ActiveSession,
     ydoc_owner_id: int,
 ) -> AsyncIterator[YDoc]:
+    content: bytes = faker.binary(length=64)
+
     async with active_session():
         ydoc = await YDoc.create(
             owner_id=ydoc_owner_id,
             content_kind=YDocContentKind.NOTE,
+            size_bytes=len(content),
         )
+
+    await write_ydoc_content(ydoc=ydoc, content=content)
 
     yield ydoc
 
+    ydoc.path.unlink(missing_ok=True)
     async with active_session():
         await YDoc.delete_by_kwargs(id=ydoc.id)
-
-
-@pytest.fixture()
-async def ydoc(
-    faker: Faker,
-    active_session: ActiveSession,
-    ydoc_without_content: YDoc,
-) -> AsyncIterator[YDoc]:
-    content: bytes = faker.binary(length=64)
-
-    async with active_session() as session:
-        session.add(ydoc_without_content)
-        ydoc_without_content.update(size_bytes=len(content))
-
-    await write_ydoc_content(ydoc=ydoc_without_content, content=content)
-
-    yield ydoc_without_content
-
-    ydoc_without_content.path.unlink(missing_ok=True)
 
 
 @pytest.fixture()

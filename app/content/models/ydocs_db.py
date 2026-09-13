@@ -2,13 +2,12 @@ from collections.abc import AsyncIterable, AsyncIterator
 from datetime import datetime
 from enum import StrEnum, auto
 from pathlib import Path
-from typing import Final, Self, cast
+from typing import Final, Self
 from uuid import UUID, uuid4
 
 import aiofiles
-from aiofiles.os import replace
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, LargeBinary, insert, select
+from sqlalchemy import DateTime, Enum, insert, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
@@ -46,9 +45,6 @@ class YDoc(Base):
 
     content_kind: Mapped[YDocContentKind] = mapped_column(
         Enum(YDocContentKind, name="content_ydoc_kind")
-    )
-    content: Mapped[bytes | None] = mapped_column(
-        LargeBinary, default=None, deferred=True
     )
     size_bytes: Mapped[int] = mapped_column(default=0)
 
@@ -97,27 +93,6 @@ class YDoc(Base):
 
         return ydoc
 
-    async def write_content(
-        self,
-        gzipped_content_stream: AsyncIterable[bytes],
-    ) -> None:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        temporary_path: Path | None = None
-        try:
-            async with aiofiles.tempfile.NamedTemporaryFile(
-                "wb", dir=self.path.parent, delete=False
-            ) as temporary_file:
-                temporary_path = Path(cast(str, temporary_file.name))
-                async for chunk in gzipped_content_stream:
-                    await temporary_file.write(chunk)
-            await replace(temporary_path, self.path)
-        finally:
-            if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
-
-    def delete_content(self) -> None:
-        self.path.unlink(missing_ok=True)
-
     async def delete(self) -> None:
-        self.delete_content()
+        self.path.unlink(missing_ok=True)
         await super().delete()
