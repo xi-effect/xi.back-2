@@ -1,4 +1,4 @@
-from livekit.api import TwirpError
+from livekit.api import ServerError
 from livekit.protocol.models import ParticipantInfo, Room
 from starlette import status
 
@@ -71,7 +71,7 @@ async def update_participant_metadata(
             identity=str(user_id),
             metadata=metadata.model_dump_metadata_json(),
         )
-    except TwirpError as e:
+    except ServerError as e:
         if e.status == status.HTTP_404_NOT_FOUND:
             return None
         raise e  # pragma: no cover  # undocumented exceptions from livekit
