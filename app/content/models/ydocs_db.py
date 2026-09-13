@@ -59,6 +59,7 @@ class YDoc(Base):
         DateTime(timezone=True), default=datetime_utc_now
     )
 
+    ContentMetaInputSchema = MappedModel.create(columns=[size_bytes])
     ResponseSchema = MappedModel.create(
         columns=[id, owner_id, content_kind, size_bytes, created_at, updated_at]
     )
