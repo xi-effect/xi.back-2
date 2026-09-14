@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Body, Depends, Path
+from fastapi import Depends, Path
 from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
@@ -10,8 +10,6 @@ from app.content.dependencies.content_token_dep import (
     ContentTokenResponses,
 )
 from app.content.models.ydocs_db import YDoc
-
-YDocContent = Annotated[bytes, Body(..., media_type="application/octet-stream")]
 
 
 class YDocResponses(Responses):

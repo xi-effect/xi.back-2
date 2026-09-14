@@ -1,7 +1,7 @@
 import jwt
 import pytest
 from faker import Faker
-from livekit.api import TwirpError, TwirpErrorCode
+from livekit.api import ServerError, ServerErrorCode
 from livekit.protocol.models import ParticipantInfo, Room
 from livekit.protocol.room import (
     CreateRoomRequest,
@@ -248,8 +248,8 @@ async def test_participant_metadata_updating_participant_not_found(
     update_participant_mock = livekit_mock.route(
         "RoomService",
         "UpdateParticipant",
-        side_effect=TwirpError(
-            code=TwirpErrorCode.NOT_FOUND,
+        side_effect=ServerError(
+            code=ServerErrorCode.NOT_FOUND,
             msg="participant not found",
             status=status.HTTP_404_NOT_FOUND,
         ),

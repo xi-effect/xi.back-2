@@ -42,25 +42,16 @@ async def test_classroom_note_creation(
         assert_contains(classroom_note_material, {"updated_at": datetime_utc_now()})
 
         assert_contains(
-            {
-                "owner_id": classroom_note_material.main_ydoc.owner_id,
-                "content_kind": classroom_note_material.main_ydoc.content_kind,
-                "content": (
-                    await classroom_note_material.main_ydoc.awaitable_attrs.content
-                ),
-                "size_bytes": classroom_note_material.main_ydoc.size_bytes,
-                "created_at": classroom_note_material.main_ydoc.created_at,
-                "updated_at": classroom_note_material.main_ydoc.updated_at,
-            },
+            classroom_note_material.main_ydoc,
             {
                 "owner_id": tutor_user_id,
                 "content_kind": YDocContentKind.NOTE,
-                "content": None,
                 "size_bytes": 0,
                 "created_at": datetime_utc_now(),
                 "updated_at": datetime_utc_now(),
             },
         )
+        assert not classroom_note_material.main_ydoc.path.exists()
 
         expected_content_token_payload = ContentTokenPayloadSchema(
             material_id=classroom_note_material.id,

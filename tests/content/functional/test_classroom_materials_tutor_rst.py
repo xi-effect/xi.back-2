@@ -14,7 +14,12 @@ from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccessLevel
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File
-from app.content.models.materials_db import ClassroomMaterial, Material, MaterialTag
+from app.content.models.materials_db import (
+    ClassroomMaterial,
+    Material,
+    MaterialTag,
+    PersonalMaterial,
+)
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
@@ -58,23 +63,16 @@ async def test_classroom_material_creation(
         assert classroom_material is not None
 
         assert_contains(
-            {
-                "owner_id": classroom_material.main_ydoc.owner_id,
-                "content_kind": classroom_material.main_ydoc.content_kind,
-                "content": await classroom_material.main_ydoc.awaitable_attrs.content,
-                "size_bytes": classroom_material.main_ydoc.size_bytes,
-                "created_at": classroom_material.main_ydoc.created_at,
-                "updated_at": classroom_material.main_ydoc.updated_at,
-            },
+            classroom_material.main_ydoc,
             {
                 "owner_id": tutor_user_id,
                 "content_kind": input_data["content_kind"],
-                "content": None,
                 "size_bytes": 0,
                 "created_at": datetime_utc_now(),
                 "updated_at": datetime_utc_now(),
             },
         )
+        assert not classroom_material.main_ydoc.path.exists()
 
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
@@ -176,7 +174,7 @@ async def test_material_to_classroom_duplication(
             {
                 "owner_id": classroom_material.main_ydoc.owner_id,
                 "content_kind": classroom_material.main_ydoc.content_kind,
-                "content": await classroom_material.main_ydoc.awaitable_attrs.content,
+                "gzipped_content": classroom_material.main_ydoc.path.read_bytes(),
                 "size_bytes": classroom_material.main_ydoc.size_bytes,
                 "created_at": classroom_material.main_ydoc.created_at,
                 "updated_at": classroom_material.main_ydoc.updated_at,
@@ -184,7 +182,7 @@ async def test_material_to_classroom_duplication(
             {
                 "owner_id": tutor_user_id,
                 "content_kind": any_material.content_kind,
-                "content": any_material.main_ydoc.content,
+                "gzipped_content": any_material.main_ydoc.path.read_bytes(),
                 "size_bytes": any_material.main_ydoc.size_bytes,
                 "created_at": datetime_utc_now(),
                 "updated_at": datetime_utc_now(),
@@ -198,6 +196,54 @@ async def test_material_to_classroom_duplication(
             )
             is not None
         )
+
+        await classroom_material.delete()
+        await classroom_material.main_ydoc.delete()
+
+
+@freeze_time()
+async def test_material_to_classroom_duplication_without_content(
+    active_session: ActiveSession,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+    personal_material_without_content: PersonalMaterial,
+) -> None:
+    input_data = factories.ClassroomMaterialDuplicateInputFactory.build_json()
+
+    material_id: UUID = assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/material-duplicates/",
+            json={**input_data, "source_id": str(personal_material_without_content.id)},
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            **input_data,
+            "id": UUID,
+            "access_kind": "classroom",
+            "classroom_id": classroom_id,
+            "content_kind": personal_material_without_content.content_kind,
+            "updated_at": datetime_utc_now(),
+            "tag_ids": [],
+        },
+    ).json()["id"]
+
+    async with active_session():
+        classroom_material = await ClassroomMaterial.find_first_by_id(material_id)
+        assert classroom_material is not None
+
+        assert_contains(
+            classroom_material.main_ydoc,
+            {
+                "owner_id": tutor_user_id,
+                "content_kind": personal_material_without_content.content_kind,
+                "size_bytes": 0,
+                "created_at": datetime_utc_now(),
+                "updated_at": datetime_utc_now(),
+            },
+        )
+        assert not classroom_material.main_ydoc.path.exists()
 
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
@@ -326,6 +372,8 @@ async def test_classroom_material_deleting(
             f"/materials/{classroom_material.id}/"
         )
     )
+
+    assert not classroom_material.main_ydoc.path.exists()
 
     async with active_session():
         assert await ClassroomMaterial.find_first_by_id(classroom_material.id) is None

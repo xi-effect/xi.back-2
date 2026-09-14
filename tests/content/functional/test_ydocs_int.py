@@ -1,7 +1,7 @@
+from typing import Any
 from uuid import UUID
 
 import pytest
-from faker import Faker
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf, lfc
@@ -15,6 +15,7 @@ from app.content.models.materials_db import PersonalMaterial
 from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.polyfactory_ext import BaseModelFactory
 from tests.content import factories
 
 pytestmark = pytest.mark.anyio
@@ -116,37 +117,18 @@ async def test_ydoc_access_level_retrieving_proxy_authorization_missing(
     )
 
 
-async def test_ydoc_content_retrieving(
-    internal_client: TestClient,
-    ydoc: YDoc,
-) -> None:
-    response_content: bytes = assert_response(
-        internal_client.get(
-            f"/internal/content-service/ydocs/{ydoc.id}/content/",
-        ),
-        expected_json=None,
-        expected_headers={
-            "Content-Type": "application/octet-stream",
-        },
-    ).content
-
-    assert response_content == ydoc.content
-
-
 @freeze_time()
-async def test_ydoc_content_updating(
-    faker: Faker,
+async def test_ydoc_content_meta_updating(
     active_session: ActiveSession,
     internal_client: TestClient,
     personal_material: PersonalMaterial,
 ) -> None:
-    content: bytes = faker.binary(length=64)
+    input_data = factories.YDocContentMetaInputFactory.build_json()
 
     assert_nodata_response(
         internal_client.put(
-            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/",
-            content=content,
-            headers={"Content-Type": "application/octet-stream"},
+            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content-meta/",
+            json=input_data,
         ),
     )
 
@@ -155,80 +137,37 @@ async def test_ydoc_content_updating(
         await session.refresh(personal_material)
         assert_contains(personal_material, {"updated_at": datetime_utc_now()})
 
-        main_ydoc = personal_material.main_ydoc
-        await session.refresh(main_ydoc)
+        await session.refresh(personal_material.main_ydoc)
         assert_contains(
-            {
-                "content": await main_ydoc.awaitable_attrs.content,
-                "size_bytes": main_ydoc.size_bytes,
-                "updated_at": main_ydoc.updated_at,
-            },
-            {
-                "content": content,
-                "size_bytes": len(content),
-                "updated_at": datetime_utc_now(),
-            },
-        )
-
-
-@freeze_time()
-async def test_ydoc_content_clearing(
-    active_session: ActiveSession,
-    internal_client: TestClient,
-    personal_material: PersonalMaterial,
-) -> None:
-    assert_nodata_response(
-        internal_client.delete(
-            f"/internal/content-service/ydocs/{personal_material.main_ydoc_id}/content/"
-        ),
-    )
-
-    async with active_session() as session:
-        session.add(personal_material)
-        await session.refresh(personal_material)
-        assert_contains(personal_material, {"updated_at": datetime_utc_now()})
-
-        main_ydoc = personal_material.main_ydoc
-        await session.refresh(main_ydoc)
-        assert_contains(
-            {
-                "content": await main_ydoc.awaitable_attrs.content,
-                "size_bytes": main_ydoc.size_bytes,
-                "updated_at": main_ydoc.updated_at,
-            },
-            {
-                "content": None,
-                "size_bytes": 0,
-                "updated_at": datetime_utc_now(),
-            },
+            personal_material.main_ydoc,
+            {**input_data, "updated_at": datetime_utc_now()},
         )
 
 
 @pytest.mark.parametrize(
-    ("method", "path", "with_content"),
+    ("method", "path", "body_factory"),
     [
-        pytest.param("GET", "access-level", False, id="retrieve-access-level"),
-        pytest.param("GET", "content", False, id="retrieve-content"),
-        pytest.param("PUT", "content", True, id="update-content"),
-        pytest.param("DELETE", "content", False, id="clear-content"),
+        pytest.param("GET", "access-level", None, id="retrieve-access-level"),
+        pytest.param(
+            "PUT",
+            "content-meta",
+            factories.YDocContentMetaInputFactory,
+            id="update-content-meta",
+        ),
     ],
 )
 async def test_ydoc_not_finding(
-    faker: Faker,
     authorized_internal_client: TestClient,
     missing_ydoc_id: UUID,
     method: str,
     path: str,
-    with_content: bool,
+    body_factory: type[BaseModelFactory[Any]] | None,
 ) -> None:
     assert_response(
         authorized_internal_client.request(
             method,
             f"/internal/content-service/ydocs/{missing_ydoc_id}/{path}/",
-            content=faker.binary(length=64) if with_content else None,
-            headers=(
-                {"Content-Type": "application/octet-stream"} if with_content else None
-            ),
+            json=body_factory and body_factory.build_json(),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "YDoc not found"},
