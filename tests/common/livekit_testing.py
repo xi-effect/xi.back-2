@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from google.protobuf.message import Message
-from livekit.api.twirp_client import TwirpClient, TwirpError
+from livekit.api import ServerError
+from livekit.api.twirp_client import TwirpClient
 
 from tests.common.mock_stack import MockStack
 
@@ -12,7 +13,7 @@ class LiveKitRouteMock:
     def __init__(
         self,
         response_data: Message | None = None,
-        side_effect: TwirpError | None = None,
+        side_effect: ServerError | None = None,
     ) -> None:
         self.request_data: Message | None = None
         self.response_data = response_data
@@ -44,7 +45,7 @@ class LiveKitMock:
         service: str,
         method: str,
         response_data: Message | None = None,
-        side_effect: TwirpError | None = None,
+        side_effect: ServerError | None = None,
     ) -> LiveKitRouteMock:
         route_mock = LiveKitRouteMock(response_data, side_effect)
         self.route_mocks[(service, method)] = route_mock

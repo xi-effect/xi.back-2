@@ -27,7 +27,7 @@ class LiveKit:
             api_key=self.api_key,
             api_secret=self.api_secret,
         )
-        await self._api.__aenter__()  # type: ignore[no-untyped-call]  # lib's fault
+        await self._api.__aenter__()
         return self
 
     async def __aexit__(
@@ -36,7 +36,7 @@ class LiveKit:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        await self.api.__aexit__(  # type: ignore[no-untyped-call]  # lib's fault
+        await self.api.__aexit__(
             exc_type=exc_type,
             exc_val=exc_val,
             exc_tb=exc_tb,
