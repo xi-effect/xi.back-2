@@ -23,6 +23,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON
+from tests.users.utils import EmailDenormalizer
 
 pytestmark = pytest.mark.anyio
 
@@ -39,6 +40,7 @@ async def test_requesting_email_change(
     send_email_message_mock: AsyncMock,
     authorized_client: TestClient,
     user_data: AnyJSON,
+    email_denormalizer: EmailDenormalizer,
     user: User,
     new_email: str,
 ) -> None:
@@ -49,7 +51,10 @@ async def test_requesting_email_change(
     assert_nodata_response(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-change/requests/",
-            json={"password": user_data["password"], "new_email": new_email},
+            json={
+                "password": user_data["password"],
+                "new_email": email_denormalizer(new_email),
+            },
         ),
         expected_code=status.HTTP_202_ACCEPTED,
     )
@@ -136,10 +141,33 @@ async def test_requesting_email_change_wrong_password(
     )
 
 
+async def test_requesting_email_change_invalid_email(
+    faker: Faker,
+    authorized_client: TestClient,
+    user_data: AnyJSON,
+) -> None:
+    assert_response(
+        authorized_client.post(
+            "/api/protected/user-service/users/current/email-change/requests/",
+            json={"password": user_data["password"], "new_email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "new_email"],
+                }
+            ],
+        },
+    )
+
+
 async def test_email_change_confirmation(
     notifications_respx_mock: MockRouter,
     client: TestClient,
     active_session: ActiveSession,
+    email_denormalizer: EmailDenormalizer,
     user: User,
     new_email: str,
 ) -> None:
@@ -152,7 +180,12 @@ async def test_email_change_confirmation(
             "/api/public/user-service/email-change/confirmations/",
             json={
                 "token": email_change_token_provider.serialize_and_sign(
-                    EmailChangeTokenPayloadSchema(user_id=user.id, new_email=new_email)
+                    # model_construct keeps the denormalized spelling in the token,
+                    # like one minted before EmailType existed
+                    EmailChangeTokenPayloadSchema.model_construct(
+                        user_id=user.id,
+                        new_email=email_denormalizer(new_email),
+                    )
                 )
             },
         ),

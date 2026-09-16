@@ -40,7 +40,7 @@ public_router = APIRouterExt(tags=["email change"])
 )
 async def request_email_change(
     user: AuthorizedUser,
-    new_email: Annotated[str, Body(embed=True, max_length=100)],
+    new_email: Annotated[User.EmailType, Body(embed=True)],
 ) -> None:
     if not await is_email_unique(new_email):
         raise UserEmailResponses.EMAIL_IN_USE

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from http.cookiejar import Cookie
 
 import pytest
@@ -13,6 +14,13 @@ from app.users.utils.authorization import AUTH_COOKIE_NAME
 
 def generate_username() -> str:
     return rstr.xeger("^[a-z0-9_.]{4,30}$")
+
+
+def denormalize_email(email: str) -> str:
+    return f"  {email.upper()}  "
+
+
+EmailDenormalizer = Callable[[str], str]
 
 
 async def get_db_user(user: User) -> User:

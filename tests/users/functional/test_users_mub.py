@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from faker import Faker
 from freezegun import freeze_time
+from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -12,6 +13,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
 from tests.users import factories
+from tests.users.utils import EmailDenormalizer
 
 pytestmark = pytest.mark.anyio
 
@@ -21,9 +23,13 @@ async def test_user_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
     user_data: AnyJSON,
+    email_denormalizer: EmailDenormalizer,
 ) -> None:
     user_id: int = assert_response(
-        mub_client.post("/mub/user-service/users/", json=user_data),
+        mub_client.post(
+            "/mub/user-service/users/",
+            json={**user_data, "email": email_denormalizer(user_data["email"])},
+        ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **user_data,
@@ -92,13 +98,17 @@ async def test_user_getting(
 async def test_user_updating(
     faker: Faker,
     mub_client: TestClient,
+    email_denormalizer: EmailDenormalizer,
     user: User,
     user_full_data: AnyJSON,
 ) -> None:
     new_user_data: AnyJSON = factories.UserFullPatchFactory.build_json()
 
     assert_response(
-        mub_client.patch(f"/mub/user-service/users/{user.id}/", json=new_user_data),
+        mub_client.patch(
+            f"/mub/user-service/users/{user.id}/",
+            json={**new_user_data, "email": email_denormalizer(new_user_data["email"])},
+        ),
         expected_json={**user_full_data, **new_user_data, "password": None},
     )
 
@@ -150,6 +160,38 @@ async def test_user_not_found(
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        pytest.param("POST", "", id="create"),
+        pytest.param("PATCH", lfc(lambda user: f"{user.id}/"), id="update"),
+    ],
+)
+async def test_user_operations_invalid_email(
+    faker: Faker,
+    mub_client: TestClient,
+    user_data: AnyJSON,
+    method: str,
+    path: str,
+) -> None:
+    assert_response(
+        mub_client.request(
+            method,
+            f"/mub/user-service/users/{path}",
+            json={**user_data, "email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
     )
 
 

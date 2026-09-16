@@ -2,6 +2,7 @@ from pydantic import AwareDatetime, BaseModel
 
 from app.common.config import settings
 from app.common.itsdangerous_ext import SignedTokenProvider
+from app.users.models.users_db import User
 
 
 class EmailConfirmationTokenPayloadSchema(BaseModel):
@@ -19,7 +20,7 @@ email_confirmation_token_provider = SignedTokenProvider[
 
 class EmailChangeTokenPayloadSchema(BaseModel):
     user_id: int
-    new_email: str
+    new_email: User.EmailType
 
 
 email_change_token_provider = SignedTokenProvider[EmailChangeTokenPayloadSchema](

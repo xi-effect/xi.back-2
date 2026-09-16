@@ -21,6 +21,7 @@ from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.types import AnyJSON
+from tests.users.utils import EmailDenormalizer
 
 pytestmark = pytest.mark.anyio
 
@@ -34,12 +35,13 @@ def new_password(faker: Faker) -> str:
 async def test_requesting_password_reset(
     client: TestClient,
     send_email_message_mock: AsyncMock,
+    email_denormalizer: EmailDenormalizer,
     user: User,
 ) -> None:
     assert_nodata_response(
         client.post(
             "/api/public/user-service/password-reset/requests/",
-            json={"email": user.email},
+            json={"email": email_denormalizer(user.email)},
         ),
         expected_code=status.HTTP_202_ACCEPTED,
     )
@@ -72,6 +74,27 @@ async def test_requesting_password_reset_user_not_found(
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
+    )
+
+
+async def test_requesting_password_reset_invalid_email(
+    faker: Faker,
+    client: TestClient,
+) -> None:
+    assert_response(
+        client.post(
+            "/api/public/user-service/password-reset/requests/",
+            json={"email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
     )
 
 
