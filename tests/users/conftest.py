@@ -11,6 +11,7 @@ from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, Factory, PytestRequest
 from tests.users import factories
+from tests.users.utils import EmailDenormalizer, denormalize_email
 
 
 @pytest.fixture(scope="session")
@@ -39,6 +40,13 @@ async def session_factory(
 @pytest.fixture()
 async def user_data() -> AnyJSON:
     return factories.UserInputFactory.build_json()
+
+
+@pytest.fixture(params=[False, True], ids=["normalized_email", "denormalized_email"])
+def email_denormalizer(request: PytestRequest[bool]) -> EmailDenormalizer:
+    if request.param:
+        return denormalize_email
+    return lambda email: email
 
 
 @pytest.fixture()

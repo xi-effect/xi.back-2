@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import AsyncMock
 
 import pytest
+from faker import Faker
 from freezegun import freeze_time
 from respx import MockRouter
 from starlette import status
@@ -25,7 +26,7 @@ from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON, PytestRequest
-from tests.users.utils import assert_session_from_cookie
+from tests.users.utils import EmailDenormalizer, assert_session_from_cookie
 
 pytestmark = pytest.mark.anyio
 
@@ -42,6 +43,7 @@ async def test_signing_up(
     client: TestClient,
     send_email_message_mock: AsyncMock,
     user_data: AnyJSON,
+    email_denormalizer: EmailDenormalizer,
     is_cross_site: bool,
 ) -> None:
     notifications_bridge_mock = notifications_respx_mock.put(
@@ -51,7 +53,7 @@ async def test_signing_up(
     response = assert_response(
         client.post(
             "/api/public/user-service/signup/",
-            json=user_data,
+            json={**user_data, "email": email_denormalizer(user_data["email"])},
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
         expected_json={
@@ -132,13 +134,14 @@ async def test_signing_in(
     client: TestClient,
     active_session: ActiveSession,
     user_data: AnyJSON,
+    email_denormalizer: EmailDenormalizer,
     user_full_data: AnyJSON,
     is_cross_site: bool,
 ) -> None:
     response = assert_response(
         client.post(
             "/api/public/user-service/signin/",
-            json=user_data,
+            json={**user_data, "email": email_denormalizer(user_data["email"])},
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
         expected_json=user_full_data,
@@ -151,24 +154,49 @@ async def test_signing_in(
 
 @pytest.mark.usefixtures("user")
 @pytest.mark.parametrize(
-    ("altered_key", "error"),
+    ("data_mod", "error"),
     [
-        pytest.param("email", "User not found", id="bad_email"),
-        pytest.param("password", "Wrong password", id="wrong_password"),
+        pytest.param({"email": "a@alter.alter"}, "User not found", id="bad_email"),
+        pytest.param({"password": "alter"}, "Wrong password", id="wrong_password"),
     ],
 )
 async def test_signing_in_invalid_credentials(
     client: TestClient,
     user_data: AnyJSON,
-    altered_key: str,
+    data_mod: AnyJSON,
     error: str,
 ) -> None:
     assert_response(
         client.post(
             "/api/public/user-service/signin/",
-            json={**user_data, altered_key: "alter"},
+            json={**user_data, **data_mod},
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": error},
+        expected_headers={"Set-Cookie": None},
+    )
+
+
+@pytest.mark.parametrize("endpoint", ["signup", "signin"])
+async def test_reglog_invalid_email(
+    faker: Faker,
+    client: TestClient,
+    user_data: AnyJSON,
+    endpoint: str,
+) -> None:
+    assert_response(
+        client.post(
+            f"/api/public/user-service/{endpoint}/",
+            json={**user_data, "email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
         expected_headers={"Set-Cookie": None},
     )
