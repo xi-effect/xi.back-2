@@ -27,11 +27,6 @@ from tests.common.types import AnyJSON
 pytestmark = pytest.mark.anyio
 
 
-@pytest.fixture()
-def new_email(faker: Faker) -> str:
-    return faker.email()
-
-
 @freeze_time()
 async def test_requesting_email_change(
     faker: Faker,
@@ -39,8 +34,9 @@ async def test_requesting_email_change(
     send_email_message_mock: AsyncMock,
     authorized_client: TestClient,
     user_data: AnyJSON,
+    normalized_email: str,
+    parametrized_email: str,
     user: User,
-    new_email: str,
 ) -> None:
     async with active_session() as session:
         session.add(user)
@@ -49,7 +45,7 @@ async def test_requesting_email_change(
     assert_nodata_response(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-change/requests/",
-            json={"password": user_data["password"], "new_email": new_email},
+            json={"password": user_data["password"], "new_email": parametrized_email},
         ),
         expected_code=status.HTTP_202_ACCEPTED,
     )
@@ -57,7 +53,7 @@ async def test_requesting_email_change(
     expected_token = email_change_token_provider.serialize_and_sign(
         EmailChangeTokenPayloadSchema(
             user_id=user.id,
-            new_email=new_email,
+            new_email=normalized_email,
         )
     )
     send_email_message_mock.assert_awaited_once_with(
@@ -66,7 +62,7 @@ async def test_requesting_email_change(
                 kind=EmailMessageKind.EMAIL_CHANGE_V2,
                 token=expected_token,
             ),
-            recipient_emails=[new_email],
+            recipient_emails=[normalized_email],
         )
     )
 
@@ -83,13 +79,35 @@ async def test_requesting_email_change(
         )
 
 
+async def test_requesting_email_change_invalid_email(
+    faker: Faker,
+    authorized_client: TestClient,
+    user_data: AnyJSON,
+) -> None:
+    assert_response(
+        authorized_client.post(
+            "/api/protected/user-service/users/current/email-change/requests/",
+            json={"password": user_data["password"], "new_email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "new_email"],
+                }
+            ],
+        },
+    )
+
+
 async def test_requesting_email_change_too_many_emails(
     faker: Faker,
     active_session: ActiveSession,
     authorized_client: TestClient,
     user_data: AnyJSON,
+    normalized_email: str,
     user: User,
-    new_email: str,
 ) -> None:
     async with active_session() as session:
         session.add(user)
@@ -99,7 +117,7 @@ async def test_requesting_email_change_too_many_emails(
     assert_response(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-change/requests/",
-            json={"password": user_data["password"], "new_email": new_email},
+            json={"password": user_data["password"], "new_email": normalized_email},
         ),
         expected_code=status.HTTP_429_TOO_MANY_REQUESTS,
         expected_json={"detail": "Too many emails"},
@@ -124,12 +142,12 @@ async def test_requesting_email_change_email_already_in_use(
 async def test_requesting_email_change_wrong_password(
     faker: Faker,
     authorized_client: TestClient,
-    new_email: str,
+    normalized_email: str,
 ) -> None:
     assert_response(
         authorized_client.post(
             "/api/protected/user-service/users/current/email-change/requests/",
-            json={"password": faker.password(), "new_email": new_email},
+            json={"password": faker.password(), "new_email": normalized_email},
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,
         expected_json={"detail": "Wrong password"},
@@ -140,8 +158,8 @@ async def test_email_change_confirmation(
     notifications_respx_mock: MockRouter,
     client: TestClient,
     active_session: ActiveSession,
+    normalized_email: str,
     user: User,
-    new_email: str,
 ) -> None:
     notifications_bridge_mock = notifications_respx_mock.put(
         path=f"/users/{user.id}/delivery-methods/{DeliveryMethodKind.EMAIL}/",
@@ -152,7 +170,10 @@ async def test_email_change_confirmation(
             "/api/public/user-service/email-change/confirmations/",
             json={
                 "token": email_change_token_provider.serialize_and_sign(
-                    EmailChangeTokenPayloadSchema(user_id=user.id, new_email=new_email)
+                    EmailChangeTokenPayloadSchema(
+                        user_id=user.id,
+                        new_email=normalized_email,
+                    )
                 )
             },
         ),
@@ -161,14 +182,14 @@ async def test_email_change_confirmation(
     assert_last_httpx_request(
         notifications_bridge_mock,
         expected_headers={"X-Api-Key": settings.api_key},
-        expected_json={"email": new_email},
+        expected_json={"email": normalized_email},
     )
 
     async with active_session() as session:
         session.add(user)
         await session.refresh(user)
 
-        assert user.email == new_email
+        assert user.email == normalized_email
 
 
 async def test_email_change_confirmation_email_already_in_use(
@@ -195,8 +216,8 @@ async def test_email_change_confirmation_email_already_in_use(
 
 async def test_email_change_confirmation_user_not_found(
     client: TestClient,
+    normalized_email: str,
     deleted_user_id: int,
-    new_email: str,
 ) -> None:
     assert_response(
         client.post(
@@ -205,7 +226,7 @@ async def test_email_change_confirmation_user_not_found(
                 "token": email_change_token_provider.serialize_and_sign(
                     EmailChangeTokenPayloadSchema(
                         user_id=deleted_user_id,
-                        new_email=new_email,
+                        new_email=normalized_email,
                     )
                 )
             },
@@ -218,8 +239,8 @@ async def test_email_change_confirmation_user_not_found(
 async def test_email_change_confirmation_expired_token(
     faker: Faker,
     client: TestClient,
+    normalized_email: str,
     user: User,
-    new_email: str,
 ) -> None:
     with freeze_time(
         faker.date_time(
@@ -228,7 +249,7 @@ async def test_email_change_confirmation_expired_token(
         )
     ):
         token = email_change_token_provider.serialize_and_sign(
-            EmailChangeTokenPayloadSchema(user_id=user.id, new_email=new_email)
+            EmailChangeTokenPayloadSchema(user_id=user.id, new_email=normalized_email)
         )
 
     assert_response(

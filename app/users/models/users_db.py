@@ -4,6 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, ClassVar, Self
 
+from email_validator import validate_email
 from passlib.handlers.pbkdf2 import pbkdf2_sha256
 from pydantic import AfterValidator, AwareDatetime, StringConstraints
 from pydantic_marshals.sqlalchemy import MappedModel
@@ -35,6 +36,10 @@ class User(Base):
     @staticmethod
     def generate_hash(password: str) -> str:
         return pbkdf2_sha256.hash(password)
+
+    @staticmethod
+    def validate_and_normalize_email(email: str) -> str:
+        return validate_email(email, check_deliverability=False).normalized.lower()
 
     @staticmethod
     def generate_next_email_confirmation_allowed_resend_at() -> datetime:
@@ -77,6 +82,11 @@ class User(Base):
         Index("hash_index_users_email", email, postgresql_using="hash"),
     )
 
+    EmailType = Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, max_length=100),
+        AfterValidator(validate_and_normalize_email),
+    ]
     PasswordType = Annotated[
         str,
         StringConstraints(min_length=6, max_length=100),
@@ -88,9 +98,7 @@ class User(Base):
     ]
     UsernameType = Annotated[str, StringConstraints(pattern="^[a-z0-9_.]{4,30}$")]
 
-    EmailSchema = MappedModel.create(
-        columns=[email]
-    )  # TODO (email, Annotated[str, AfterValidator(email_validator)]),
+    EmailSchema = MappedModel.create(columns=[(email, EmailType)])
     InputSchema = EmailSchema.extend(
         columns=[
             (username, UsernameType),
@@ -98,7 +106,7 @@ class User(Base):
         ]
     )
     PasswordSchema = MappedModel.create(columns=[password])
-    CredentialsSchema = MappedModel.create(columns=[email, password])
+    CredentialsSchema = EmailSchema.extend(columns=[password])
     UserProfileSchema = MappedModel.create(columns=[id, username, display_name])
     SettingsSchema = MappedModel.create(
         columns=[
