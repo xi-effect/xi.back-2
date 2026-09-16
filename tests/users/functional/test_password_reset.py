@@ -61,6 +61,27 @@ async def test_requesting_password_reset(
     )
 
 
+async def test_requesting_password_reset_invalid_email(
+    faker: Faker,
+    client: TestClient,
+) -> None:
+    assert_response(
+        client.post(
+            "/api/public/user-service/password-reset/requests/",
+            json={"email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
+    )
+
+
 async def test_requesting_password_reset_user_not_found(
     faker: Faker,
     client: TestClient,
