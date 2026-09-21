@@ -30,10 +30,10 @@ class UsersInternalBridge(BaseBridge):
             .validate_json(user_id_to_user_profile_dict_type_adapter)
         )
 
-    async def retrieve_user(self, user_id: int) -> UserProfileSchema:
+    async def retrieve_user_profile(self, user_id: int) -> UserProfileSchema:
         return (
             await ResponsePipelineBuilder.initialize_from_request(
-                self.client.get(f"/users/{user_id}/")
+                self.client.get(f"/users/{user_id}/profile/")
             )
             .validate_status_code()
             .validate_json(user_profile_type_adapter)

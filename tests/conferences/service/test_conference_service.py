@@ -136,7 +136,7 @@ async def test_conference_access_token_generation(
     user_id: int = faker.random_int()
     user_profile_data: AnyJSON = UserProfileFactory.build_json()
     users_internal_bridge_mock = users_internal_respx_mock.get(
-        path=f"/users/{user_id}/"
+        path=f"/users/{user_id}/profile/"
     ).respond(json=user_profile_data)
 
     access_token = await conferences_svc.generate_access_token(
