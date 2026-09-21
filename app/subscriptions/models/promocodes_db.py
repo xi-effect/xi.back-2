@@ -2,7 +2,7 @@ from base64 import b32encode
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import AwareDatetime, Field
+from pydantic import AfterValidator, AwareDatetime, Field, PositiveInt
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, String, select
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,15 +18,14 @@ promocode_code_generator = TokenGenerator(randomness=8, length=10, encoder=b32en
 class Promocode(Base):
     __tablename__ = "promocodes"
 
+    @staticmethod
+    def generate_code_if_missing(code: str | None) -> str:
+        return promocode_code_generator.generate_token() if code is None else code
+
     id: Mapped[int] = mapped_column(primary_key=True)
 
     title: Mapped[str] = mapped_column(String(100))
-    code: Mapped[str] = mapped_column(
-        String(10),
-        index=True,
-        unique=True,
-        default=promocode_code_generator.generate_token,
-    )
+    code: Mapped[str] = mapped_column(String(10), index=True, unique=True)
 
     valid_from: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
@@ -34,6 +33,11 @@ class Promocode(Base):
     valid_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
     )
+
+    subscription_days: Mapped[int] = mapped_column()
+    usage_limit: Mapped[int | None] = mapped_column(default=None)
+    usage_count: Mapped[int] = mapped_column(default=0)
+    max_account_age_days: Mapped[int | None] = mapped_column(default=None)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime_utc_now
@@ -45,26 +49,32 @@ class Promocode(Base):
     TitleType = Annotated[str, Field(min_length=1, max_length=100)]
     CodeType = Annotated[str, Field(min_length=1, max_length=10)]
 
-    ValidityPeriodInputSchema = MappedModel.create(
+    SettingsSchema = MappedModel.create(
         columns=[
             (valid_from, AwareDatetime | None),
             (valid_until, AwareDatetime | None),
+            (subscription_days, PositiveInt),
+            (usage_limit, PositiveInt | None),
+            (max_account_age_days, PositiveInt | None),
         ]
     )
-    InputSchema = ValidityPeriodInputSchema.extend(
+    InputSchema = SettingsSchema.extend(
         columns=[
             (title, TitleType),
-            (code, CodeType | None),
+            (
+                code,
+                Annotated[CodeType | None, AfterValidator(generate_code_if_missing)],
+            ),
         ]
     )
-    UpdateSchema = ValidityPeriodInputSchema.extend(
-        columns=[
-            (title, TitleType),
-            (code, CodeType),
-        ]
-    )
+    UpdateSchema = InputSchema.extend()
     ResponseSchema = InputSchema.extend(
-        columns=[id, (created_at, AwareDatetime), (updated_at, AwareDatetime)]
+        columns=[
+            id,
+            (created_at, AwareDatetime),
+            (updated_at, AwareDatetime),
+            usage_count,
+        ]
     )
 
     @classmethod

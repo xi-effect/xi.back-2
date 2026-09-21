@@ -11,8 +11,8 @@ async def promocode(active_session: ActiveSession) -> Promocode:
     async with active_session():
         return await Promocode.create(
             **{
-                **factories.PromocodeNoCodeInputFactory.build_python(),
-                **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
+                **factories.PromocodeWithCodeInputFactory.build_python(),
+                **factories.LimitedPeriodPromocodeSettingsFactory.build_python(),
             }
         )
 
@@ -27,8 +27,8 @@ async def other_promocode(active_session: ActiveSession) -> Promocode:
     async with active_session():
         return await Promocode.create(
             **{
-                **factories.PromocodeNoCodeInputFactory.build_python(),
-                **factories.LimitedPromocodeValidityPeriodInputFactory.build_python(),
+                **factories.PromocodeWithCodeInputFactory.build_python(),
+                **factories.LimitedPeriodPromocodeSettingsFactory.build_python(),
             }
         )
 
