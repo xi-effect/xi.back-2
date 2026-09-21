@@ -6,7 +6,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
-from app.subscriptions.routes import promocodes_mub, subscriptions_rst
+from app.subscriptions.routes import payments_rst, promocodes_mub, subscriptions_rst
 
 outside_router = APIRouterExt(prefix="/api/public/subscription-service")
 
@@ -14,6 +14,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/subscription-service",
 )
+authorized_router.include_router(payments_rst.router)
 authorized_router.include_router(subscriptions_rst.router)
 
 mub_router = APIRouterExt(
