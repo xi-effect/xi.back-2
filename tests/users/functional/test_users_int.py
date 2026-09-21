@@ -52,12 +52,30 @@ async def test_user_retrieving(
     )
 
 
-async def test_user_retrieving_user_not_found(
+async def test_user_email_retrieving(
     internal_client: TestClient,
-    deleted_user_id: int,
+    user: User,
 ) -> None:
     assert_response(
-        internal_client.get(f"/internal/user-service/users/{deleted_user_id}/"),
+        internal_client.get(f"/internal/user-service/users/{user.id}/email/"),
+        expected_json={"email": user.email},
+    )
+
+
+@pytest.mark.parametrize(
+    "postfix",
+    [
+        pytest.param("/", id="retrieve"),
+        pytest.param("/email/", id="retrieve-email"),
+    ],
+)
+async def test_user_not_found(
+    internal_client: TestClient,
+    deleted_user_id: int,
+    postfix: str,
+) -> None:
+    assert_response(
+        internal_client.get(f"/internal/user-service/users/{deleted_user_id}{postfix}"),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
     )

@@ -26,7 +26,16 @@ async def retrieve_multiple_users(
 @router.get(
     path="/users/{user_id}/",
     response_model=UserProfileSchema,
-    summary="Retrieve user by ids",
+    summary="Retrieve user by id",
 )
 async def retrieve_user(user: UserByID) -> User:
+    return user
+
+
+@router.get(
+    path="/users/{user_id}/email/",
+    response_model=User.EmailSchema,
+    summary="Retrieve user's email by id",
+)
+async def retrieve_user_email(user: UserByID) -> User:
     return user
