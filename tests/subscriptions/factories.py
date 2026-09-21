@@ -1,9 +1,10 @@
-from datetime import timezone
+from datetime import timedelta, timezone
 
 from polyfactory import PostGenerated, Require, Use
 from pydantic import AwareDatetime, BaseModel
 
 from app.common.pydantic_ext import FutureAwareDatetime
+from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
 from app.subscriptions.models.subscriptions_db import SubscriptionPlanKind
 from app.subscriptions.routes.promocodes_mub import (
@@ -68,6 +69,26 @@ class PromocodeWithCodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
 
     valid_from = None
     valid_until = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class UnrestrictedPromocodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
+    __model__ = Promocode.InputSchema
+
+    valid_from = None
+    valid_until = None
+    usage_limit = None
+    max_account_age_days = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class RedeemablePromocodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
+    __model__ = Promocode.InputSchema
+
+    valid_from = Use(lambda: datetime_utc_now() - timedelta(days=1))
+    valid_until = Use(lambda: datetime_utc_now() + timedelta(days=1))
+    usage_limit = 2
+    max_account_age_days = None
     code = Use(promocode_code_generator.generate_token)
 
 

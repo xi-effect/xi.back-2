@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, AwareDatetime, Field, PositiveInt
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, String, select
+from sqlalchemy import DateTime, String, or_, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -80,3 +80,15 @@ class Promocode(Base):
     @classmethod
     async def is_present_by_code(cls, code: str) -> bool:
         return await db.is_present(select(cls).filter_by(code=code))
+
+    @classmethod
+    async def has_incremented_usage_count_by_id(cls, promocode_id: int) -> bool:
+        stmt = (
+            update(cls)
+            .filter_by(id=promocode_id)
+            .filter(or_(cls.usage_limit.is_(None), cls.usage_count < cls.usage_limit))
+            .values(usage_count=cls.usage_count + 1)
+            .returning(cls.id)
+        )
+        result = await db.session.execute(stmt)
+        return result.first() is not None

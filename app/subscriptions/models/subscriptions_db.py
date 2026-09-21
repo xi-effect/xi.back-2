@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum, auto
 from typing import Self
 
 from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, Index, select
+from sqlalchemy import DateTime, Enum, Index, insert, literal, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -41,3 +41,37 @@ class Subscription(Base):
             .filter_by(user_id=user_id)
             .order_by(cls.ends_at.desc())
         )
+
+    @classmethod
+    async def add_subscription_days_by_user_id(
+        cls, user_id: int, subscription_days: int
+    ) -> None:
+        current_timestamp = datetime_utc_now()
+        target_id = (
+            select(cls.id)
+            .filter_by(user_id=user_id)
+            .filter(cls.ends_at > current_timestamp)
+            .order_by(cls.ends_at.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
+        updated_subscriptions = (
+            update(cls)
+            .filter(cls.id == target_id)
+            .values(ends_at=cls.ends_at + timedelta(days=subscription_days))
+            .returning(cls.id)
+            .cte()
+        )
+        stmt = insert(cls).from_select(
+            [cls.user_id, cls.plan_kind, cls.created_at, cls.ends_at],
+            select(
+                literal(user_id, type_=cls.user_id.type),
+                literal(SubscriptionPlanKind.PRO, type_=cls.plan_kind.type),
+                literal(current_timestamp, type_=cls.created_at.type),
+                literal(
+                    current_timestamp + timedelta(days=subscription_days),
+                    type_=cls.ends_at.type,
+                ),
+            ).filter(~select(updated_subscriptions.c.id).exists()),
+        )
+        await db.session.execute(stmt)
