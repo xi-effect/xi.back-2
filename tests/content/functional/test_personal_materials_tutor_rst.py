@@ -50,23 +50,16 @@ async def test_personal_material_creation(
         assert_contains(personal_material, {"tutor_id": tutor_user_id})
 
         assert_contains(
-            {
-                "owner_id": personal_material.main_ydoc.owner_id,
-                "content_kind": personal_material.main_ydoc.content_kind,
-                "content": await personal_material.main_ydoc.awaitable_attrs.content,
-                "size_bytes": personal_material.main_ydoc.size_bytes,
-                "created_at": personal_material.main_ydoc.created_at,
-                "updated_at": personal_material.main_ydoc.updated_at,
-            },
+            personal_material.main_ydoc,
             {
                 "owner_id": tutor_user_id,
                 "content_kind": input_data["content_kind"],
-                "content": None,
                 "size_bytes": 0,
                 "created_at": datetime_utc_now(),
                 "updated_at": datetime_utc_now(),
             },
         )
+        assert not personal_material.main_ydoc.path.exists()
 
         await personal_material.delete()
         await personal_material.main_ydoc.delete()
@@ -153,6 +146,8 @@ async def test_personal_material_deleting(
             f"/personal-materials/{personal_material.id}/"
         )
     )
+
+    assert not personal_material.main_ydoc.path.exists()
 
     async with active_session():
         assert await PersonalMaterial.find_first_by_id(personal_material.id) is None

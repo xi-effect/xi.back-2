@@ -1,11 +1,11 @@
-from fastapi import Response
 from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.content_sch import YDocAccessLevel
 from app.content.dependencies.content_token_dep import ContentTokenPayload
-from app.content.dependencies.ydocs_dep import MyYDocByID, YDocByID, YDocContent
+from app.content.dependencies.ydocs_dep import MyYDocByID, YDocByID
 from app.content.models.materials_db import Material
+from app.content.models.ydocs_db import YDoc
 
 router = APIRouterExt(tags=["ydocs internal"])
 
@@ -21,30 +21,16 @@ async def retrieve_ydoc_access_level(
     return content_token_payload.ydoc_access_level
 
 
-@router.get(
-    "/ydocs/{ydoc_id}/content/",
-    summary="Retrieve ydoc's content",
-)
-async def retrieve_ydoc_content(ydoc: YDocByID) -> Response:
-    return Response(
-        content=await ydoc.awaitable_attrs.content,
-        media_type="application/octet-stream",
-    )
-
-
 @router.put(
-    "/ydocs/{ydoc_id}/content/",
+    "/ydocs/{ydoc_id}/content-meta/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Update ydoc's content",
+    summary="Update ydoc's content's meta",
 )
-async def update_ydoc_content(ydoc: YDocByID, content: YDocContent) -> None:
-    await Material.update_main_ydoc_content(main_ydoc_id=ydoc.id, content=content)
-
-
-@router.delete(
-    "/ydocs/{ydoc_id}/content/",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Clear ydoc's content",
-)
-async def clear_ydoc_content(ydoc: YDocByID) -> None:
-    await Material.update_main_ydoc_content(main_ydoc_id=ydoc.id, content=None)
+async def update_ydoc_content_meta(
+    ydoc: YDocByID,
+    input_data: YDoc.ContentMetaInputSchema,
+) -> None:
+    await Material.update_main_ydoc_content_meta(
+        main_ydoc_id=ydoc.id,
+        size_bytes=input_data.size_bytes,
+    )
