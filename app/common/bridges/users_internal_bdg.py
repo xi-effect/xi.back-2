@@ -3,10 +3,11 @@ from pydantic import TypeAdapter
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
-from app.common.schemas.users_sch import UserProfileSchema
+from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 
 user_profile_type_adapter = TypeAdapter(UserProfileSchema)
 user_id_to_user_profile_dict_type_adapter = TypeAdapter(dict[int, UserProfileSchema])
+detailed_user_type_adapter = TypeAdapter(DetailedUserSchema)
 
 
 class UsersInternalBridge(BaseBridge):
@@ -28,6 +29,15 @@ class UsersInternalBridge(BaseBridge):
             )
             .validate_status_code()
             .validate_json(user_id_to_user_profile_dict_type_adapter)
+        )
+
+    async def retrieve_user(self, user_id: int) -> DetailedUserSchema:
+        return (
+            await ResponsePipelineBuilder.initialize_from_request(
+                self.client.get(f"/users/{user_id}/")
+            )
+            .validate_status_code()
+            .validate_json(detailed_user_type_adapter)
         )
 
     async def retrieve_user_profile(self, user_id: int) -> UserProfileSchema:
