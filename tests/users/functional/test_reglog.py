@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import AsyncMock
 
 import pytest
+from faker import Faker
 from freezegun import freeze_time
 from respx import MockRouter
 from starlette import status
@@ -42,6 +43,8 @@ async def test_signing_up(
     client: TestClient,
     send_email_message_mock: AsyncMock,
     user_data: AnyJSON,
+    normalized_email: str,
+    parametrized_email: str,
     is_cross_site: bool,
 ) -> None:
     notifications_bridge_mock = notifications_respx_mock.put(
@@ -51,11 +54,12 @@ async def test_signing_up(
     response = assert_response(
         client.post(
             "/api/public/user-service/signup/",
-            json=user_data,
+            json={**user_data, "email": parametrized_email},
             headers={"X-Testing": "true"} if is_cross_site else None,
         ),
         expected_json={
             **user_data,
+            "email": normalized_email,
             "password": None,
             "id": int,
             "created_at": datetime_utc_now(),
@@ -76,7 +80,7 @@ async def test_signing_up(
         notifications_bridge_mock,
         expected_headers={"X-Api-Key": settings.api_key},
         expected_path=f"/internal/notification-service/users/{user_id}/delivery-methods/email/",
-        expected_json={"email": user_data["email"]},
+        expected_json={"email": normalized_email},
     )
 
     expected_token = email_confirmation_token_provider.serialize_and_sign(
@@ -88,7 +92,7 @@ async def test_signing_up(
                 kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
                 token=expected_token,
             ),
-            recipient_emails=[user_data["email"]],
+            recipient_emails=[normalized_email],
         )
     )
 
@@ -150,25 +154,65 @@ async def test_signing_in(
 
 
 @pytest.mark.usefixtures("user")
-@pytest.mark.parametrize(
-    ("altered_key", "error"),
-    [
-        pytest.param("email", "User not found", id="bad_email"),
-        pytest.param("password", "Wrong password", id="wrong_password"),
-    ],
-)
-async def test_signing_in_invalid_credentials(
+async def test_signing_in_user_not_found(
+    faker: Faker,
     client: TestClient,
     user_data: AnyJSON,
-    altered_key: str,
-    error: str,
 ) -> None:
     assert_response(
         client.post(
             "/api/public/user-service/signin/",
-            json={**user_data, altered_key: "alter"},
+            json={**user_data, "email": faker.email()},
         ),
         expected_code=status.HTTP_401_UNAUTHORIZED,
-        expected_json={"detail": error},
+        expected_json={"detail": "User not found"},
+        expected_headers={"Set-Cookie": None},
+    )
+
+
+@pytest.mark.usefixtures("user")
+async def test_signing_in_wrong_password(
+    faker: Faker,
+    client: TestClient,
+    user_data: AnyJSON,
+) -> None:
+    assert_response(
+        client.post(
+            "/api/public/user-service/signin/",
+            json={**user_data, "password": faker.password()},
+        ),
+        expected_code=status.HTTP_401_UNAUTHORIZED,
+        expected_json={"detail": "Wrong password"},
+        expected_headers={"Set-Cookie": None},
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        pytest.param("signup/", id="signup"),
+        pytest.param("signin/", id="signin"),
+    ],
+)
+async def test_reglog_invalid_email(
+    faker: Faker,
+    client: TestClient,
+    user_data: AnyJSON,
+    path: str,
+) -> None:
+    assert_response(
+        client.post(
+            f"/api/public/user-service/{path}",
+            json={**user_data, "email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
         expected_headers={"Set-Cookie": None},
     )

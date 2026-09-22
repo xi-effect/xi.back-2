@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from faker import Faker
 from fastapi.testclient import TestClient
+from pytest_lazy_fixtures import lf
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.users_sch import UserProfileSchema
@@ -39,6 +40,34 @@ async def session_factory(
 @pytest.fixture()
 async def user_data() -> AnyJSON:
     return factories.UserInputFactory.build_json()
+
+
+@pytest.fixture()
+def normalized_email(faker: Faker) -> str:
+    return faker.email()
+
+
+@pytest.fixture()
+def denormalized_email(faker: Faker, normalized_email: str) -> str:
+    randomly_cased_email = "".join(
+        faker.random_element((character, character.upper()))
+        for character in normalized_email
+    )
+    return (
+        " " * faker.random_int(max=2)
+        + randomly_cased_email
+        + " " * faker.random_int(max=2)
+    )
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(lf("normalized_email"), id="normalized"),
+        pytest.param(lf("denormalized_email"), id="denormalized"),
+    ],
+)
+def parametrized_email(request: PytestRequest[str]) -> str:
+    return request.param
 
 
 @pytest.fixture()

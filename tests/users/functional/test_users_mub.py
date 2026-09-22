@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from faker import Faker
 from freezegun import freeze_time
+from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -21,12 +22,18 @@ async def test_user_creation(
     mub_client: TestClient,
     active_session: ActiveSession,
     user_data: AnyJSON,
+    normalized_email: str,
+    parametrized_email: str,
 ) -> None:
     user_id: int = assert_response(
-        mub_client.post("/mub/user-service/users/", json=user_data),
+        mub_client.post(
+            "/mub/user-service/users/",
+            json={**user_data, "email": parametrized_email},
+        ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **user_data,
+            "email": normalized_email,
             "password": None,
             "id": int,
             "created_at": datetime_utc_now(),
@@ -45,6 +52,22 @@ async def test_user_creation(
         assert user is not None
         assert user.is_password_valid(user_data["password"])
         await user.delete()
+
+
+async def test_user_creation_invalid_mub_key(
+    client: TestClient,
+    user_data: AnyJSON,
+    invalid_mub_key_headers: dict[str, Any] | None,
+) -> None:
+    assert_response(
+        client.post(
+            "/mub/user-service/users/",
+            json=user_data,
+            headers=invalid_mub_key_headers,
+        ),
+        expected_json={"detail": "Invalid key"},
+        expected_code=status.HTTP_401_UNAUTHORIZED,
+    )
 
 
 @pytest.mark.parametrize(
@@ -90,16 +113,25 @@ async def test_user_getting(
 
 
 async def test_user_updating(
-    faker: Faker,
     mub_client: TestClient,
+    normalized_email: str,
+    parametrized_email: str,
     user: User,
     user_full_data: AnyJSON,
 ) -> None:
     new_user_data: AnyJSON = factories.UserFullPatchFactory.build_json()
 
     assert_response(
-        mub_client.patch(f"/mub/user-service/users/{user.id}/", json=new_user_data),
-        expected_json={**user_full_data, **new_user_data, "password": None},
+        mub_client.patch(
+            f"/mub/user-service/users/{user.id}/",
+            json={**new_user_data, "email": parametrized_email},
+        ),
+        expected_json={
+            **user_full_data,
+            **new_user_data,
+            "email": normalized_email,
+            "password": None,
+        },
     )
 
 
@@ -132,27 +164,6 @@ async def test_user_updating_conflict(
     )
 
 
-async def test_user_deleting(mub_client: TestClient, user: User) -> None:
-    assert_nodata_response(mub_client.delete(f"/mub/user-service/users/{user.id}/"))
-
-
-@pytest.mark.parametrize("method", ["GET", "PATCH", "DELETE"])
-async def test_user_not_found(
-    mub_client: TestClient,
-    deleted_user_id: int,
-    method: str,
-) -> None:
-    assert_response(
-        mub_client.request(
-            method,
-            f"/mub/user-service/users/{deleted_user_id}/",
-            json={} if method == "PATCH" else None,
-        ),
-        expected_code=status.HTTP_404_NOT_FOUND,
-        expected_json={"detail": "User not found"},
-    )
-
-
 async def test_user_updating_username_in_use(
     mub_client: TestClient,
     user: User,
@@ -168,20 +179,8 @@ async def test_user_updating_username_in_use(
     )
 
 
-async def test_user_creation_invalid_mub_key(
-    client: TestClient,
-    user_data: AnyJSON,
-    invalid_mub_key_headers: dict[str, Any] | None,
-) -> None:
-    assert_response(
-        client.post(
-            "/mub/user-service/users/",
-            json=user_data,
-            headers=invalid_mub_key_headers,
-        ),
-        expected_json={"detail": "Invalid key"},
-        expected_code=status.HTTP_401_UNAUTHORIZED,
-    )
+async def test_user_deleting(mub_client: TestClient, user: User) -> None:
+    assert_nodata_response(mub_client.delete(f"/mub/user-service/users/{user.id}/"))
 
 
 @pytest.mark.parametrize("method", ["GET", "PATCH", "DELETE"])
@@ -200,4 +199,53 @@ async def test_user_operations_invalid_mub_key(
         ),
         expected_json={"detail": "Invalid key"},
         expected_code=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        pytest.param("POST", "", id="create"),
+        pytest.param("PATCH", lfc(lambda user: f"{user.id}/"), id="update"),
+    ],
+)
+async def test_user_operations_invalid_email(
+    faker: Faker,
+    mub_client: TestClient,
+    user_data: AnyJSON,
+    method: str,
+    path: str,
+) -> None:
+    assert_response(
+        mub_client.request(
+            method,
+            f"/mub/user-service/users/{path}",
+            json={**user_data, "email": faker.word()},
+        ),
+        expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        expected_json={
+            "detail": [
+                {
+                    "type": "value_error",
+                    "loc": ["body", "email"],
+                }
+            ],
+        },
+    )
+
+
+@pytest.mark.parametrize("method", ["GET", "PATCH", "DELETE"])
+async def test_user_not_found(
+    mub_client: TestClient,
+    deleted_user_id: int,
+    method: str,
+) -> None:
+    assert_response(
+        mub_client.request(
+            method,
+            f"/mub/user-service/users/{deleted_user_id}/",
+            json={} if method == "PATCH" else None,
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "User not found"},
     )
