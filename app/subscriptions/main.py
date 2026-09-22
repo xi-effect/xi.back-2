@@ -6,6 +6,7 @@ from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
 from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
+from app.subscriptions.config import yookassa_client
 from app.subscriptions.routes import payments_rst, promocodes_mub, subscriptions_rst
 
 outside_router = APIRouterExt(prefix="/api/public/subscription-service")
@@ -31,7 +32,8 @@ internal_router = APIRouterExt(
 
 @asynccontextmanager
 async def lifespan(_: Any) -> AsyncIterator[None]:
-    yield
+    async with yookassa_client:
+        yield
 
 
 api_router = APIRouterExt(lifespan=lifespan)

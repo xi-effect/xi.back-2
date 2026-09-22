@@ -9,6 +9,7 @@ from app.subscriptions.models.subscriptions_db import SubscriptionPlanKind
 from app.subscriptions.routes.promocodes_mub import (
     PromocodeBatchGenerationRequestSchema,
 )
+from app.subscriptions.schemas.yookassa_sch import YooKassaPaymentResponseSchema
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
@@ -95,3 +96,7 @@ class PromocodeBatchGenerationRequestFactory(
     @classmethod
     def batch_size(cls) -> int:
         return cls.__faker__.random_int(min=2, max=5)
+
+
+class YooKassaPaymentResponseFactory(BaseModelFactory[YooKassaPaymentResponseSchema]):
+    __model__ = YooKassaPaymentResponseSchema
