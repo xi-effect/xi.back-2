@@ -52,7 +52,7 @@ InvitationPreviewSchema = Annotated[  # type: ignore[valid-type]
 
 
 async def get_user_profile_with_id(user_id: int) -> UserProfileWithIDSchema:
-    tutor_profile = await users_internal_bridge.retrieve_user(user_id=user_id)
+    tutor_profile = await users_internal_bridge.retrieve_user_profile(user_id=user_id)
     return UserProfileWithIDSchema(
         **tutor_profile.model_dump(),
         user_id=user_id,

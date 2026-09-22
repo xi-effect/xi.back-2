@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Query
 
 from app.common.fastapi_ext import APIRouterExt
-from app.common.schemas.users_sch import UserProfileSchema
+from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.users.dependencies.users_dep import UserByID
 from app.users.models.users_db import User
 
@@ -25,8 +25,17 @@ async def retrieve_multiple_users(
 
 @router.get(
     path="/users/{user_id}/",
-    response_model=UserProfileSchema,
-    summary="Retrieve user by ids",
+    response_model=DetailedUserSchema,
+    summary="Retrieve detailed data for a user by id",
 )
 async def retrieve_user(user: UserByID) -> User:
+    return user
+
+
+@router.get(
+    path="/users/{user_id}/profile/",
+    response_model=UserProfileSchema,
+    summary="Retrieve user's profile by id",
+)
+async def retrieve_user_profile(user: UserByID) -> User:
     return user
