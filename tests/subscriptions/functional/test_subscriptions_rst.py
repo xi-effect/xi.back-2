@@ -2,21 +2,25 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 
+from app.subscriptions.models.subscriptions_db import Subscription
 from tests.common.assert_contains_ext import assert_response
-from tests.common.types import AnyJSON
+from tests.common.utils import repackage_json
 
 pytestmark = pytest.mark.anyio
 
 
 async def test_current_subscription_retrieving(
     authorized_client: TestClient,
-    subscription_data: AnyJSON,
+    parametrized_subscription: Subscription,
 ) -> None:
     assert_response(
         authorized_client.get(
             "/api/protected/subscription-service/users/current/subscription/",
         ),
-        expected_json=subscription_data,
+        expected_json=repackage_json(
+            Subscription.ResponseSchema,
+            parametrized_subscription,
+        ),
     )
 
 
