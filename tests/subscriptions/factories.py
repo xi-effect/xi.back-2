@@ -10,24 +10,22 @@ from app.subscriptions.routes.promocodes_mub import (
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
-class UnlimitedPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[Promocode.ValidityPeriodInputSchema]
+class UnlimitedPeriodPromocodeSettingsFactory(
+    BaseModelFactory[Promocode.SettingsSchema]
 ):
-    __model__ = Promocode.ValidityPeriodInputSchema
+    __model__ = Promocode.SettingsSchema
 
     valid_from = None
     valid_until = None
 
 
-class PromocodeValidityPeriodInputSchema(Promocode.ValidityPeriodInputSchema):
+class PromocodeSettingsSchema(Promocode.SettingsSchema):
     valid_from: AwareDatetime
     valid_until: AwareDatetime
 
 
-class LimitedPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[PromocodeValidityPeriodInputSchema]
-):
-    __model__ = PromocodeValidityPeriodInputSchema
+class LimitedPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSchema]):
+    __model__ = PromocodeSettingsSchema
 
     valid_until = PostGenerated(
         lambda _, values: BaseModelFactory.__faker__.date_time_between(
@@ -36,10 +34,8 @@ class LimitedPromocodeValidityPeriodInputFactory(
     )
 
 
-class InvalidPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[PromocodeValidityPeriodInputSchema]
-):
-    __model__ = PromocodeValidityPeriodInputSchema
+class InvalidPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSchema]):
+    __model__ = PromocodeSettingsSchema
 
     valid_from = PostGenerated(
         lambda _, values: BaseModelFactory.__faker__.date_time_between(
@@ -75,7 +71,7 @@ class PromocodeBatchGenerationRequestFactory(
 ):
     __model__ = PromocodeBatchGenerationRequestSchema
 
-    validity_period = Require()
+    settings = Require()
 
     @classmethod
     def title_template(cls) -> str:
