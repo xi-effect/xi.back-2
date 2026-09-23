@@ -1,28 +1,55 @@
+from collections.abc import AsyncIterator
+
 import pytest
+from pytest_lazy_fixtures import lf
 
 from app.subscriptions.models.promocodes_db import Promocode
 from app.subscriptions.models.subscriptions_db import Subscription
 from tests.common.active_session import ActiveSession
-from tests.common.types import AnyJSON
+from tests.common.types import AnyJSON, PytestRequest
 from tests.subscriptions import factories
 
 
 @pytest.fixture()
-async def subscription(
+async def active_subscription(
     active_session: ActiveSession, authorized_user_id: int
-) -> Subscription:
+) -> AsyncIterator[Subscription]:
     async with active_session():
-        return await Subscription.create(
+        subscription = await Subscription.create(
             user_id=authorized_user_id,
-            **factories.SubscriptionInputFactory.build_python(),
+            **factories.ActiveSubscriptionInputFactory.build_python(),
         )
+
+    yield subscription
+
+    async with active_session():
+        await subscription.delete()
 
 
 @pytest.fixture()
-async def subscription_data(subscription: Subscription) -> AnyJSON:
-    return Subscription.ResponseSchema.model_validate(subscription).model_dump(
-        mode="json"
-    )
+async def expired_subscription(
+    active_session: ActiveSession, authorized_user_id: int
+) -> AsyncIterator[Subscription]:
+    async with active_session():
+        subscription = await Subscription.create(
+            user_id=authorized_user_id,
+            **factories.ExpiredSubscriptionInputFactory.build_python(),
+        )
+
+    yield subscription
+
+    async with active_session():
+        await subscription.delete()
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(lf("active_subscription"), id="active_subscription"),
+        pytest.param(lf("expired_subscription"), id="expired_subscription"),
+    ],
+)
+def parametrized_subscription(request: PytestRequest[Subscription]) -> Subscription:
+    return request.param
 
 
 @pytest.fixture()

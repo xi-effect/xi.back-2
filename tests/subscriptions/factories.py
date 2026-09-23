@@ -3,7 +3,7 @@ from datetime import timezone
 from polyfactory import PostGenerated, Require, Use
 from pydantic import AwareDatetime, BaseModel
 
-from app.common.pydantic_ext import FutureAwareDatetime
+from app.common.pydantic_ext import FutureAwareDatetime, PastAwareDatetime
 from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
 from app.subscriptions.models.subscriptions_db import SubscriptionPlanKind
 from app.subscriptions.routes.promocodes_mub import (
@@ -15,11 +15,23 @@ from tests.common.polyfactory_ext import BaseModelFactory
 
 class SubscriptionInputSchema(BaseModel):
     plan_kind: SubscriptionPlanKind
+    ends_at: AwareDatetime
+
+
+class ActiveSubscriptionInputSchema(SubscriptionInputSchema):
     ends_at: FutureAwareDatetime
 
 
-class SubscriptionInputFactory(BaseModelFactory[SubscriptionInputSchema]):
-    __model__ = SubscriptionInputSchema
+class ActiveSubscriptionInputFactory(BaseModelFactory[ActiveSubscriptionInputSchema]):
+    __model__ = ActiveSubscriptionInputSchema
+
+
+class ExpiredSubscriptionInputSchema(SubscriptionInputSchema):
+    ends_at: PastAwareDatetime
+
+
+class ExpiredSubscriptionInputFactory(BaseModelFactory[ExpiredSubscriptionInputSchema]):
+    __model__ = ExpiredSubscriptionInputSchema
 
 
 class UnlimitedPeriodPromocodeSettingsFactory(
