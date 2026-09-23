@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from pytest_lazy_fixtures import lf
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.common.schemas.users_sch import UserProfileSchema
+from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.users.models.sessions_db import Session
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
@@ -81,6 +81,13 @@ async def user(
 @pytest.fixture()
 async def user_profile_data(user: User) -> AnyJSON:
     return UserProfileSchema.model_validate(user, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def detailed_user_data(user: User) -> AnyJSON:
+    return DetailedUserSchema.model_validate(user, from_attributes=True).model_dump(
         mode="json"
     )
 

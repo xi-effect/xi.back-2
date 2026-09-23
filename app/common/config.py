@@ -188,6 +188,11 @@ class Settings(BaseSettings):
     vk_notifications_bot: VKBotSettings | None = None
     vk_server_base_url: str = "https://api.vk.ru/method"
 
+    yookassa_server_base_url: str = "https://api.yookassa.ru/v3"
+    yookassa_shop_id: str = "local"
+    yookassa_secret_key: str = "local"
+    yookassa_return_url: str = "https://app.sovlium.ru"
+
     sentry_dsn: str | None = None
 
 
