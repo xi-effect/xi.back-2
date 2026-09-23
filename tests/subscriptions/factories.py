@@ -4,8 +4,8 @@ from polyfactory import PostGenerated, Require, Use
 from pydantic import AwareDatetime, BaseModel
 
 from app.common.pydantic_ext import FutureAwareDatetime, PastAwareDatetime
+from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
-from app.subscriptions.models.subscriptions_db import SubscriptionPlanKind
 from app.subscriptions.routes.promocodes_mub import (
     PromocodeBatchGenerationRequestSchema,
 )
@@ -14,7 +14,7 @@ from tests.common.polyfactory_ext import BaseModelFactory
 
 
 class SubscriptionInputSchema(BaseModel):
-    plan_kind: SubscriptionPlanKind
+    plan_kind: PaidPlanKind
     ends_at: AwareDatetime
 
 

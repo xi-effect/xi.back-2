@@ -5,6 +5,7 @@ from pytest_lazy_fixtures import lf
 
 from app.subscriptions.models.promocodes_db import Promocode
 from app.subscriptions.models.subscriptions_db import Subscription
+from app.subscriptions.services.plans_svc import FREE_PLAN, PRO_PLAN
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
 from tests.subscriptions import factories
@@ -50,6 +51,24 @@ async def expired_subscription(
 )
 def parametrized_subscription(request: PytestRequest[Subscription]) -> Subscription:
     return request.param
+
+
+plan_parametrization = pytest.mark.parametrize(
+    ("subscription", "expected_plan_data"),
+    [
+        pytest.param(None, FREE_PLAN, id="no_subscription"),
+        pytest.param(
+            lf("expired_subscription"),
+            FREE_PLAN,
+            id="expired_subscription",
+        ),
+        pytest.param(
+            lf("active_subscription"),
+            PRO_PLAN,
+            id="active_subscription",
+        ),
+    ],
+)
 
 
 @pytest.fixture()
