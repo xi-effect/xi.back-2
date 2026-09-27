@@ -3,6 +3,9 @@ from collections.abc import AsyncIterator
 import pytest
 from pytest_lazy_fixtures import lf
 
+from app.common.config import settings
+from app.common.utils.datetime import datetime_utc_now
+from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.promocodes_db import Promocode
 from app.subscriptions.models.subscriptions_db import Subscription
 from app.subscriptions.services.plans_svc import FREE_PLAN, PRO_PLAN
@@ -105,3 +108,41 @@ async def deleted_promocode(
     async with active_session():
         await promocode.delete()
     return promocode
+
+
+@pytest.fixture(scope="session")
+def yookassa_credentials() -> str:
+    return f"{settings.yookassa_shop_id}:{settings.yookassa_secret_key}"
+
+
+@pytest.fixture()
+async def pending_payment(
+    active_session: ActiveSession, authorized_user_id: int
+) -> AsyncIterator[Payment]:
+    async with active_session():
+        payment = await Payment.create(
+            user_id=authorized_user_id,
+            **factories.StoredPaymentInputFactory.build_python(),
+        )
+
+    yield payment
+
+    async with active_session():
+        await payment.delete()
+
+
+@pytest.fixture()
+async def completed_payment(
+    active_session: ActiveSession, authorized_user_id: int
+) -> AsyncIterator[Payment]:
+    async with active_session():
+        payment = await Payment.create(
+            user_id=authorized_user_id,
+            completed_at=datetime_utc_now(),
+            **factories.StoredPaymentInputFactory.build_python(),
+        )
+
+    yield payment
+
+    async with active_session():
+        await payment.delete()
