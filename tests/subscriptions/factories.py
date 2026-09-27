@@ -9,7 +9,14 @@ from app.subscriptions.models.promocodes_db import Promocode, promocode_code_gen
 from app.subscriptions.routes.promocodes_mub import (
     PromocodeBatchGenerationRequestSchema,
 )
-from app.subscriptions.schemas.yookassa_sch import YooKassaPaymentResponseSchema
+from app.subscriptions.schemas.yookassa_sch import (
+    YooKassaCanceledPaymentSchema,
+    YooKassaEventObjectSchema,
+    YooKassaEventSchema,
+    YooKassaPendingPaymentSchema,
+    YooKassaSucceededPaymentSchema,
+    YooKassaWaitingForCapturePaymentSchema,
+)
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
@@ -110,5 +117,39 @@ class PromocodeBatchGenerationRequestFactory(
         return cls.__faker__.random_int(min=2, max=5)
 
 
-class YooKassaPaymentResponseFactory(BaseModelFactory[YooKassaPaymentResponseSchema]):
-    __model__ = YooKassaPaymentResponseSchema
+class StoredPaymentInputSchema(BaseModel):
+    provider_payment_id: str
+    amount_roubles: int
+    subscription_days: int
+
+
+class StoredPaymentInputFactory(BaseModelFactory[StoredPaymentInputSchema]):
+    __model__ = StoredPaymentInputSchema
+
+    provider_payment_id = Use(BaseModelFactory.__faker__.uuid4)
+
+
+class YooKassaPendingPaymentFactory(BaseModelFactory[YooKassaPendingPaymentSchema]):
+    __model__ = YooKassaPendingPaymentSchema
+
+
+class YooKassaWaitingForCapturePaymentFactory(
+    BaseModelFactory[YooKassaWaitingForCapturePaymentSchema]
+):
+    __model__ = YooKassaWaitingForCapturePaymentSchema
+
+
+class YooKassaSucceededPaymentFactory(BaseModelFactory[YooKassaSucceededPaymentSchema]):
+    __model__ = YooKassaSucceededPaymentSchema
+
+
+class YooKassaCanceledPaymentFactory(BaseModelFactory[YooKassaCanceledPaymentSchema]):
+    __model__ = YooKassaCanceledPaymentSchema
+
+
+class YooKassaEventObjectFactory(BaseModelFactory[YooKassaEventObjectSchema]):
+    __model__ = YooKassaEventObjectSchema
+
+
+class YooKassaEventFactory(BaseModelFactory[YooKassaEventSchema]):
+    __model__ = YooKassaEventSchema

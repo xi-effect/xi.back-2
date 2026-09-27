@@ -1,12 +1,14 @@
 from datetime import datetime
+from typing import Self
 from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, String, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
+from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
 
@@ -41,3 +43,25 @@ class Payment(Base):
             cancellation_reason,
         ]
     )
+
+    @classmethod
+    async def is_present_by_id(cls, payment_id: UUID) -> bool:
+        return await db.is_present(select(cls).filter_by(id=payment_id))
+
+    @classmethod
+    async def find_and_complete_by_id(
+        cls,
+        payment_id: UUID,
+        cancellation_reason: str | None = None,
+    ) -> Self | None:
+        stmt = (
+            update(cls)
+            .filter_by(id=payment_id)
+            .filter(cls.completed_at.is_(None))
+            .values(
+                completed_at=datetime_utc_now(),
+                cancellation_reason=cancellation_reason,
+            )
+            .returning(cls)
+        )
+        return (await db.session.execute(stmt)).scalar_one_or_none()
