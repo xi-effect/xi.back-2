@@ -1,6 +1,9 @@
-from typing import Literal
+from enum import StrEnum, auto
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, TypeAdapter
+
+from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
 
 # Reference for payment-related schemas:
 # https://yookassa.ru/developers/api#create_payment
@@ -37,21 +40,86 @@ class YooKassaRedirectConfirmationSchema(BaseModel):
     return_url: str
 
 
-class YooKassaCreatePaymentRequestSchema[MetadataSchema: BaseModel](BaseModel):
+class YooKassaCreatePaymentRequestSchema(BaseModel):
     amount: YooKassaAmountSchema
     capture: Literal[True] = True
     confirmation: YooKassaRedirectConfirmationSchema
     receipt: YooKassaReceiptSchema
-    metadata: MetadataSchema
+    # metadata is the same for every payment for now, so the schema is not generic
+    metadata: PaymentCorrelationSchema
 
 
-class YooKassaConfirmationResponseSchema(BaseModel):
+# Reference for payment schemas:
+# https://yookassa.ru/developers/api#payment_object
+
+
+class YooKassaPaymentStatus(StrEnum):
+    PENDING = auto()
+    WAITING_FOR_CAPTURE = auto()
+    SUCCEEDED = auto()
+    CANCELED = auto()
+
+
+class YooKassaBasePaymentSchema(BaseModel):
+    id: str
+    metadata: PaymentCorrelationSchema
+
+
+class YooKassaConfirmationSchema(BaseModel):
     confirmation_url: str
 
 
-class YooKassaPaymentResponseSchema(BaseModel):
-    id: str
-    confirmation: YooKassaConfirmationResponseSchema
+class YooKassaPendingPaymentSchema(YooKassaBasePaymentSchema):
+    status: Literal[YooKassaPaymentStatus.PENDING]
+    confirmation: YooKassaConfirmationSchema
 
 
-yookassa_payment_response_type_adapter = TypeAdapter(YooKassaPaymentResponseSchema)
+yookassa_pending_payment_type_adapter = TypeAdapter(YooKassaPendingPaymentSchema)
+
+
+class YooKassaWaitingForCapturePaymentSchema(YooKassaBasePaymentSchema):
+    status: Literal[YooKassaPaymentStatus.WAITING_FOR_CAPTURE]
+
+
+class YooKassaSucceededPaymentSchema(YooKassaBasePaymentSchema):
+    status: Literal[YooKassaPaymentStatus.SUCCEEDED]
+
+
+class YooKassaCancellationDetailsSchema(BaseModel):
+    reason: str
+
+
+class YooKassaCanceledPaymentSchema(YooKassaBasePaymentSchema):
+    status: Literal[YooKassaPaymentStatus.CANCELED]
+    cancellation_details: YooKassaCancellationDetailsSchema
+
+
+AnyYooKassaPaymentSchema = Annotated[
+    YooKassaPendingPaymentSchema
+    | YooKassaWaitingForCapturePaymentSchema
+    | YooKassaSucceededPaymentSchema
+    | YooKassaCanceledPaymentSchema,
+    Field(discriminator="status"),
+]
+
+any_yookassa_payment_type_adapter: TypeAdapter[AnyYooKassaPaymentSchema] = TypeAdapter(
+    AnyYooKassaPaymentSchema
+)
+
+
+# Reference for event schemas:
+# https://yookassa.ru/developers/using-api/webhooks
+
+
+class YooKassaEventType(StrEnum):
+    PAYMENT_SUCCEEDED = "payment.succeeded"
+    PAYMENT_CANCELED = "payment.canceled"
+
+
+class YooKassaEventObjectSchema(BaseModel):
+    id: str = Field(pattern="^[A-Za-z0-9-]{1,50}$")
+
+
+class YooKassaEventSchema(BaseModel):
+    event: str
+    object: YooKassaEventObjectSchema

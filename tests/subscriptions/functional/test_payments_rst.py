@@ -16,7 +16,7 @@ from app.subscriptions.routes.payments_rst import (
     RECEIPT_ITEM_DESCRIPTION_TEMPLATE,
     SubscriptionPeriod,
 )
-from app.subscriptions.schemas.yookassa_sch import YooKassaPaymentResponseSchema
+from app.subscriptions.schemas.yookassa_sch import YooKassaPendingPaymentSchema
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.respx_ext import assert_last_httpx_request
@@ -44,6 +44,7 @@ async def test_payment_creation(
     yookassa_respx_mock: MockRouter,
     authorized_user_id: int,
     authorized_client: TestClient,
+    yookassa_credentials: str,
     period: SubscriptionPeriod,
     amount_roubles: int,
     subscription_days: int,
@@ -53,8 +54,8 @@ async def test_payment_creation(
         path=f"/users/{authorized_user_id}/"
     ).respond(json=user.model_dump(mode="json"))
 
-    yookassa_payment: YooKassaPaymentResponseSchema = (
-        factories.YooKassaPaymentResponseFactory.build()
+    yookassa_payment: YooKassaPendingPaymentSchema = (
+        factories.YooKassaPendingPaymentFactory.build()
     )
     yookassa_create_payment_mock = yookassa_respx_mock.post(path="/payments").respond(
         json=yookassa_payment.model_dump(mode="json")
@@ -91,9 +92,6 @@ async def test_payment_creation(
         expected_headers={"X-Api-Key": settings.api_key},
     )
 
-    yookassa_credentials: str = (
-        f"{settings.yookassa_shop_id}:{settings.yookassa_secret_key}"
-    )
     assert_last_httpx_request(
         yookassa_create_payment_mock,
         expected_headers={
