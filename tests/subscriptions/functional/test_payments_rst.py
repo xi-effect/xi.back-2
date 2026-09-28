@@ -12,10 +12,8 @@ from app.common.config import settings
 from app.common.schemas.users_sch import DetailedUserSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.models.payments_db import Payment
-from app.subscriptions.routes.payments_rst import (
-    RECEIPT_ITEM_DESCRIPTION_TEMPLATE,
-    SubscriptionPeriod,
-)
+from app.subscriptions.routes.payments_rst import RECEIPT_ITEM_DESCRIPTION_TEMPLATE
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import YooKassaPendingPaymentSchema
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
