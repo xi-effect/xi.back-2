@@ -22,3 +22,16 @@ async def get_user_flag_kind_by_id(
 
 
 UserFlagKindByID = Annotated[UserFlagKind, Depends(get_user_flag_kind_by_id)]
+
+
+@with_responses(UserFlagKindResponses)
+async def get_user_flag_kind_by_key(
+    key: Annotated[UserFlagKind.KeyType, Path()],
+) -> UserFlagKind:
+    user_flag_kind = await UserFlagKind.find_first_by_kwargs(key=key)
+    if user_flag_kind is None:
+        raise UserFlagKindResponses.USER_FLAG_KIND_NOT_FOUND
+    return user_flag_kind
+
+
+UserFlagKindByKey = Annotated[UserFlagKind, Depends(get_user_flag_kind_by_key)]

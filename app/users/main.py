@@ -20,6 +20,7 @@ from app.users.routes import (
     sessions_mub,
     sessions_rst,
     user_flag_kinds_mub,
+    user_flags_rst,
     users_int,
     users_mub,
 )
@@ -41,6 +42,7 @@ authorized_router.include_router(email_confirmation_rst.protected_router)
 authorized_router.include_router(email_change_rst.protected_router)
 authorized_router.include_router(avatar_rst.router)
 authorized_router.include_router(sessions_rst.router)
+authorized_router.include_router(user_flags_rst.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],
