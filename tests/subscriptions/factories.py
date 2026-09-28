@@ -14,6 +14,7 @@ from app.subscriptions.schemas.yookassa_sch import (
     YooKassaCanceledPaymentSchema,
     YooKassaEventObjectSchema,
     YooKassaEventSchema,
+    YooKassaPaymentMethodSchema,
     YooKassaPendingPaymentSchema,
     YooKassaSucceededPaymentSchema,
     YooKassaWaitingForCapturePaymentSchema,
@@ -149,6 +150,12 @@ class YooKassaWaitingForCapturePaymentFactory(
     BaseModelFactory[YooKassaWaitingForCapturePaymentSchema]
 ):
     __model__ = YooKassaWaitingForCapturePaymentSchema
+
+
+class YooKassaPaymentMethodFactory(BaseModelFactory[YooKassaPaymentMethodSchema]):
+    __model__ = YooKassaPaymentMethodSchema
+
+    id = Use(BaseModelFactory.__faker__.uuid4)
 
 
 class YooKassaSucceededPaymentFactory(BaseModelFactory[YooKassaSucceededPaymentSchema]):

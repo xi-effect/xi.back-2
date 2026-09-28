@@ -28,11 +28,24 @@ pytestmark = pytest.mark.anyio
     ("period", "amount_roubles", "subscription_days"),
     [
         pytest.param(
-            SubscriptionPeriod.MONTHLY, 1499, 30, id=SubscriptionPeriod.MONTHLY.value
+            SubscriptionPeriod.MONTHLY,
+            1499,
+            30,
+            id=SubscriptionPeriod.MONTHLY.value,
         ),
         pytest.param(
-            SubscriptionPeriod.YEARLY, 14999, 365, id=SubscriptionPeriod.YEARLY.value
+            SubscriptionPeriod.YEARLY,
+            14999,
+            365,
+            id=SubscriptionPeriod.YEARLY.value,
         ),
+    ],
+)
+@pytest.mark.parametrize(
+    "should_auto_renew",
+    [
+        pytest.param(True, id="with_auto_renew"),
+        pytest.param(False, id="no_auto_renew"),
     ],
 )
 @freeze_time()
@@ -46,6 +59,7 @@ async def test_payment_creation(
     period: SubscriptionPeriod,
     amount_roubles: int,
     subscription_days: int,
+    should_auto_renew: bool,
 ) -> None:
     user: DetailedUserSchema = DetailedUserFactory.build()
     users_internal_bridge_mock = users_internal_respx_mock.get(
@@ -62,7 +76,7 @@ async def test_payment_creation(
     payment_id: UUID = assert_response(
         authorized_client.post(
             "/api/protected/subscription-service/users/current/payments/",
-            json={"period": period},
+            json={"period": period, "should_auto_renew": should_auto_renew},
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
@@ -99,6 +113,7 @@ async def test_payment_creation(
         expected_json={
             "amount": {"value": f"{amount_roubles:.2f}", "currency": "RUB"},
             "capture": True,
+            "save_payment_method": should_auto_renew,
             "confirmation": {
                 "type": "redirect",
                 "return_url": settings.yookassa_return_url,
@@ -119,6 +134,9 @@ async def test_payment_creation(
                     }
                 ],
             },
-            "metadata": {"payment_id": str(payment_id)},
+            "metadata": {
+                "payment_id": str(payment_id),
+                "auto_renewal_period": period if should_auto_renew else None,
+            },
         },
     )
