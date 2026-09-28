@@ -55,7 +55,7 @@ async def list_students(
     summary="Retrieve a student tutor from the current user by id",
 )
 async def retrieve_tutor(tutorship: MyStudentTutorshipByIDs) -> UserProfileSchema:
-    return await users_internal_bridge.retrieve_user(user_id=tutorship.tutor_id)
+    return await users_internal_bridge.retrieve_user_profile(user_id=tutorship.tutor_id)
 
 
 @router.get(

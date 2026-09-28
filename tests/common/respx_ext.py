@@ -63,6 +63,13 @@ def vk_respx_mock() -> Iterator[MockRouter]:
         yield mock_router
 
 
+@pytest.fixture()
+def yookassa_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(base_url=settings.yookassa_server_base_url)
+    with mock_router:
+        yield mock_router
+
+
 def assert_last_httpx_request(
     mock_route: Route,
     *,
