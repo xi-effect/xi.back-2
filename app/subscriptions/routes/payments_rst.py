@@ -10,9 +10,9 @@ from app.common.config import settings
 from app.common.config_bdg import users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.config import yookassa_client
 from app.subscriptions.models.payments_db import Payment
-from app.subscriptions.models.subscriptions_db import SubscriptionPlanKind
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaAmountSchema,
     YooKassaCreatePaymentRequestSchema,
@@ -35,8 +35,8 @@ PERIOD_TO_SUBSCRIPTION_DAYS: dict[SubscriptionPeriod, int] = {
     SubscriptionPeriod.YEARLY: 365,
 }
 
-PLAN_TO_PERIOD_TO_PRICE: dict[SubscriptionPlanKind, dict[SubscriptionPeriod, int]] = {
-    SubscriptionPlanKind.PRO: {
+PLAN_TO_PERIOD_TO_PRICE: dict[PaidPlanKind, dict[SubscriptionPeriod, int]] = {
+    PaidPlanKind.PRO: {
         SubscriptionPeriod.MONTHLY: 1499,
         SubscriptionPeriod.YEARLY: 14999,
     },
@@ -71,7 +71,7 @@ async def create_payment(
     data: PaymentInputSchema,
 ) -> CheckoutSchema:
     payment_id = uuid4()
-    amount_roubles = PLAN_TO_PERIOD_TO_PRICE[SubscriptionPlanKind.PRO][data.period]
+    amount_roubles = PLAN_TO_PERIOD_TO_PRICE[PaidPlanKind.PRO][data.period]
     subscription_days = PERIOD_TO_SUBSCRIPTION_DAYS[data.period]
 
     user = await users_internal_bridge.retrieve_user(user_id=auth_data.user_id)
