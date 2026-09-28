@@ -1,7 +1,7 @@
 from datetime import timezone
 
 from polyfactory import PostGenerated, Require, Use
-from pydantic import AwareDatetime, BaseModel
+from pydantic import AwareDatetime, BaseModel, PositiveInt
 
 from app.common.pydantic_ext import FutureAwareDatetime, PastAwareDatetime
 from app.common.schemas.subscriptions_sch import PaidPlanKind
@@ -95,6 +95,88 @@ class PromocodeUpdateFactory(BaseModelFactory[Promocode.UpdateSchema]):
     __model__ = Promocode.UpdateSchema
 
     code = Use(promocode_code_generator.generate_token)
+
+
+class UnrestrictedPromocodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
+    __model__ = Promocode.InputSchema
+
+    valid_from = None
+    valid_until = None
+    usage_limit = None
+    max_account_age_days = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class AccountAgePromocodeInputSchema(Promocode.InputSchema):
+    max_account_age_days: PositiveInt
+
+
+class AccountAgePromocodeInputFactory(BaseModelFactory[AccountAgePromocodeInputSchema]):
+    __model__ = AccountAgePromocodeInputSchema
+
+    valid_from = None
+    valid_until = None
+    usage_limit = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class NotActiveYetPromocodeInputSchema(Promocode.InputSchema):
+    valid_from: FutureAwareDatetime
+
+
+class NotActiveYetPromocodeInputFactory(
+    BaseModelFactory[NotActiveYetPromocodeInputSchema]
+):
+    __model__ = NotActiveYetPromocodeInputSchema
+
+    valid_until = None
+    usage_limit = None
+    max_account_age_days = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class ExpiredPromocodeInputSchema(Promocode.InputSchema):
+    valid_until: PastAwareDatetime
+
+
+class ExpiredPromocodeInputFactory(BaseModelFactory[ExpiredPromocodeInputSchema]):
+    __model__ = ExpiredPromocodeInputSchema
+
+    valid_from = None
+    usage_limit = None
+    max_account_age_days = None
+    code = Use(promocode_code_generator.generate_token)
+
+
+class PromocodeUsageStateSchema(BaseModel):
+    usage_limit: PositiveInt | None
+    usage_count: int
+
+
+class LimitedPromocodeUsageStateSchema(PromocodeUsageStateSchema):
+    usage_limit: PositiveInt
+
+
+class UnlimitedPromocodeUsageStateFactory(BaseModelFactory[PromocodeUsageStateSchema]):
+    __model__ = PromocodeUsageStateSchema
+
+    usage_limit = None
+
+
+class UnderLimitPromocodeUsageStateFactory(
+    BaseModelFactory[LimitedPromocodeUsageStateSchema]
+):
+    __model__ = LimitedPromocodeUsageStateSchema
+
+    usage_count = 0
+
+
+class AtLimitPromocodeUsageStateFactory(
+    BaseModelFactory[LimitedPromocodeUsageStateSchema]
+):
+    __model__ = LimitedPromocodeUsageStateSchema
+
+    usage_count = PostGenerated(lambda _, values: values["usage_limit"])
 
 
 class PromocodeBatchGenerationRequestFactory(
