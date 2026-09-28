@@ -10,6 +10,7 @@ from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.users.models.sessions_db import Session
 from app.users.models.user_flag_kinds_db import UserFlagKind
+from app.users.models.user_flags_db import UserFlag
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, Factory, PytestRequest
@@ -245,6 +246,38 @@ async def deleted_user_flag_kind_id(
     async with active_session():
         await user_flag_kind.delete()
     return user_flag_kind.id
+
+
+@pytest.fixture()
+async def deleted_user_flag_kind_key(
+    active_session: ActiveSession,
+    user_flag_kind: UserFlagKind,
+) -> str:
+    async with active_session():
+        await user_flag_kind.delete()
+    return user_flag_kind.key
+
+
+@pytest.fixture()
+async def user_flag(
+    active_session: ActiveSession,
+    user: User,
+    user_flag_kind: UserFlagKind,
+) -> AsyncIterator[UserFlag]:
+    async with active_session():
+        user_flag = await UserFlag.create(
+            user_id=user.id,
+            user_flag_kind_id=user_flag_kind.id,
+            **factories.UserFlagValueFactory.build_python(),
+        )
+
+    yield user_flag
+
+    async with active_session():
+        await UserFlag.delete_by_kwargs(
+            user_id=user.id,
+            user_flag_kind_id=user_flag_kind.id,
+        )
 
 
 @pytest.fixture(params=[True, False])

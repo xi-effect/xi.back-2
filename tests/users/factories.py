@@ -3,6 +3,7 @@ from polyfactory import Use
 from app.common.schemas.demo_form_sch import DemoFormSchema
 from app.users.models.user_flag_kinds_db import UserFlagKind
 from app.users.models.users_db import User
+from app.users.routes.user_flags_rst import UserFlagValueSchema
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 from tests.users.utils import generate_username
 
@@ -37,3 +38,7 @@ class UserFlagKindPatchFactory(BasePatchModelFactory[UserFlagKind.PatchSchema]):
     __model__ = UserFlagKind.PatchSchema
 
     key = Use(BaseModelFactory.__faker__.uuid4)
+
+
+class UserFlagValueFactory(BaseModelFactory[UserFlagValueSchema]):
+    __model__ = UserFlagValueSchema
