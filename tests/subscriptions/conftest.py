@@ -5,6 +5,7 @@ from pytest_lazy_fixtures import lf
 
 from app.common.config import settings
 from app.common.utils.datetime import datetime_utc_now
+from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.promocodes_db import Promocode
 from app.subscriptions.models.subscriptions_db import Subscription
@@ -72,6 +73,22 @@ plan_parametrization = pytest.mark.parametrize(
         ),
     ],
 )
+
+
+@pytest.fixture()
+async def auto_renewal(
+    active_session: ActiveSession, authorized_user_id: int
+) -> AsyncIterator[AutoRenewal]:
+    async with active_session():
+        auto_renewal = await AutoRenewal.create(
+            user_id=authorized_user_id,
+            **factories.AutoRenewalInputFactory.build_python(),
+        )
+
+    yield auto_renewal
+
+    async with active_session():
+        await AutoRenewal.delete_by_kwargs(user_id=authorized_user_id)
 
 
 @pytest.fixture()
