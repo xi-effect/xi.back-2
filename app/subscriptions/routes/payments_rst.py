@@ -1,6 +1,6 @@
 from enum import StrEnum, auto
 from typing import Annotated, Final
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from pydantic import BaseModel
 from pydantic_marshals.base import CompositeMarshalModel
@@ -13,6 +13,7 @@ from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.config import yookassa_client
 from app.subscriptions.models.payments_db import Payment
+from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaAmountSchema,
     YooKassaCreatePaymentRequestSchema,
@@ -51,10 +52,6 @@ class PaymentInputSchema(BaseModel):
     period: SubscriptionPeriod
 
 
-class PaymentCorrelationSchema(BaseModel):
-    payment_id: UUID
-
-
 class CheckoutSchema(CompositeMarshalModel):
     payment: Annotated[Payment, Payment.ResponseSchema]
     confirmation_url: str
@@ -78,7 +75,7 @@ async def create_payment(
 
     amount = YooKassaAmountSchema(value=f"{amount_roubles:.2f}")
     yookassa_payment = await yookassa_client.create_payment(
-        data=YooKassaCreatePaymentRequestSchema[PaymentCorrelationSchema](
+        data=YooKassaCreatePaymentRequestSchema(
             amount=amount,
             confirmation=YooKassaRedirectConfirmationSchema(
                 return_url=settings.yookassa_return_url

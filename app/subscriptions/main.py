@@ -13,9 +13,11 @@ from app.subscriptions.routes import (
     plans_rst,
     promocodes_mub,
     subscriptions_rst,
+    yookassa_webhook_rst,
 )
 
 outside_router = APIRouterExt(prefix="/api/public/subscription-service")
+outside_router.include_router(yookassa_webhook_rst.router)
 
 authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
