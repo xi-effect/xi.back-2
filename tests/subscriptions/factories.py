@@ -9,6 +9,7 @@ from app.subscriptions.models.promocodes_db import Promocode, promocode_code_gen
 from app.subscriptions.routes.promocodes_mub import (
     PromocodeBatchGenerationRequestSchema,
 )
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaCanceledPaymentSchema,
     YooKassaEventObjectSchema,
@@ -39,6 +40,17 @@ class ExpiredSubscriptionInputSchema(SubscriptionInputSchema):
 
 class ExpiredSubscriptionInputFactory(BaseModelFactory[ExpiredSubscriptionInputSchema]):
     __model__ = ExpiredSubscriptionInputSchema
+
+
+class AutoRenewalInputSchema(BaseModel):
+    provider_payment_method_id: str
+    renewal_period: SubscriptionPeriod
+
+
+class AutoRenewalInputFactory(BaseModelFactory[AutoRenewalInputSchema]):
+    __model__ = AutoRenewalInputSchema
+
+    provider_payment_method_id = Use(BaseModelFactory.__faker__.uuid4)
 
 
 class UnlimitedPeriodPromocodeSettingsFactory(

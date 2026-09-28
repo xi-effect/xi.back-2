@@ -8,6 +8,7 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 from app.subscriptions.config import yookassa_client
 from app.subscriptions.routes import (
+    auto_renewals_rst,
     payments_rst,
     plans_int,
     plans_rst,
@@ -23,6 +24,7 @@ authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],
     prefix="/api/protected/subscription-service",
 )
+authorized_router.include_router(auto_renewals_rst.router)
 authorized_router.include_router(payments_rst.router)
 authorized_router.include_router(subscriptions_rst.router)
 authorized_router.include_router(plans_rst.router)

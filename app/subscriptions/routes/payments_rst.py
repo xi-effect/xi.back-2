@@ -1,4 +1,3 @@
-from enum import StrEnum, auto
 from typing import Annotated, Final
 from uuid import uuid4
 
@@ -14,6 +13,7 @@ from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.config import yookassa_client
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaAmountSchema,
     YooKassaCreatePaymentRequestSchema,
@@ -24,11 +24,6 @@ from app.subscriptions.schemas.yookassa_sch import (
 )
 
 router = APIRouterExt(tags=["payments"])
-
-
-class SubscriptionPeriod(StrEnum):
-    MONTHLY = auto()
-    YEARLY = auto()
 
 
 PERIOD_TO_SUBSCRIPTION_DAYS: dict[SubscriptionPeriod, int] = {
