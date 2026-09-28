@@ -1,4 +1,6 @@
+import random
 from collections.abc import AsyncIterator
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -13,6 +15,7 @@ from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.promocodes_db import Promocode
 from app.subscriptions.models.subscriptions_db import Subscription
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.services.plans_svc import FREE_PLAN, PRO_PLAN
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, PytestRequest
@@ -90,6 +93,12 @@ plan_parametrization = pytest.mark.parametrize(
         ),
     ],
 )
+
+
+@pytest.fixture()
+def random_subscription_period() -> SubscriptionPeriod:
+    # mypy gets confused, the real type is SubscriptionPeriod
+    return cast(SubscriptionPeriod, random.choice(list(SubscriptionPeriod)))
 
 
 @pytest.fixture()

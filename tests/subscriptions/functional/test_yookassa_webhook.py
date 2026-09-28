@@ -13,6 +13,7 @@ from starlette.testclient import TestClient
 
 from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.common.utils.datetime import datetime_utc_now
+from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.subscriptions_db import Subscription
 from app.subscriptions.routes.yookassa_webhook_rst import (
@@ -21,10 +22,12 @@ from app.subscriptions.routes.yookassa_webhook_rst import (
     UnexpectedYooKassaEventException,
 )
 from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaCanceledPaymentSchema,
     YooKassaEventSchema,
     YooKassaEventType,
+    YooKassaPaymentMethodSchema,
 )
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response
@@ -106,6 +109,135 @@ async def test_handling_event_from_yookassa_payment_succeeded(
         )
         if existing_subscription is None:
             await subscription.delete()
+
+    assert_last_httpx_request(
+        yookassa_retrieve_payment_mock,
+        expected_headers={
+            "Authorization": f"Basic {b64encode(yookassa_credentials.encode()).decode()}",
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "existing_auto_renewal",
+    [
+        pytest.param(None, id="no_auto_renewal"),
+        pytest.param(lf("auto_renewal"), id="existing_auto_renewal"),
+    ],
+)
+async def test_handling_event_from_yookassa_payment_succeeded_recording_auto_renewal(
+    active_session: ActiveSession,
+    client: TestClient,
+    authorized_user_id: int,
+    random_subscription_period: SubscriptionPeriod,
+    yookassa_credentials: str,
+    pending_payment: Payment,
+    yookassa_retrieve_payment_mock: Route,
+    existing_auto_renewal: AutoRenewal | None,
+) -> None:
+    payment_method: YooKassaPaymentMethodSchema = (
+        factories.YooKassaPaymentMethodFactory.build(saved=True)
+    )
+    yookassa_retrieve_payment_mock.respond(
+        json=factories.YooKassaSucceededPaymentFactory.build_json(
+            metadata=PaymentCorrelationSchema(
+                payment_id=pending_payment.id,
+                auto_renewal_period=random_subscription_period,
+            ),
+            payment_method=payment_method,
+        )
+    )
+
+    assert_nodata_response(
+        client.post(
+            "/api/public/subscription-service/yookassa-events/",
+            json=factories.YooKassaEventFactory.build_json(
+                event=YooKassaEventType.PAYMENT_SUCCEEDED,
+                object=factories.YooKassaEventObjectFactory.build(
+                    id=pending_payment.provider_payment_id
+                ),
+            ),
+        ),
+        expected_code=status.HTTP_200_OK,
+    )
+
+    async with active_session():
+        subscription = await Subscription.find_first_by_id(authorized_user_id)
+        assert subscription is not None
+        await subscription.delete()
+
+        auto_renewal = await AutoRenewal.find_first_by_id(authorized_user_id)
+        assert auto_renewal is not None
+        assert_contains(
+            auto_renewal,
+            {
+                "provider_payment_method_id": payment_method.id,
+                "renewal_period": random_subscription_period,
+            },
+        )
+        if existing_auto_renewal is None:
+            await auto_renewal.delete()
+
+    assert_last_httpx_request(
+        yookassa_retrieve_payment_mock,
+        expected_headers={
+            "Authorization": f"Basic {b64encode(yookassa_credentials.encode()).decode()}",
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    ("has_auto_renewal_period", "is_payment_method_saved"),
+    [
+        pytest.param(False, True, id="no_auto_renewal_period"),
+        pytest.param(True, False, id="unsaved_payment_method"),
+    ],
+)
+async def test_handling_event_from_yookassa_payment_succeeded_clearing_auto_renewal(
+    active_session: ActiveSession,
+    client: TestClient,
+    authorized_user_id: int,
+    random_subscription_period: SubscriptionPeriod,
+    auto_renewal: AutoRenewal,
+    yookassa_credentials: str,
+    pending_payment: Payment,
+    yookassa_retrieve_payment_mock: Route,
+    has_auto_renewal_period: bool,
+    is_payment_method_saved: bool,
+) -> None:
+    yookassa_retrieve_payment_mock.respond(
+        json=factories.YooKassaSucceededPaymentFactory.build_json(
+            metadata=PaymentCorrelationSchema(
+                payment_id=pending_payment.id,
+                auto_renewal_period=(
+                    random_subscription_period if has_auto_renewal_period else None
+                ),
+            ),
+            payment_method=factories.YooKassaPaymentMethodFactory.build(
+                saved=is_payment_method_saved
+            ),
+        )
+    )
+
+    assert_nodata_response(
+        client.post(
+            "/api/public/subscription-service/yookassa-events/",
+            json=factories.YooKassaEventFactory.build_json(
+                event=YooKassaEventType.PAYMENT_SUCCEEDED,
+                object=factories.YooKassaEventObjectFactory.build(
+                    id=pending_payment.provider_payment_id
+                ),
+            ),
+        ),
+        expected_code=status.HTTP_200_OK,
+    )
+
+    async with active_session():
+        subscription = await Subscription.find_first_by_id(authorized_user_id)
+        assert subscription is not None
+        await subscription.delete()
+
+        assert await AutoRenewal.find_first_by_id(authorized_user_id) is None
 
     assert_last_httpx_request(
         yookassa_retrieve_payment_mock,

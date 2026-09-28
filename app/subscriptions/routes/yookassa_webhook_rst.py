@@ -1,8 +1,8 @@
 from typing import assert_never
-from uuid import UUID
 
 from app.common.fastapi_ext import APIRouterExt
 from app.subscriptions.config import yookassa_client
+from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.subscriptions_db import Subscription
 from app.subscriptions.schemas.yookassa_sch import (
@@ -21,7 +21,10 @@ class SucceededPaymentNotFoundException(Exception):
     pass
 
 
-async def handle_succeeded_payment(payment_id: UUID) -> None:
+async def handle_succeeded_payment(
+    yookassa_payment: YooKassaSucceededPaymentSchema,
+) -> None:
+    payment_id = yookassa_payment.metadata.payment_id
     payment = await Payment.find_and_complete_by_id(payment_id=payment_id)
     if payment is None:
         if not await Payment.is_present_by_id(payment_id=payment_id):
@@ -33,11 +36,26 @@ async def handle_succeeded_payment(payment_id: UUID) -> None:
         subscription_days=payment.subscription_days,
     )
 
+    if (
+        yookassa_payment.metadata.auto_renewal_period is not None
+        and yookassa_payment.payment_method is not None
+        and yookassa_payment.payment_method.saved
+    ):
+        await AutoRenewal.upsert_by_user_id(
+            user_id=payment.user_id,
+            provider_payment_method_id=yookassa_payment.payment_method.id,
+            renewal_period=yookassa_payment.metadata.auto_renewal_period,
+        )
+    else:
+        await AutoRenewal.delete_by_user_id(user_id=payment.user_id)
 
-async def handle_canceled_payment(payment_id: UUID, cancellation_reason: str) -> None:
+
+async def handle_canceled_payment(
+    yookassa_payment: YooKassaCanceledPaymentSchema,
+) -> None:
     await Payment.find_and_complete_by_id(
-        payment_id=payment_id,
-        cancellation_reason=cancellation_reason,
+        payment_id=yookassa_payment.metadata.payment_id,
+        cancellation_reason=yookassa_payment.cancellation_details.reason,
     )
 
 
@@ -63,14 +81,9 @@ async def handle_event_from_yookassa(event: YooKassaEventSchema) -> None:
 
     match yookassa_payment:
         case YooKassaSucceededPaymentSchema():
-            await handle_succeeded_payment(
-                payment_id=yookassa_payment.metadata.payment_id
-            )
+            await handle_succeeded_payment(yookassa_payment)
         case YooKassaCanceledPaymentSchema():
-            await handle_canceled_payment(
-                payment_id=yookassa_payment.metadata.payment_id,
-                cancellation_reason=yookassa_payment.cancellation_details.reason,
-            )
+            await handle_canceled_payment(yookassa_payment)
         case YooKassaPendingPaymentSchema() | YooKassaWaitingForCapturePaymentSchema():
             raise InvalidPaymentStatusException(yookassa_payment.status)
         case _:
