@@ -19,6 +19,7 @@ from app.users.routes import (
     reglog_rst,
     sessions_mub,
     sessions_rst,
+    user_flag_kinds_mub,
     users_int,
     users_mub,
 )
@@ -53,6 +54,7 @@ mub_router = APIRouterExt(
 )
 mub_router.include_router(users_mub.router)
 mub_router.include_router(sessions_mub.router)
+mub_router.include_router(user_flag_kinds_mub.router)
 
 
 @asynccontextmanager
