@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, Path
+from fastapi import Body, Depends, Path
 from starlette import status
 
 from app.common.fastapi_ext import Responses, with_responses
@@ -24,14 +24,28 @@ async def get_promocode_by_id(
 PromocodeByID = Annotated[Promocode, Depends(get_promocode_by_id)]
 
 
-@with_responses(PromocodeResponses)
-async def get_promocode_by_code(
-    code: Annotated[str, Path()],
-) -> Promocode:
+async def get_promocode_by_code(code: str) -> Promocode:
     promocode = await Promocode.find_first_by_kwargs(code=code)
     if promocode is None:
         raise PromocodeResponses.PROMOCODE_NOT_FOUND
     return promocode
 
 
-PromocodeByCode = Annotated[Promocode, Depends(get_promocode_by_code)]
+@with_responses(PromocodeResponses)
+async def get_promocode_by_path_code(
+    code: Annotated[Promocode.CodeType, Path()],
+) -> Promocode:
+    return await get_promocode_by_code(code=code)
+
+
+PromocodeByPathCode = Annotated[Promocode, Depends(get_promocode_by_path_code)]
+
+
+@with_responses(PromocodeResponses)
+async def get_promocode_by_body_code(
+    code: Annotated[Promocode.CodeType, Body(embed=True)],
+) -> Promocode:
+    return await get_promocode_by_code(code=code)
+
+
+PromocodeByBodyCode = Annotated[Promocode, Depends(get_promocode_by_body_code)]

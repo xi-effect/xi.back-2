@@ -11,6 +11,7 @@ from app.subscriptions.routes import (
     payments_rst,
     plans_int,
     plans_rst,
+    promocode_redemptions_rst,
     promocodes_mub,
     subscriptions_rst,
     yookassa_webhook_rst,
@@ -26,6 +27,7 @@ authorized_router = APIRouterExt(
 authorized_router.include_router(payments_rst.router)
 authorized_router.include_router(subscriptions_rst.router)
 authorized_router.include_router(plans_rst.router)
+authorized_router.include_router(promocode_redemptions_rst.router)
 
 mub_router = APIRouterExt(
     dependencies=[MUBProtection],
