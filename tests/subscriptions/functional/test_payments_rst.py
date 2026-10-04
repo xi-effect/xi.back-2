@@ -99,7 +99,7 @@ async def test_payment_creation(
             "capture": True,
             "confirmation": {
                 "type": "redirect",
-                "return_url": settings.yookassa_return_url,
+                "return_url": f"{settings.yookassa_return_url}?payment_id={payment_id}",
             },
             "receipt": {
                 "customer": {"email": user.email},

@@ -67,7 +67,7 @@ async def create_payment(
         data=YooKassaCreatePaymentRequestSchema(
             amount=amount,
             confirmation=YooKassaRedirectConfirmationSchema(
-                return_url=settings.yookassa_return_url
+                return_url=f"{settings.yookassa_return_url}?payment_id={payment_id}"
             ),
             receipt=YooKassaReceiptSchema(
                 customer=YooKassaReceiptCustomerSchema(email=user.email),
