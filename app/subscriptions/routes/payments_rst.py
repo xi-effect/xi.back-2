@@ -1,8 +1,7 @@
-from typing import Annotated, Final
+from typing import Final
 from uuid import uuid4
 
 from pydantic import BaseModel
-from pydantic_marshals.base import CompositeMarshalModel
 from starlette import status
 
 from app.common.config import settings
@@ -47,21 +46,16 @@ class PaymentInputSchema(BaseModel):
     period: SubscriptionPeriod
 
 
-class CheckoutSchema(CompositeMarshalModel):
-    payment: Annotated[Payment, Payment.ResponseSchema]
-    confirmation_url: str
-
-
 @router.post(
     path="/users/current/payments/",
     status_code=status.HTTP_201_CREATED,
-    response_model=CheckoutSchema.build_marshal(),
+    response_model=Payment.ResponseSchema,
     summary="Create a new payment for the current user",
 )
 async def create_payment(
     auth_data: AuthorizationData,
     data: PaymentInputSchema,
-) -> CheckoutSchema:
+) -> Payment:
     payment_id = uuid4()
     amount_roubles = PLAN_TO_PERIOD_TO_PRICE[PaidPlanKind.PRO][data.period]
     subscription_days = PERIOD_TO_SUBSCRIPTION_DAYS[data.period]
@@ -91,14 +85,11 @@ async def create_payment(
         idempotence_key=str(payment_id),
     )
 
-    payment = await Payment.create(
+    return await Payment.create(
         id=payment_id,
         user_id=auth_data.user_id,
         provider_payment_id=yookassa_payment.id,
         amount_roubles=amount_roubles,
         subscription_days=subscription_days,
-    )
-    return CheckoutSchema(
-        payment=payment,
         confirmation_url=yookassa_payment.confirmation.confirmation_url,
     )

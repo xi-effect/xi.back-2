@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 from pydantic import AwareDatetime
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, String, select, update
+from sqlalchemy import DateTime, String, Text, select, update
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base
@@ -26,6 +26,7 @@ class Payment(Base):
     )
     amount_roubles: Mapped[int] = mapped_column()
     subscription_days: Mapped[int] = mapped_column()
+    confirmation_url: Mapped[str] = mapped_column(Text)
 
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
@@ -39,6 +40,7 @@ class Payment(Base):
             (created_at, AwareDatetime),
             amount_roubles,
             subscription_days,
+            confirmation_url,
             (completed_at, AwareDatetime | None),
             cancellation_reason,
         ]
