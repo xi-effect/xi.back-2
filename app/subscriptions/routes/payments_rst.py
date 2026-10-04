@@ -10,6 +10,7 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
 from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.config import yookassa_client
+from app.subscriptions.dependencies.payments_dep import MyPaymentByID
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
 from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
@@ -93,3 +94,12 @@ async def create_payment(
         subscription_days=subscription_days,
         confirmation_url=yookassa_payment.confirmation.confirmation_url,
     )
+
+
+@router.get(
+    path="/users/current/payments/{payment_id}/",
+    response_model=Payment.ResponseSchema,
+    summary="Retrieve a payment by id for the current user",
+)
+async def retrieve_payment(payment: MyPaymentByID) -> Payment:
+    return payment
