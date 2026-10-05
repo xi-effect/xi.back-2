@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 
 class UserProfileSchema(BaseModel):
@@ -8,3 +8,8 @@ class UserProfileSchema(BaseModel):
 
 class UserProfileWithIDSchema(UserProfileSchema):
     user_id: int
+
+
+class DetailedUserSchema(UserProfileSchema):
+    email: str
+    created_at: AwareDatetime

@@ -1,33 +1,74 @@
 from datetime import timezone
 
 from polyfactory import PostGenerated, Require, Use
-from pydantic import AwareDatetime
+from pydantic import AwareDatetime, BaseModel
 
+from app.common.pydantic_ext import FutureAwareDatetime, PastAwareDatetime
+from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
 from app.subscriptions.routes.promocodes_mub import (
     PromocodeBatchGenerationRequestSchema,
 )
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
+from app.subscriptions.schemas.yookassa_sch import (
+    YooKassaCanceledPaymentSchema,
+    YooKassaEventObjectSchema,
+    YooKassaEventSchema,
+    YooKassaPendingPaymentSchema,
+    YooKassaSucceededPaymentSchema,
+    YooKassaWaitingForCapturePaymentSchema,
+)
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
-class UnlimitedPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[Promocode.ValidityPeriodInputSchema]
+class SubscriptionInputSchema(BaseModel):
+    plan_kind: PaidPlanKind
+    ends_at: AwareDatetime
+
+
+class ActiveSubscriptionInputSchema(SubscriptionInputSchema):
+    ends_at: FutureAwareDatetime
+
+
+class ActiveSubscriptionInputFactory(BaseModelFactory[ActiveSubscriptionInputSchema]):
+    __model__ = ActiveSubscriptionInputSchema
+
+
+class ExpiredSubscriptionInputSchema(SubscriptionInputSchema):
+    ends_at: PastAwareDatetime
+
+
+class ExpiredSubscriptionInputFactory(BaseModelFactory[ExpiredSubscriptionInputSchema]):
+    __model__ = ExpiredSubscriptionInputSchema
+
+
+class AutoRenewalInputSchema(BaseModel):
+    provider_payment_method_id: str
+    renewal_period: SubscriptionPeriod
+
+
+class AutoRenewalInputFactory(BaseModelFactory[AutoRenewalInputSchema]):
+    __model__ = AutoRenewalInputSchema
+
+    provider_payment_method_id = Use(BaseModelFactory.__faker__.uuid4)
+
+
+class UnlimitedPeriodPromocodeSettingsFactory(
+    BaseModelFactory[Promocode.SettingsSchema]
 ):
-    __model__ = Promocode.ValidityPeriodInputSchema
+    __model__ = Promocode.SettingsSchema
 
     valid_from = None
     valid_until = None
 
 
-class PromocodeValidityPeriodInputSchema(Promocode.ValidityPeriodInputSchema):
+class PromocodeSettingsSchema(Promocode.SettingsSchema):
     valid_from: AwareDatetime
     valid_until: AwareDatetime
 
 
-class LimitedPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[PromocodeValidityPeriodInputSchema]
-):
-    __model__ = PromocodeValidityPeriodInputSchema
+class LimitedPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSchema]):
+    __model__ = PromocodeSettingsSchema
 
     valid_until = PostGenerated(
         lambda _, values: BaseModelFactory.__faker__.date_time_between(
@@ -36,10 +77,8 @@ class LimitedPromocodeValidityPeriodInputFactory(
     )
 
 
-class InvalidPromocodeValidityPeriodInputFactory(
-    BaseModelFactory[PromocodeValidityPeriodInputSchema]
-):
-    __model__ = PromocodeValidityPeriodInputSchema
+class InvalidPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSchema]):
+    __model__ = PromocodeSettingsSchema
 
     valid_from = PostGenerated(
         lambda _, values: BaseModelFactory.__faker__.date_time_between(
@@ -75,7 +114,7 @@ class PromocodeBatchGenerationRequestFactory(
 ):
     __model__ = PromocodeBatchGenerationRequestSchema
 
-    validity_period = Require()
+    settings = Require()
 
     @classmethod
     def title_template(cls) -> str:
@@ -88,3 +127,43 @@ class PromocodeBatchGenerationRequestFactory(
     @classmethod
     def batch_size(cls) -> int:
         return cls.__faker__.random_int(min=2, max=5)
+
+
+class StoredPaymentInputSchema(BaseModel):
+    provider_payment_id: str
+    amount_roubles: int
+    subscription_days: int
+    confirmation_url: str
+
+
+class StoredPaymentInputFactory(BaseModelFactory[StoredPaymentInputSchema]):
+    __model__ = StoredPaymentInputSchema
+
+    provider_payment_id = Use(BaseModelFactory.__faker__.uuid4)
+    confirmation_url = Use(BaseModelFactory.__faker__.url)
+
+
+class YooKassaPendingPaymentFactory(BaseModelFactory[YooKassaPendingPaymentSchema]):
+    __model__ = YooKassaPendingPaymentSchema
+
+
+class YooKassaWaitingForCapturePaymentFactory(
+    BaseModelFactory[YooKassaWaitingForCapturePaymentSchema]
+):
+    __model__ = YooKassaWaitingForCapturePaymentSchema
+
+
+class YooKassaSucceededPaymentFactory(BaseModelFactory[YooKassaSucceededPaymentSchema]):
+    __model__ = YooKassaSucceededPaymentSchema
+
+
+class YooKassaCanceledPaymentFactory(BaseModelFactory[YooKassaCanceledPaymentSchema]):
+    __model__ = YooKassaCanceledPaymentSchema
+
+
+class YooKassaEventObjectFactory(BaseModelFactory[YooKassaEventObjectSchema]):
+    __model__ = YooKassaEventObjectSchema
+
+
+class YooKassaEventFactory(BaseModelFactory[YooKassaEventSchema]):
+    __model__ = YooKassaEventSchema

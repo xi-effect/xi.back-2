@@ -44,20 +44,39 @@ async def test_retrieving_multiple_users_user_not_found(
 async def test_user_retrieving(
     internal_client: TestClient,
     user: User,
-    user_profile_data: AnyJSON,
+    detailed_user_data: AnyJSON,
 ) -> None:
     assert_response(
         internal_client.get(f"/internal/user-service/users/{user.id}/"),
+        expected_json=detailed_user_data,
+    )
+
+
+async def test_user_profile_retrieving(
+    internal_client: TestClient,
+    user: User,
+    user_profile_data: AnyJSON,
+) -> None:
+    assert_response(
+        internal_client.get(f"/internal/user-service/users/{user.id}/profile/"),
         expected_json=user_profile_data,
     )
 
 
-async def test_user_retrieving_user_not_found(
+@pytest.mark.parametrize(
+    "postfix",
+    [
+        pytest.param("/", id="retrieve"),
+        pytest.param("/profile/", id="retrieve-profile"),
+    ],
+)
+async def test_user_not_finding(
     internal_client: TestClient,
     deleted_user_id: int,
+    postfix: str,
 ) -> None:
     assert_response(
-        internal_client.get(f"/internal/user-service/users/{deleted_user_id}/"),
+        internal_client.get(f"/internal/user-service/users/{deleted_user_id}{postfix}"),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "User not found"},
     )
