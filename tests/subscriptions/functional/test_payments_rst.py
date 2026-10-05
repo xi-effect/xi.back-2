@@ -66,18 +66,16 @@ async def test_payment_creation(
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
-            "payment": {
-                "id": UUID,
-                "provider_payment_id": yookassa_payment.id,
-                "created_at": datetime_utc_now(),
-                "amount_roubles": amount_roubles,
-                "subscription_days": subscription_days,
-                "completed_at": None,
-                "cancellation_reason": None,
-            },
+            "id": UUID,
+            "provider_payment_id": yookassa_payment.id,
+            "created_at": datetime_utc_now(),
+            "amount_roubles": amount_roubles,
+            "subscription_days": subscription_days,
             "confirmation_url": yookassa_payment.confirmation.confirmation_url,
+            "completed_at": None,
+            "cancellation_reason": None,
         },
-    ).json()["payment"]["id"]
+    ).json()["id"]
 
     async with active_session():
         payment = await Payment.find_first_by_id(payment_id)

@@ -133,12 +133,14 @@ class StoredPaymentInputSchema(BaseModel):
     provider_payment_id: str
     amount_roubles: int
     subscription_days: int
+    confirmation_url: str
 
 
 class StoredPaymentInputFactory(BaseModelFactory[StoredPaymentInputSchema]):
     __model__ = StoredPaymentInputSchema
 
     provider_payment_id = Use(BaseModelFactory.__faker__.uuid4)
+    confirmation_url = Use(BaseModelFactory.__faker__.url)
 
 
 class YooKassaPendingPaymentFactory(BaseModelFactory[YooKassaPendingPaymentSchema]):
