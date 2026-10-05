@@ -18,6 +18,7 @@ from app.subscriptions.schemas.yookassa_sch import YooKassaPendingPaymentSchema
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.respx_ext import assert_last_httpx_request
+from tests.common.utils import repackage_json
 from tests.factories import DetailedUserFactory
 from tests.subscriptions import factories
 
@@ -119,4 +120,45 @@ async def test_payment_creation(
             },
             "metadata": {"payment_id": str(payment_id)},
         },
+    )
+
+
+async def test_payment_retrieving(
+    authorized_client: TestClient,
+    parametrized_payment: Payment,
+) -> None:
+    assert_response(
+        authorized_client.get(
+            "/api/protected/subscription-service/users/current"
+            f"/payments/{parametrized_payment.id}/",
+        ),
+        expected_json=repackage_json(Payment.ResponseSchema, parametrized_payment),
+    )
+
+
+async def test_payment_retrieving_access_denied(
+    outsider_client: TestClient,
+    pending_payment: Payment,
+) -> None:
+    assert_response(
+        outsider_client.get(
+            "/api/protected/subscription-service/users/current"
+            f"/payments/{pending_payment.id}/",
+        ),
+        expected_code=status.HTTP_403_FORBIDDEN,
+        expected_json={"detail": "Payment access denied"},
+    )
+
+
+async def test_payment_retrieving_not_finding(
+    authorized_client: TestClient,
+    deleted_payment_id: UUID,
+) -> None:
+    assert_response(
+        authorized_client.get(
+            "/api/protected/subscription-service/users/current"
+            f"/payments/{deleted_payment_id}/",
+        ),
+        expected_code=status.HTTP_404_NOT_FOUND,
+        expected_json={"detail": "Payment not found"},
     )
