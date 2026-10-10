@@ -7,7 +7,10 @@ from starlette import status
 
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.utils.datetime import datetime_utc_now
-from app.subscriptions.dependencies.promocodes_dep import PromocodeByCode, PromocodeByID
+from app.subscriptions.dependencies.promocodes_dep import (
+    PromocodeByCode,
+    PromocodeByID,
+)
 from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
 
 router = APIRouterExt(tags=["promocodes mub"])
