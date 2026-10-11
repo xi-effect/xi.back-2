@@ -170,6 +170,39 @@ async def test_group_classroom_updating(
 
 
 @pytest.mark.parametrize(
+    ("collection", "body_factory", "classroom"),
+    [
+        pytest.param(
+            "individual-classrooms",
+            IndividualClassroomPatchFactory,
+            lf("read_only_individual_classroom"),
+            id="individual",
+        ),
+        pytest.param(
+            "group-classrooms",
+            GroupClassroomPatchFactory,
+            lf("read_only_group_classroom"),
+            id="group",
+        ),
+    ],
+)
+async def test_classroom_updating_classroom_is_read_only(
+    tutor_client: TestClient,
+    collection: str,
+    body_factory: type[BaseModelFactory[Any]],
+    classroom: AnyClassroom,
+) -> None:
+    assert_response(
+        tutor_client.patch(
+            f"/api/protected/classroom-service/roles/tutor/{collection}/{classroom.id}/",
+            json=body_factory.build_json(),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Classroom is read-only"},
+    )
+
+
+@pytest.mark.parametrize(
     "new_status",
     [
         pytest.param(status, id=status.value)

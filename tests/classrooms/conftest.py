@@ -9,6 +9,7 @@ from starlette.testclient import TestClient
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     ClassroomKind,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
 )
@@ -163,6 +164,17 @@ async def student_tutorships(
             await tutorship.delete()
 
 
+@pytest.fixture(
+    params=[
+        status for status in ClassroomStatus if status is not ClassroomStatus.ACTIVE
+    ]
+)
+def parametrized_read_only_classroom_status(
+    request: PytestRequest[ClassroomStatus],
+) -> ClassroomStatus:
+    return request.param
+
+
 @pytest.fixture()
 async def individual_classroom(
     faker: Faker,
@@ -199,6 +211,18 @@ async def individual_classroom_student_data(
 
 
 @pytest.fixture()
+async def read_only_individual_classroom(
+    active_session: ActiveSession,
+    parametrized_read_only_classroom_status: ClassroomStatus,
+    individual_classroom: IndividualClassroom,
+) -> IndividualClassroom:
+    async with active_session() as session:
+        session.add(individual_classroom)
+        individual_classroom.status = parametrized_read_only_classroom_status
+    return individual_classroom
+
+
+@pytest.fixture()
 async def group_classroom(
     active_session: ActiveSession, tutor_user_id: int
 ) -> GroupClassroom:
@@ -231,6 +255,18 @@ async def group_classroom_student_data(group_classroom: GroupClassroom) -> AnyJS
     return GroupClassroom.StudentResponseSchema.model_validate(
         group_classroom
     ).model_dump(mode="json", by_alias=True)
+
+
+@pytest.fixture()
+async def read_only_group_classroom(
+    active_session: ActiveSession,
+    parametrized_read_only_classroom_status: ClassroomStatus,
+    group_classroom: GroupClassroom,
+) -> GroupClassroom:
+    async with active_session() as session:
+        session.add(group_classroom)
+        group_classroom.status = parametrized_read_only_classroom_status
+    return group_classroom
 
 
 @pytest.fixture()

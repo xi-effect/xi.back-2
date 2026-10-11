@@ -8,8 +8,8 @@ from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import (
     MyTutorClassroomByID,
-    MyTutorGroupClassroomByID,
-    MyTutorIndividualClassroomByID,
+    MyTutorEditableGroupClassroomByID,
+    MyTutorEditableIndividualClassroomByID,
 )
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
@@ -124,7 +124,7 @@ async def verify_classroom_access(_classroom: MyTutorClassroomByID) -> None:
     summary="Update tutor's individual classroom by id",
 )
 async def patch_individual_classroom(
-    individual_classroom: MyTutorIndividualClassroomByID,
+    individual_classroom: MyTutorEditableIndividualClassroomByID,
     data: IndividualClassroom.PatchSchema,
 ) -> IndividualClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)
@@ -143,7 +143,7 @@ async def patch_individual_classroom(
     summary="Update tutor's group classroom by id",
 )
 async def patch_group_classroom(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     data: GroupClassroom.PatchSchema,
 ) -> GroupClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)
