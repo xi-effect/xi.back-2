@@ -17,8 +17,10 @@ from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import File, FileKind
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.mock_stack import MockStack
 from tests.content import factories
 from tests.content.conftest import (
     CONTENT_TYPES_AND_FILE_EXTENSIONS,
@@ -32,6 +34,7 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_file_uploading(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     authorized_user_id: int,
     authorized_client: TestClient,
     material_id: UUID,
@@ -46,6 +49,10 @@ async def test_file_uploading(
             can_upload_files=True,
         )
     )
+
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
 
     file_id: UUID = assert_response(
         authorized_client.post(
@@ -119,11 +126,14 @@ async def test_file_uploading(
 
         await file.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
+
 
 @freeze_time()
 async def test_file_uploading_with_unrecognized_content(
     faker: Faker,
     active_session: ActiveSession,
+    mock_stack: MockStack,
     authorized_user_id: int,
     authorized_client: TestClient,
     material_id: UUID,
@@ -138,6 +148,11 @@ async def test_file_uploading_with_unrecognized_content(
             can_upload_files=True,
         )
     )
+
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     content_type, file_extension = random.choice(CONTENT_TYPES_AND_FILE_EXTENSIONS)
     upload_filename = faker.file_name(extension=file_extension)
 
@@ -170,6 +185,8 @@ async def test_file_uploading_with_unrecognized_content(
         file = await File.find_first_by_id(file_id)
         assert file is not None
         await file.delete()
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
 
 
 @pytest.mark.parametrize(
@@ -221,6 +238,45 @@ async def test_file_uploading_content_type_mismatch(
         expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         expected_json={"detail": "File content doesn't match the content-type header"},
     )
+
+
+async def test_file_uploading_storage_limit_reached(
+    content_token_generator: ContentTokenGeneratorProtocol,
+    mock_stack: MockStack,
+    authorized_user_id: int,
+    authorized_client: TestClient,
+    material_id: UUID,
+    ydoc: YDoc,
+    uncategorized_file_input_data: FileInputData,
+) -> None:
+    content_token = content_token_generator(
+        material_id,
+        ydoc.id,
+        authorized_user_id,
+        can_upload_files=True,
+    )
+
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        authorized_client.post(
+            "/api/protected/content-service/files/",
+            headers={"X-Content-Token": content_token},
+            files={
+                "upload": (
+                    uncategorized_file_input_data.name,
+                    uncategorized_file_input_data.input_content,
+                    uncategorized_file_input_data.content_type,
+                )
+            },
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
 
 
 @pytest.mark.parametrize(
