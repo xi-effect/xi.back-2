@@ -45,6 +45,7 @@ RECEIPT_ITEM_DESCRIPTION_TEMPLATE: Final[str] = (
 
 class PaymentInputSchema(BaseModel):
     period: SubscriptionPeriod
+    should_auto_renew: bool
 
 
 @router.post(
@@ -67,6 +68,7 @@ async def create_payment(
     yookassa_payment = await yookassa_client.create_payment(
         data=YooKassaCreatePaymentRequestSchema(
             amount=amount,
+            save_payment_method=data.should_auto_renew,
             confirmation=YooKassaRedirectConfirmationSchema(
                 return_url=f"{settings.yookassa_return_url}?payment_id={payment_id}"
             ),
@@ -81,7 +83,10 @@ async def create_payment(
                     )
                 ],
             ),
-            metadata=PaymentCorrelationSchema(payment_id=payment_id),
+            metadata=PaymentCorrelationSchema(
+                payment_id=payment_id,
+                auto_renewal_period=data.period if data.should_auto_renew else None,
+            ),
         ),
         idempotence_key=str(payment_id),
     )

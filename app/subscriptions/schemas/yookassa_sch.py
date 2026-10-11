@@ -43,6 +43,7 @@ class YooKassaRedirectConfirmationSchema(BaseModel):
 class YooKassaCreatePaymentRequestSchema(BaseModel):
     amount: YooKassaAmountSchema
     capture: Literal[True] = True
+    save_payment_method: bool
     confirmation: YooKassaRedirectConfirmationSchema
     receipt: YooKassaReceiptSchema
     # metadata is the same for every payment for now, so the schema is not generic
@@ -81,8 +82,14 @@ class YooKassaWaitingForCapturePaymentSchema(YooKassaBasePaymentSchema):
     status: Literal[YooKassaPaymentStatus.WAITING_FOR_CAPTURE]
 
 
+class YooKassaPaymentMethodSchema(BaseModel):
+    id: str
+    saved: bool
+
+
 class YooKassaSucceededPaymentSchema(YooKassaBasePaymentSchema):
     status: Literal[YooKassaPaymentStatus.SUCCEEDED]
+    payment_method: YooKassaPaymentMethodSchema | None = None
 
 
 class YooKassaCancellationDetailsSchema(BaseModel):

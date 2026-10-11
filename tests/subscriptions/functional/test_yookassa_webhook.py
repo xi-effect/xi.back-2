@@ -1,3 +1,4 @@
+import random
 from base64 import b64encode
 from datetime import datetime, timedelta
 from typing import Any
@@ -13,6 +14,7 @@ from starlette.testclient import TestClient
 
 from app.common.schemas.subscriptions_sch import PaidPlanKind
 from app.common.utils.datetime import datetime_utc_now
+from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.subscriptions_db import Subscription
 from app.subscriptions.routes.yookassa_webhook_rst import (
@@ -21,10 +23,12 @@ from app.subscriptions.routes.yookassa_webhook_rst import (
     UnexpectedYooKassaEventException,
 )
 from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
+from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaCanceledPaymentSchema,
     YooKassaEventSchema,
     YooKassaEventType,
+    YooKassaPaymentMethodSchema,
 )
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response
@@ -56,6 +60,28 @@ def yookassa_retrieve_payment_mock(
         ),
     ],
 )
+@pytest.mark.parametrize(
+    "existing_auto_renewal",
+    [
+        pytest.param(None, id="no_auto_renewal"),
+        pytest.param(lf("auto_renewal"), id="existing_auto_renewal"),
+    ],
+)
+@pytest.mark.parametrize(
+    "is_auto_renewal_period_specified",
+    [
+        pytest.param(False, id="auto_renewal_period_not_specified"),
+        pytest.param(True, id="auto_renewal_period_specified"),
+    ],
+)
+@pytest.mark.parametrize(
+    "is_payment_method_saved",
+    [
+        pytest.param(None, id="payment_method_missing"),
+        pytest.param(False, id="payment_method_not_saved"),
+        pytest.param(True, id="payment_method_saved"),
+    ],
+)
 @freeze_time()
 async def test_handling_event_from_yookassa_payment_succeeded(
     active_session: ActiveSession,
@@ -66,10 +92,27 @@ async def test_handling_event_from_yookassa_payment_succeeded(
     yookassa_retrieve_payment_mock: Route,
     existing_subscription: Subscription | None,
     subscription_extended_from: datetime | None,
+    existing_auto_renewal: AutoRenewal | None,
+    is_auto_renewal_period_specified: bool,
+    is_payment_method_saved: bool | None,
 ) -> None:
+    saved_yookassa_payment_method: YooKassaPaymentMethodSchema | None = (
+        None
+        if is_payment_method_saved is None
+        else factories.YooKassaPaymentMethodFactory.build(saved=is_payment_method_saved)
+    )
+    auto_renewal_period = (
+        random.choice(list(SubscriptionPeriod))
+        if is_auto_renewal_period_specified
+        else None
+    )
     yookassa_retrieve_payment_mock.respond(
         json=factories.YooKassaSucceededPaymentFactory.build_json(
-            metadata=PaymentCorrelationSchema(payment_id=pending_payment.id)
+            metadata=PaymentCorrelationSchema(
+                payment_id=pending_payment.id,
+                auto_renewal_period=auto_renewal_period,
+            ),
+            payment_method=saved_yookassa_payment_method,
         )
     )
 
@@ -106,6 +149,25 @@ async def test_handling_event_from_yookassa_payment_succeeded(
         )
         if existing_subscription is None:
             await subscription.delete()
+
+        auto_renewal = await AutoRenewal.find_first_by_id(authorized_user_id)
+        if (
+            auto_renewal_period is not None
+            and saved_yookassa_payment_method is not None
+            and saved_yookassa_payment_method.saved
+        ):
+            assert auto_renewal is not None
+            assert_contains(
+                auto_renewal,
+                {
+                    "provider_payment_method_id": saved_yookassa_payment_method.id,
+                    "renewal_period": auto_renewal_period,
+                },
+            )
+            if existing_auto_renewal is None:
+                await auto_renewal.delete()
+        else:
+            assert auto_renewal is None
 
     assert_last_httpx_request(
         yookassa_retrieve_payment_mock,
