@@ -17,7 +17,7 @@ from app.content.dependencies.uploads_dep import UploadFileKind
 from app.content.dependencies.ydocs_dep import ContentTokenYDoc
 from app.content.models.files_db import File
 from app.content.models.ydoc_files_db import YDocFile
-from app.content.services import files_svc
+from app.content.services import files_svc, storage_svc
 
 router = APIRouterExt(tags=["files"])
 
@@ -26,6 +26,7 @@ router = APIRouterExt(tags=["files"])
     "/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
+    responses=storage_svc.StorageLimitResponses.responses(),
     summary="Upload a new file",
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
@@ -35,6 +36,7 @@ async def upload_file(
     upload: UploadFile,
     file_kind: UploadFileKind,
 ) -> File:
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=ydoc.owner_id)
     file = await files_svc.create_file_from_upload(
         upload=upload,
         file_kind=file_kind,

@@ -22,9 +22,11 @@ from app.content.models.materials_db import (
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
 from tests.common.id_provider import IDProvider
+from tests.common.mock_stack import MockStack
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.content import factories
@@ -35,10 +37,15 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_classroom_material_creation(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     input_data = factories.ClassroomMaterialInputFactory.build_json()
 
     material_id: UUID = assert_response(
@@ -76,6 +83,31 @@ async def test_classroom_material_creation(
 
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
+
+async def test_classroom_material_creation_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/materials/",
+            json=factories.ClassroomMaterialInputFactory.build_json(),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 @pytest.fixture()
@@ -132,6 +164,7 @@ async def any_material_tag_ids(
 )
 async def test_material_to_classroom_duplication(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
@@ -140,6 +173,10 @@ async def test_material_to_classroom_duplication(
     any_material_tag_ids: list[int],
     should_copy_tags: bool,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     input_data = factories.ClassroomMaterialDuplicateInputFactory.build_json()
     target_classroom_id: int = randint(classroom_id + 1, classroom_id + 1000)
 
@@ -200,15 +237,22 @@ async def test_material_to_classroom_duplication(
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 @freeze_time()
 async def test_material_to_classroom_duplication_without_content(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
     personal_material_without_content: PersonalMaterial,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     input_data = factories.ClassroomMaterialDuplicateInputFactory.build_json()
 
     material_id: UUID = assert_response(
@@ -248,6 +292,8 @@ async def test_material_to_classroom_duplication_without_content(
         await classroom_material.delete()
         await classroom_material.main_ydoc.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 async def test_material_to_classroom_duplication_material_access_denied(
     outsider_client: TestClient,
@@ -285,6 +331,33 @@ async def test_material_to_classroom_duplication_material_not_found(
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Material not found"},
     )
+
+
+async def test_material_to_classroom_duplication_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+    any_material: Material,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/material-duplicates/",
+            json={
+                **factories.ClassroomMaterialDuplicateInputFactory.build_json(),
+                "source_id": str(any_material.id),
+            },
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 async def test_classroom_material_retrieving(
