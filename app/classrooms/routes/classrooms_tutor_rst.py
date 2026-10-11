@@ -22,6 +22,7 @@ from app.classrooms.models.classrooms_db import (
     UserClassroomStatus,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -114,15 +115,20 @@ async def validate_subject(
     path="/roles/tutor/group-classrooms/",
     status_code=status.HTTP_201_CREATED,
     response_model=GroupClassroom.TutorResponseSchema,
-    responses=SubjectResponses.responses(),
+    responses=Responses.chain(
+        SubjectResponses,
+        classrooms_svc.ActiveClassroomsLimitResponses,
+    ),
     summary="Create a new tutor group classroom for the current user",
 )
 async def create_group_classroom(
     auth_data: AuthorizationData,
     data: GroupClassroom.InputSchema,
 ) -> GroupClassroom:
-    # TODO amount limiting logic (subscription-based)
     await validate_subject(new_subject_id=data.subject_id)
+    await classrooms_svc.ensure_tutor_is_under_active_classrooms_limit(
+        tutor_id=auth_data.user_id
+    )
     return await GroupClassroom.create(
         tutor_id=auth_data.user_id,
         enrollments_count=0,
