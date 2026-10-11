@@ -19,7 +19,7 @@ from app.content.dependencies.files_dep import (
 )
 from app.content.dependencies.uploads_dep import UploadFileKind
 from app.content.models.files_db import ClassroomFile, File, FileSearchRequestSchema
-from app.content.services import files_svc
+from app.content.services import files_svc, storage_svc
 
 router = APIRouterExt(tags=["classroom files"])
 
@@ -48,6 +48,7 @@ async def list_classroom_files(
     path="/roles/tutor/classrooms/{classroom_id}/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.TutorResponseSchema,
+    responses=storage_svc.StorageLimitResponses.responses(),
     summary="Upload a new file to a classroom by id",
 )
 async def upload_file_to_classroom(
@@ -56,6 +57,7 @@ async def upload_file_to_classroom(
     upload: UploadFile,
     file_kind: UploadFileKind,
 ) -> File:
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
     file = await files_svc.create_file_from_upload(
         upload=upload,
         file_kind=file_kind,

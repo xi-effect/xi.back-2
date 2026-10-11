@@ -11,7 +11,7 @@ from app.content.dependencies.classroom_notes_dep import (
 )
 from app.content.models.materials_db import ClassroomNoteMaterial
 from app.content.models.ydocs_db import YDoc, YDocContentKind
-from app.content.services import materials_svc
+from app.content.services import materials_svc, storage_svc
 
 router = APIRouterExt(tags=["tutor classroom notes"])
 
@@ -26,7 +26,10 @@ class ClassroomNoteConflictResponses(Responses):
 @router.post(
     path="/roles/tutor/classrooms/{classroom_id}/note/storage-item/",
     status_code=status.HTTP_201_CREATED,
-    responses=ClassroomNoteConflictResponses.responses(),
+    responses=Responses.chain(
+        ClassroomNoteConflictResponses,
+        storage_svc.StorageLimitResponses,
+    ),
     summary="Create a new classroom note for a classroom by id",
 )
 async def create_classroom_note(
@@ -35,6 +38,7 @@ async def create_classroom_note(
 ) -> ContentYDocItemSchema:
     if await ClassroomNoteMaterial.is_present_by_classroom_id(classroom_id):
         raise ClassroomNoteConflictResponses.CLASSROOM_NOTE_ALREADY_EXISTS
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
 
     main_ydoc = await YDoc.create(
         owner_id=auth_data.user_id,
