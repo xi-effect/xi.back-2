@@ -65,10 +65,21 @@ async def retrieve_classroom_note_storage_item(
     classroom_note_material: ClassroomNoteMaterialByClassroomID,
     auth_data: AuthorizationData,
 ) -> ContentYDocItemSchema:
+    if await storage_svc.has_owner_reached_storage_limit(
+        owner_id=classroom_note_material.main_ydoc.owner_id
+    ):
+        can_upload_files = False
+        can_add_library_files = False
+        ydoc_access_level = YDocAccessLevel.READ_ONLY
+    else:
+        can_upload_files = True
+        can_add_library_files = True
+        ydoc_access_level = YDocAccessLevel.READ_WRITE
+
     return materials_svc.build_ydoc_item(
         material=classroom_note_material,
         user_id=auth_data.user_id,
-        can_upload_files=True,
-        can_add_library_files=True,
-        ydoc_access_level=YDocAccessLevel.READ_WRITE,
+        can_upload_files=can_upload_files,
+        can_add_library_files=can_add_library_files,
+        ydoc_access_level=ydoc_access_level,
     )
