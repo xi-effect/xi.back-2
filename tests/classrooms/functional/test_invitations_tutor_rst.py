@@ -287,3 +287,26 @@ async def test_group_invitation_not_finding(
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Invitation not found"},
     )
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        pytest.param("POST", id="create_or_retrieve"),
+        pytest.param("PUT", id="reset"),
+    ],
+)
+async def test_group_invitation_requesting_classroom_is_read_only(
+    tutor_client: TestClient,
+    read_only_group_classroom: GroupClassroom,
+    method: str,
+) -> None:
+    assert_response(
+        tutor_client.request(
+            method=method,
+            url="/api/protected/classroom-service/roles/tutor"
+            f"/group-classrooms/{read_only_group_classroom.id}/invitation/",
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Classroom is read-only"},
+    )
