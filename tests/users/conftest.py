@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -6,11 +7,14 @@ from fastapi.testclient import TestClient
 from pytest_lazy_fixtures import lf
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
-from app.common.schemas.users_sch import UserProfileSchema
+from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.users.models.sessions_db import Session
+from app.users.models.user_flag_kinds_db import UserFlagKind
+from app.users.models.user_flags_db import UserFlag
 from app.users.models.users_db import User
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, Factory, PytestRequest
+from tests.common.utils import repackage_json
 from tests.users import factories
 
 
@@ -81,6 +85,13 @@ async def user(
 @pytest.fixture()
 async def user_profile_data(user: User) -> AnyJSON:
     return UserProfileSchema.model_validate(user, from_attributes=True).model_dump(
+        mode="json"
+    )
+
+
+@pytest.fixture()
+async def detailed_user_data(user: User) -> AnyJSON:
+    return DetailedUserSchema.model_validate(user, from_attributes=True).model_dump(
         mode="json"
     )
 
@@ -190,6 +201,83 @@ async def deleted_session_id(
     async with active_session():
         await session.delete()
     return session.id
+
+
+@pytest.fixture()
+async def user_flag_kind(
+    active_session: ActiveSession,
+) -> AsyncIterator[UserFlagKind]:
+    async with active_session():
+        user_flag_kind = await UserFlagKind.create(
+            **factories.UserFlagKindInputFactory.build_python(),
+        )
+
+    yield user_flag_kind
+
+    async with active_session():
+        await UserFlagKind.delete_by_kwargs(id=user_flag_kind.id)
+
+
+@pytest.fixture()
+async def user_flag_kind_data(user_flag_kind: UserFlagKind) -> AnyJSON:
+    return repackage_json(UserFlagKind.ResponseSchema, user_flag_kind)
+
+
+@pytest.fixture()
+async def other_user_flag_kind(
+    active_session: ActiveSession,
+) -> AsyncIterator[UserFlagKind]:
+    async with active_session():
+        other_user_flag_kind = await UserFlagKind.create(
+            **factories.UserFlagKindInputFactory.build_python(),
+        )
+
+    yield other_user_flag_kind
+
+    async with active_session():
+        await UserFlagKind.delete_by_kwargs(id=other_user_flag_kind.id)
+
+
+@pytest.fixture()
+async def deleted_user_flag_kind_id(
+    active_session: ActiveSession,
+    user_flag_kind: UserFlagKind,
+) -> int:
+    async with active_session():
+        await user_flag_kind.delete()
+    return user_flag_kind.id
+
+
+@pytest.fixture()
+async def deleted_user_flag_kind_key(
+    active_session: ActiveSession,
+    user_flag_kind: UserFlagKind,
+) -> str:
+    async with active_session():
+        await user_flag_kind.delete()
+    return user_flag_kind.key
+
+
+@pytest.fixture()
+async def user_flag(
+    active_session: ActiveSession,
+    user: User,
+    user_flag_kind: UserFlagKind,
+) -> AsyncIterator[UserFlag]:
+    async with active_session():
+        user_flag = await UserFlag.create(
+            user_id=user.id,
+            user_flag_kind_id=user_flag_kind.id,
+            **factories.UserFlagValueFactory.build_python(),
+        )
+
+    yield user_flag
+
+    async with active_session():
+        await UserFlag.delete_by_kwargs(
+            user_id=user.id,
+            user_flag_kind_id=user_flag_kind.id,
+        )
 
 
 @pytest.fixture(params=[True, False])

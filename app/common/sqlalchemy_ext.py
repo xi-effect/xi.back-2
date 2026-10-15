@@ -128,6 +128,12 @@ class MappingBase:
         return await db.get_count(select(func.count(*expressions)).filter_by(**kwargs))
 
     @classmethod
+    async def sum_by_kwargs(cls, column: Any, **kwargs: Any) -> int:
+        return await db.get_count(
+            select(func.coalesce(func.sum(column), 0)).filter_by(**kwargs)
+        )
+
+    @classmethod
     async def delete_by_kwargs(cls, **kwargs: Any) -> None:
         await db.session.execute(delete(cls).filter_by(**kwargs))
 

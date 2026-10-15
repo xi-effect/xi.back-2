@@ -8,12 +8,13 @@ from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import (
     MyTutorClassroomByID,
-    MyTutorGroupClassroomByID,
-    MyTutorIndividualClassroomByID,
+    MyTutorEditableGroupClassroomByID,
+    MyTutorEditableIndividualClassroomByID,
 )
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
     TutorClassroomResponseSchema,
@@ -43,6 +44,18 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.get(
+    path="/roles/tutor/active-classrooms-count/",
+    summary="Count active tutor classrooms for the current user",
+)
+async def count_active_classrooms(auth_data: AuthorizationData) -> int:
+    return await Classroom.count_by_kwargs(
+        Classroom.id,
+        tutor_id=auth_data.user_id,
+        status=ClassroomStatus.ACTIVE,
+    )
 
 
 class SubjectResponses(Responses):
@@ -111,7 +124,7 @@ async def verify_classroom_access(_classroom: MyTutorClassroomByID) -> None:
     summary="Update tutor's individual classroom by id",
 )
 async def patch_individual_classroom(
-    individual_classroom: MyTutorIndividualClassroomByID,
+    individual_classroom: MyTutorEditableIndividualClassroomByID,
     data: IndividualClassroom.PatchSchema,
 ) -> IndividualClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)
@@ -130,7 +143,7 @@ async def patch_individual_classroom(
     summary="Update tutor's group classroom by id",
 )
 async def patch_group_classroom(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     data: GroupClassroom.PatchSchema,
 ) -> GroupClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)
