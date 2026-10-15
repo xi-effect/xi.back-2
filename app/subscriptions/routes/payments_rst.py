@@ -28,13 +28,13 @@ router = APIRouterExt(tags=["payments"])
 
 PERIOD_TO_SUBSCRIPTION_DAYS: dict[SubscriptionPeriod, int] = {
     SubscriptionPeriod.MONTHLY: 30,
-    SubscriptionPeriod.YEARLY: 365,
+    SubscriptionPeriod.YEARLY: 360,
 }
 
 PLAN_TO_PERIOD_TO_PRICE: dict[PaidPlanKind, dict[SubscriptionPeriod, int]] = {
     PaidPlanKind.PRO: {
         SubscriptionPeriod.MONTHLY: 1499,
-        SubscriptionPeriod.YEARLY: 14999,
+        SubscriptionPeriod.YEARLY: 14990,
     },
 }
 

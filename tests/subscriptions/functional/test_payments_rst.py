@@ -36,8 +36,8 @@ pytestmark = pytest.mark.anyio
         ),
         pytest.param(
             SubscriptionPeriod.YEARLY,
-            14999,
-            365,
+            14990,
+            360,
             id=SubscriptionPeriod.YEARLY.value,
         ),
     ],
