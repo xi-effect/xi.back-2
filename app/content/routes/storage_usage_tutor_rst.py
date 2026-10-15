@@ -2,8 +2,7 @@ from pydantic import BaseModel
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt
-from app.content.models.files_db import File
-from app.content.models.ydocs_db import YDoc
+from app.content.services import storage_svc
 
 router = APIRouterExt(tags=["storage usage"])
 
@@ -19,14 +18,8 @@ class StorageUsageResponseSchema(BaseModel):
 async def retrieve_storage_usage(
     auth_data: AuthorizationData,
 ) -> StorageUsageResponseSchema:
-    total_file_bytes = await File.sum_by_kwargs(
-        File.size_bytes,
-        owner_id=auth_data.user_id,
-    )
-    total_ydoc_bytes = await YDoc.sum_by_kwargs(
-        YDoc.size_bytes,
-        owner_id=auth_data.user_id,
-    )
     return StorageUsageResponseSchema(
-        total_storage_bytes=total_file_bytes + total_ydoc_bytes,
+        total_storage_bytes=await storage_svc.compute_storage_usage_by_owner_id(
+            owner_id=auth_data.user_id,
+        ),
     )

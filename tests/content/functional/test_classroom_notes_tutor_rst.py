@@ -11,8 +11,10 @@ from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccess
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.materials_db import ClassroomNoteMaterial
 from app.content.models.ydocs_db import YDocContentKind
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
@@ -21,10 +23,15 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_classroom_note_creation(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     response_json: AnyJSON = assert_response(
         tutor_client.post(
             "/api/protected/content-service/roles/tutor"
@@ -75,6 +82,8 @@ async def test_classroom_note_creation(
         await classroom_note_material.delete()
         await classroom_note_material.main_ydoc.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 async def test_classroom_note_creation_classroom_note_already_exists(
     tutor_client: TestClient,
@@ -88,6 +97,28 @@ async def test_classroom_note_creation_classroom_note_already_exists(
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": "Classroom note already exists"},
     )
+
+
+async def test_classroom_note_creation_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/note/storage-item/"
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 @freeze_time()
