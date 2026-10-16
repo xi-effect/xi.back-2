@@ -54,12 +54,23 @@ async def retrieve_personal_material_storage_item(
     personal_material: MyPersonalMaterialByID,
     auth_data: AuthorizationData,
 ) -> ContentYDocItemSchema:
+    if await storage_svc.has_owner_reached_storage_limit(
+        owner_id=personal_material.main_ydoc.owner_id
+    ):
+        can_upload_files = False
+        can_add_library_files = False
+        ydoc_access_level = YDocAccessLevel.READ_ONLY
+    else:
+        can_upload_files = True
+        can_add_library_files = True
+        ydoc_access_level = YDocAccessLevel.READ_WRITE
+
     return materials_svc.build_ydoc_item(
         material=personal_material,
         user_id=auth_data.user_id,
-        can_upload_files=True,
-        can_add_library_files=True,
-        ydoc_access_level=YDocAccessLevel.READ_WRITE,
+        can_upload_files=can_upload_files,
+        can_add_library_files=can_add_library_files,
+        ydoc_access_level=ydoc_access_level,
     )
 
 
