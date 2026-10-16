@@ -1,9 +1,7 @@
-from collections.abc import AsyncIterator, Iterator
-from datetime import datetime, timedelta, timezone
+from collections.abc import Iterator
 from typing import assert_never
 
 import pytest
-from faker import Faker
 from starlette.testclient import TestClient
 
 from app.classrooms.models.classrooms_db import (
@@ -11,64 +9,12 @@ from app.classrooms.models.classrooms_db import (
     GroupClassroom,
     IndividualClassroom,
 )
-from app.classrooms.models.enrollments_db import Enrollment
-from tests.classrooms import factories
-from tests.common.active_session import ActiveSession
+from tests.classrooms.conftest import CLASSROOMS_LIST_SIZE
 from tests.common.assert_contains_ext import assert_response
 from tests.common.types import AnyJSON
 from tests.common.utils import remove_none_values
 
 pytestmark = pytest.mark.anyio
-
-CLASSROOMS_LIST_SIZE = 8
-
-
-async def create_tutor_classrooms(
-    faker: Faker,
-    active_session: ActiveSession,
-    tutor_user_id: int,
-) -> AsyncIterator[AnyClassroom]:
-    last_created_at: datetime = faker.date_time_between(tzinfo=timezone.utc)
-    async with active_session():
-        for i in range(CLASSROOMS_LIST_SIZE):
-            if i % 2 == 0:
-                yield await IndividualClassroom.create(
-                    **factories.IndividualClassroomInputFactory.build_python(),
-                    tutor_id=tutor_user_id,
-                    student_id=tutor_user_id + i + 1,
-                    tutor_name=faker.name(),
-                    student_name=faker.name(),
-                    created_at=last_created_at,
-                )
-            else:
-                yield await GroupClassroom.create(
-                    **factories.GroupClassroomInputFactory.build_python(),
-                    tutor_id=tutor_user_id,
-                    created_at=last_created_at,
-                )
-            last_created_at -= timedelta(minutes=faker.random_int(min=1))
-
-
-@pytest.fixture()
-async def tutor_classrooms(
-    active_session: ActiveSession,
-    faker: Faker,
-    tutor_user_id: int,
-) -> AsyncIterator[list[AnyClassroom]]:
-    classrooms: list[AnyClassroom] = [
-        classroom
-        async for classroom in create_tutor_classrooms(
-            faker=faker,
-            active_session=active_session,
-            tutor_user_id=tutor_user_id,
-        )
-    ]
-
-    yield classrooms
-
-    async with active_session():
-        for classroom in classrooms:
-            await classroom.delete()
 
 
 def convert_tutor_classrooms(tutor_classrooms: list[AnyClassroom]) -> Iterator[AnyJSON]:
@@ -122,59 +68,6 @@ async def test_tutor_classrooms_listing(
             offset:limit
         ],
     )
-
-
-async def create_student_classrooms(
-    faker: Faker,
-    active_session: ActiveSession,
-    student_user_id: int,
-) -> AsyncIterator[AnyClassroom]:
-    last_created_at: datetime = faker.date_time_between(tzinfo=timezone.utc)
-    async with active_session():
-        for i in range(CLASSROOMS_LIST_SIZE):
-            if i % 2 == 0:
-                yield await IndividualClassroom.create(
-                    **factories.IndividualClassroomInputFactory.build_python(),
-                    tutor_id=student_user_id + i + 1,
-                    student_id=student_user_id,
-                    tutor_name=faker.name(),
-                    student_name=faker.name(),
-                    created_at=last_created_at,
-                )
-            else:
-                group_classroom = await GroupClassroom.create(
-                    **factories.GroupClassroomInputFactory.build_python(),
-                    tutor_id=student_user_id + i + 1,
-                    created_at=last_created_at,
-                )
-                await Enrollment.create(
-                    group_classroom_id=group_classroom.id,
-                    student_id=student_user_id,
-                )
-                yield group_classroom
-            last_created_at -= timedelta(minutes=faker.random_int(min=1))
-
-
-@pytest.fixture()
-async def student_classrooms(
-    active_session: ActiveSession,
-    faker: Faker,
-    student_user_id: int,
-) -> AsyncIterator[list[AnyClassroom]]:
-    classrooms: list[AnyClassroom] = [
-        classroom
-        async for classroom in create_student_classrooms(
-            faker=faker,
-            active_session=active_session,
-            student_user_id=student_user_id,
-        )
-    ]
-
-    yield classrooms
-
-    async with active_session():
-        for classroom in classrooms:
-            await classroom.delete()
 
 
 def convert_student_classrooms(
