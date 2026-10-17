@@ -91,6 +91,19 @@ plan_parametrization = pytest.mark.parametrize(
     ],
 )
 
+subscription_extension_parametrization = pytest.mark.parametrize(
+    ("existing_subscription", "subscription_extended_from"),
+    [
+        pytest.param(None, None, id="no_subscription"),
+        pytest.param(lf("expired_subscription"), None, id="expired_subscription"),
+        pytest.param(
+            lf("active_subscription"),
+            lf("active_subscription.ends_at"),
+            id="active_subscription",
+        ),
+    ],
+)
+
 
 @pytest.fixture()
 async def auto_renewal(
