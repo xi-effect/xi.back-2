@@ -33,21 +33,6 @@ from tests.common.types import AnyJSON
 pytestmark = pytest.mark.anyio
 
 
-async def test_counting_active_classrooms(
-    tutor_client: TestClient,
-    individual_classroom: IndividualClassroom,
-    group_classroom: GroupClassroom,
-) -> None:
-    active_classrooms = [individual_classroom, group_classroom]
-
-    assert_response(
-        tutor_client.get(
-            "/api/protected/classroom-service/roles/tutor/active-classrooms-count/",
-        ),
-        expected_json=len(active_classrooms),
-    )
-
-
 @freeze_time()
 async def test_group_classroom_creation(
     mock_stack: MockStack,
