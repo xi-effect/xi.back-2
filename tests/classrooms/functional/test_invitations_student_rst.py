@@ -21,6 +21,7 @@ from app.classrooms.models.invitations_db import (
     Invitation,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
     InvitationAcceptanceNotificationPayloadSchema,
@@ -113,6 +114,7 @@ async def test_individual_invitation_previewing_has_already_joined(
 @freeze_time()
 async def test_individual_invitation_accepting(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     send_notification_mock: AsyncMock,
     users_internal_respx_mock: MockRouter,
     tutor_user_id: int,
@@ -134,6 +136,9 @@ async def test_individual_invitation_accepting(
             for user_id, user_profile in user_profiles.items()
         }
     )
+    active_classrooms_limit_mock = mock_stack.enter_async_mock(
+        classrooms_svc, "has_tutor_reached_active_classrooms_limit", return_value=False
+    )  # limiting is tested in test_classrooms_svc.py
 
     initial_invitation_usage_count = individual_invitation.usage_count
 
@@ -202,6 +207,67 @@ async def test_individual_invitation_accepting(
         users_internal_bridge_mock,
         expected_headers={"X-Api-Key": settings.api_key},
     )
+
+    active_classrooms_limit_mock.assert_awaited_once_with(tutor_id=tutor_user_id)
+
+
+@freeze_time()
+async def test_individual_invitation_accepting_active_classrooms_limit_reached(
+    active_session: ActiveSession,
+    mock_stack: MockStack,
+    send_notification_mock: AsyncMock,
+    users_internal_respx_mock: MockRouter,
+    tutor_user_id: int,
+    student_user_id: int,
+    student_client: TestClient,
+    individual_invitation: IndividualInvitation,
+) -> None:
+    user_profiles: dict[int, UserProfileSchema] = {
+        tutor_user_id: UserProfileFactory.build(),
+        student_user_id: UserProfileFactory.build(),
+    }
+    users_internal_respx_mock.get(
+        path="/users/",
+        params={"user_ids": [tutor_user_id, student_user_id]},
+    ).respond(
+        json={
+            user_id: user_profile.model_dump(mode="json")
+            for user_id, user_profile in user_profiles.items()
+        }
+    )
+    active_classrooms_limit_mock = mock_stack.enter_async_mock(
+        classrooms_svc, "has_tutor_reached_active_classrooms_limit", return_value=True
+    )  # limiting is tested in test_classrooms_svc.py
+
+    classroom_id = assert_response(
+        student_client.post(
+            f"/api/protected/classroom-service/roles/student"
+            f"/invitations/{individual_invitation.code}/usages/",
+        ),
+        expected_json={
+            "id": int,
+            "kind": ClassroomKind.INDIVIDUAL,
+            "status": ClassroomStatus.LOCKED,
+            "created_at": datetime_utc_now(),
+            "tutor_id": tutor_user_id,
+            "name": user_profiles[tutor_user_id].display_name,
+            "description": None,
+        },
+    ).json()["id"]
+
+    async with active_session():
+        tutorship = await Tutorship.find_first_by_kwargs(
+            tutor_id=tutor_user_id,
+            student_id=student_user_id,
+        )
+        assert tutorship is not None
+        await tutorship.delete()
+
+        classroom = await IndividualClassroom.find_first_by_id(classroom_id)
+        assert classroom is not None
+        await classroom.delete()
+
+    active_classrooms_limit_mock.assert_awaited_once_with(tutor_id=tutor_user_id)
 
 
 async def test_individual_invitation_accepting_has_already_joined(
