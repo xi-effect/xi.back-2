@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Body
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 from starlette import status
 
@@ -46,15 +46,26 @@ async def list_classrooms(
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
 
 
+class ClassroomStatusCountsSchema(BaseModel):
+    active: int
+    paused: int
+    locked: int
+    finished: int
+
+
 @router.get(
-    path="/roles/tutor/active-classrooms-count/",
-    summary="Count active tutor classrooms for the current user",
+    path="/roles/tutor/classroom-status-counts/",
+    summary="Retrieve tutor classroom status counts for the current user",
 )
-async def count_active_classrooms(auth_data: AuthorizationData) -> int:
-    return await Classroom.count_by_kwargs(
-        Classroom.id,
-        tutor_id=auth_data.user_id,
-        status=ClassroomStatus.ACTIVE,
+async def retrieve_classroom_status_counts(
+    auth_data: AuthorizationData,
+) -> ClassroomStatusCountsSchema:
+    counts = await Classroom.get_status_counts_by_tutor_id(tutor_id=auth_data.user_id)
+    return ClassroomStatusCountsSchema(
+        active=counts.get(ClassroomStatus.ACTIVE, 0),
+        paused=counts.get(ClassroomStatus.PAUSED, 0),
+        locked=counts.get(ClassroomStatus.LOCKED, 0),
+        finished=counts.get(ClassroomStatus.FINISHED, 0),
     )
 
 

@@ -6,6 +6,7 @@ from pydantic import AwareDatetime, Field
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, Enum, String, Text, select, update
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.functions import count
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
@@ -70,6 +71,17 @@ class Classroom(Base):
             (created_at, AwareDatetime),
         ],
     )
+
+    @classmethod
+    async def get_status_counts_by_tutor_id(
+        cls, tutor_id: int
+    ) -> dict[ClassroomStatus, int]:
+        stmt = (
+            select(cls.status, count())
+            .filter_by(tutor_id=tutor_id)
+            .group_by(cls.status)
+        )
+        return dict((await db.session.execute(stmt)).tuples().all())
 
 
 class IndividualClassroom(Classroom):

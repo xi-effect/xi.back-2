@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+from faker import Faker
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
 from pytest_lazy_fixtures import lf
@@ -22,6 +23,7 @@ from tests.classrooms.factories import (
     ClassroomStatusUpdateFactory,
     GroupClassroomInputFactory,
     GroupClassroomPatchFactory,
+    IndividualClassroomInputFactory,
     IndividualClassroomPatchFactory,
 )
 from tests.common.active_session import ActiveSession
@@ -33,19 +35,52 @@ from tests.common.types import AnyJSON
 pytestmark = pytest.mark.anyio
 
 
-async def test_counting_active_classrooms(
+async def test_retrieving_classroom_status_counts(
+    faker: Faker,
+    active_session: ActiveSession,
+    tutor_user_id: int,
     tutor_client: TestClient,
-    individual_classroom: IndividualClassroom,
-    group_classroom: GroupClassroom,
 ) -> None:
-    active_classrooms = [individual_classroom, group_classroom]
+    classroom_status_to_count = {
+        ClassroomStatus.ACTIVE: 1,
+        ClassroomStatus.PAUSED: 2,
+        ClassroomStatus.LOCKED: 3,
+        ClassroomStatus.FINISHED: 0,
+    }
+    classroom_statuses = [
+        classroom_status
+        for classroom_status, classroom_count in classroom_status_to_count.items()
+        for _ in range(classroom_count)
+    ]
+
+    async with active_session():
+        for i, classroom_status in enumerate(classroom_statuses):
+            if i % 2 == 0:
+                await IndividualClassroom.create(
+                    **IndividualClassroomInputFactory.build_python(),
+                    tutor_id=tutor_user_id,
+                    student_id=tutor_user_id + i + 1,
+                    tutor_name=faker.name(),
+                    student_name=faker.name(),
+                    status=classroom_status,
+                )
+            else:
+                await GroupClassroom.create(
+                    **GroupClassroomInputFactory.build_python(),
+                    tutor_id=tutor_user_id,
+                    enrollments_count=0,
+                    status=classroom_status,
+                )
 
     assert_response(
         tutor_client.get(
-            "/api/protected/classroom-service/roles/tutor/active-classrooms-count/",
+            "/api/protected/classroom-service/roles/tutor/classroom-status-counts/",
         ),
-        expected_json=len(active_classrooms),
+        expected_json={"active": 1, "paused": 2, "locked": 3, "finished": 0},
     )
+
+    async with active_session():
+        await Classroom.delete_by_kwargs(tutor_id=tutor_user_id)
 
 
 @freeze_time()
