@@ -21,6 +21,7 @@ from app.classrooms.models.invitations_db import (
     Invitation,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
     InvitationAcceptanceNotificationPayloadSchema,
@@ -110,9 +111,17 @@ async def test_individual_invitation_previewing_has_already_joined(
         pytest.param(lf("tutorship"), id="old_tutorship"),
     ],
 )
+@pytest.mark.parametrize(
+    ("is_active_classrooms_limit_reached", "expected_classroom_status"),
+    [
+        pytest.param(False, ClassroomStatus.ACTIVE, id="limit_not_reached"),
+        pytest.param(True, ClassroomStatus.LOCKED, id="limit_reached"),
+    ],
+)
 @freeze_time()
 async def test_individual_invitation_accepting(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     send_notification_mock: AsyncMock,
     users_internal_respx_mock: MockRouter,
     tutor_user_id: int,
@@ -120,6 +129,8 @@ async def test_individual_invitation_accepting(
     student_client: TestClient,
     individual_invitation: IndividualInvitation,
     existing_tutorship: Tutorship | None,
+    is_active_classrooms_limit_reached: bool,
+    expected_classroom_status: ClassroomStatus,
 ) -> None:
     user_profiles: dict[int, UserProfileSchema] = {
         tutor_user_id: UserProfileFactory.build(),
@@ -134,6 +145,11 @@ async def test_individual_invitation_accepting(
             for user_id, user_profile in user_profiles.items()
         }
     )
+    active_classrooms_limit_mock = mock_stack.enter_async_mock(
+        classrooms_svc,
+        "has_tutor_reached_active_classrooms_limit",
+        return_value=is_active_classrooms_limit_reached,
+    )  # limiting is tested in test_classrooms_svc.py
 
     initial_invitation_usage_count = individual_invitation.usage_count
 
@@ -145,7 +161,7 @@ async def test_individual_invitation_accepting(
         expected_json={
             "id": int,
             "kind": ClassroomKind.INDIVIDUAL,
-            "status": ClassroomStatus.ACTIVE,
+            "status": expected_classroom_status,
             "created_at": datetime_utc_now(),
             "tutor_id": tutor_user_id,
             "name": user_profiles[tutor_user_id].display_name,
@@ -197,6 +213,7 @@ async def test_individual_invitation_accepting(
             ],
         )
     )
+    active_classrooms_limit_mock.assert_awaited_once_with(tutor_id=tutor_user_id)
 
     assert_last_httpx_request(
         users_internal_bridge_mock,
