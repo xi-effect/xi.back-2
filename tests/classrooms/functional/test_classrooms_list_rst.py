@@ -8,6 +8,8 @@ from starlette.testclient import TestClient
 
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
+    ClassroomKind,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
 )
@@ -20,7 +22,8 @@ from tests.common.utils import remove_none_values
 
 pytestmark = pytest.mark.anyio
 
-CLASSROOMS_LIST_SIZE = 8
+CLASSROOM_STATUSES = list(ClassroomStatus)
+CLASSROOMS_LIST_SIZE = len(ClassroomKind) * len(ClassroomStatus)
 
 
 async def create_tutor_classrooms(
@@ -31,6 +34,7 @@ async def create_tutor_classrooms(
     last_created_at: datetime = faker.date_time_between(tzinfo=timezone.utc)
     async with active_session():
         for i in range(CLASSROOMS_LIST_SIZE):
+            status = CLASSROOM_STATUSES[i // len(ClassroomKind)]
             if i % 2 == 0:
                 yield await IndividualClassroom.create(
                     **factories.IndividualClassroomInputFactory.build_python(),
@@ -39,12 +43,14 @@ async def create_tutor_classrooms(
                     tutor_name=faker.name(),
                     student_name=faker.name(),
                     created_at=last_created_at,
+                    status=status,
                 )
             else:
                 yield await GroupClassroom.create(
                     **factories.GroupClassroomInputFactory.build_python(),
                     tutor_id=tutor_user_id,
                     created_at=last_created_at,
+                    status=status,
                 )
             last_created_at -= timedelta(minutes=faker.random_int(min=1))
 
@@ -121,6 +127,83 @@ async def test_tutor_classrooms_listing(
         expected_json=list(convert_tutor_classrooms(tutor_classrooms=tutor_classrooms))[
             offset:limit
         ],
+    )
+
+
+@pytest.mark.parametrize(
+    ("offset", "limit"),
+    [
+        pytest.param(None, CLASSROOMS_LIST_SIZE, id="start_to_end"),
+        pytest.param(None, CLASSROOMS_LIST_SIZE // 2, id="start_to_middle"),
+        pytest.param(
+            CLASSROOMS_LIST_SIZE // 2,
+            CLASSROOMS_LIST_SIZE,
+            id="middle_to_end",
+        ),
+    ],
+)
+async def test_tutor_classrooms_searching(
+    tutor_client: TestClient,
+    tutor_classrooms: list[AnyClassroom],
+    offset: int | None,
+    limit: int,
+) -> None:
+    cursor = None if offset is None else tutor_classrooms[offset]
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/classroom-service/roles/tutor/classrooms/searches/",
+            json={
+                "cursor": (
+                    None
+                    if cursor is None
+                    else {"created_at": cursor.created_at.isoformat()}
+                ),
+                "limit": limit,
+                "filters": {},
+            },
+        ),
+        expected_json=list(
+            convert_tutor_classrooms(
+                tutor_classrooms=[
+                    classroom
+                    for classroom in tutor_classrooms
+                    if cursor is None or classroom.created_at < cursor.created_at
+                ]
+            )
+        )[:limit],
+    )
+
+
+@pytest.mark.parametrize(
+    "statuses",
+    [
+        *[pytest.param([status], id=status) for status in CLASSROOM_STATUSES],
+        pytest.param(CLASSROOM_STATUSES, id="all_statuses"),
+    ],
+)
+async def test_tutor_classrooms_searching_filtered_by_statuses(
+    tutor_client: TestClient,
+    tutor_classrooms: list[AnyClassroom],
+    statuses: list[ClassroomStatus],
+) -> None:
+    assert_response(
+        tutor_client.post(
+            "/api/protected/classroom-service/roles/tutor/classrooms/searches/",
+            json={
+                "limit": CLASSROOMS_LIST_SIZE,
+                "filters": {"statuses": statuses},
+            },
+        ),
+        expected_json=list(
+            convert_tutor_classrooms(
+                tutor_classrooms=[
+                    classroom
+                    for classroom in tutor_classrooms
+                    if classroom.status in statuses
+                ]
+            )
+        ),
     )
 
 
