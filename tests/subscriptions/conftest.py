@@ -91,6 +91,19 @@ plan_parametrization = pytest.mark.parametrize(
     ],
 )
 
+existing_subscription_parametrization = pytest.mark.parametrize(
+    ("existing_subscription", "subscription_extended_from"),
+    [
+        pytest.param(None, None, id="no_subscription"),
+        pytest.param(lf("expired_subscription"), None, id="expired_subscription"),
+        pytest.param(
+            lf("active_subscription"),
+            lf("active_subscription.ends_at"),
+            id="active_subscription",
+        ),
+    ],
+)
+
 
 @pytest.fixture()
 async def auto_renewal(
@@ -142,6 +155,23 @@ async def deleted_promocode(
     async with active_session():
         await promocode.delete()
     return promocode
+
+
+@pytest.fixture()
+async def redeemable_promocode(
+    active_session: ActiveSession,
+) -> AsyncIterator[Promocode]:
+    async with active_session():
+        promocode = await Promocode.create(
+            **factories.PromocodeWithCodeInputFactory.build_python(
+                max_account_age_days=None
+            )
+        )
+
+    yield promocode
+
+    async with active_session():
+        await Promocode.delete_by_kwargs(id=promocode.id)
 
 
 @pytest.fixture(scope="session")

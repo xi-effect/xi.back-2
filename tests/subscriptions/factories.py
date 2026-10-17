@@ -88,6 +88,32 @@ class InvalidPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSc
     )
 
 
+class FuturePeriodPromocodeSettingsSchema(Promocode.SettingsSchema):
+    valid_from: FutureAwareDatetime
+
+
+class FuturePeriodPromocodeSettingsFactory(
+    BaseModelFactory[FuturePeriodPromocodeSettingsSchema]
+):
+    __model__ = FuturePeriodPromocodeSettingsSchema
+
+    valid_until = None
+    max_account_age_days = None
+
+
+class PastPeriodPromocodeSettingsSchema(Promocode.SettingsSchema):
+    valid_until: PastAwareDatetime
+
+
+class PastPeriodPromocodeSettingsFactory(
+    BaseModelFactory[PastPeriodPromocodeSettingsSchema]
+):
+    __model__ = PastPeriodPromocodeSettingsSchema
+
+    valid_from = None
+    max_account_age_days = None
+
+
 class PromocodeNoCodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
     __model__ = Promocode.InputSchema
 

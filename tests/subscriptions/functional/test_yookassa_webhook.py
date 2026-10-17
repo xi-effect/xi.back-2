@@ -35,6 +35,7 @@ from tests.common.assert_contains_ext import assert_nodata_response
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.subscriptions import factories
+from tests.subscriptions.conftest import existing_subscription_parametrization
 
 pytestmark = pytest.mark.anyio
 
@@ -48,18 +49,7 @@ def yookassa_retrieve_payment_mock(
     )
 
 
-@pytest.mark.parametrize(
-    ("existing_subscription", "subscription_extended_from"),
-    [
-        pytest.param(None, None, id="no_subscription"),
-        pytest.param(lf("expired_subscription"), None, id="expired_subscription"),
-        pytest.param(
-            lf("active_subscription"),
-            lf("active_subscription.ends_at"),
-            id="active_subscription",
-        ),
-    ],
-)
+@existing_subscription_parametrization
 @pytest.mark.parametrize(
     "existing_auto_renewal",
     [
