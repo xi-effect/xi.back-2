@@ -1,7 +1,7 @@
 from datetime import timezone
 
 from polyfactory import PostGenerated, Require, Use
-from pydantic import AwareDatetime, BaseModel
+from pydantic import AwareDatetime, BaseModel, PositiveInt
 
 from app.common.pydantic_ext import FutureAwareDatetime, PastAwareDatetime
 from app.common.schemas.subscriptions_sch import PaidPlanKind
@@ -86,6 +86,57 @@ class InvalidPeriodPromocodeSettingsFactory(BaseModelFactory[PromocodeSettingsSc
             start_date=values["valid_until"], tzinfo=timezone.utc
         )
     )
+
+
+class UnrestrictedPromocodeSettingsFactory(BaseModelFactory[Promocode.SettingsSchema]):
+    __model__ = Promocode.SettingsSchema
+
+    valid_from = None
+    valid_until = None
+    usage_limit = None
+    max_account_age_days = None
+
+
+class FuturePeriodPromocodeSettingsSchema(Promocode.SettingsSchema):
+    valid_from: FutureAwareDatetime
+
+
+class FuturePeriodPromocodeSettingsFactory(
+    BaseModelFactory[FuturePeriodPromocodeSettingsSchema]
+):
+    __model__ = FuturePeriodPromocodeSettingsSchema
+
+    valid_until = None
+    usage_limit = None
+    max_account_age_days = None
+
+
+class PastPeriodPromocodeSettingsSchema(Promocode.SettingsSchema):
+    valid_until: PastAwareDatetime
+
+
+class PastPeriodPromocodeSettingsFactory(
+    BaseModelFactory[PastPeriodPromocodeSettingsSchema]
+):
+    __model__ = PastPeriodPromocodeSettingsSchema
+
+    valid_from = None
+    usage_limit = None
+    max_account_age_days = None
+
+
+class AccountAgePromocodeSettingsSchema(Promocode.SettingsSchema):
+    max_account_age_days: PositiveInt
+
+
+class AccountAgePromocodeSettingsFactory(
+    BaseModelFactory[AccountAgePromocodeSettingsSchema]
+):
+    __model__ = AccountAgePromocodeSettingsSchema
+
+    valid_from = None
+    valid_until = None
+    usage_limit = None
 
 
 class PromocodeNoCodeInputFactory(BaseModelFactory[Promocode.InputSchema]):
