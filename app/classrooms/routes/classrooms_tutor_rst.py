@@ -14,6 +14,7 @@ from app.classrooms.dependencies.classrooms_tutor_dep import (
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomSearchRequestSchema,
     ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
@@ -30,10 +31,12 @@ from app.common.sqlalchemy_ext import db
 router = APIRouterExt(tags=["tutor classrooms"])
 
 
+# TODO (299) remove after xi.tutor switches to POST /roles/tutor/classrooms/searches/
 @router.get(
     path="/roles/tutor/classrooms/",
     response_model=list[TutorClassroomResponseSchema],
-    summary="List paginated tutor classrooms for the current user",
+    summary="Use `POST /api/protected/classroom-service/roles/tutor/classrooms/searches/` instead",
+    deprecated=True,
 )
 async def list_classrooms(
     auth_data: AuthorizationData,
@@ -44,6 +47,21 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.post(
+    path="/roles/tutor/classrooms/searches/",
+    response_model=list[TutorClassroomResponseSchema],
+    summary="List paginated tutor classrooms for the current user",
+)
+async def search_classrooms(
+    auth_data: AuthorizationData,
+    data: ClassroomSearchRequestSchema,
+) -> Sequence[Classroom]:
+    return await Classroom.find_paginated_by_tutor_id(
+        tutor_id=auth_data.user_id,
+        search_params=data,
+    )
 
 
 @router.get(
