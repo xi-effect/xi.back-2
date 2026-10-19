@@ -208,6 +208,23 @@ async def test_tutor_classrooms_listing_filtered_by_statuses(
     )
 
 
+async def test_tutor_classroom_status_counts_retrieving(
+    tutor_client: TestClient,
+    tutor_classrooms: list[AnyClassroom],
+) -> None:
+    assert_response(
+        tutor_client.get(
+            "/api/protected/classroom-service/roles/tutor/classroom-status-counts/",
+        ),
+        expected_json={
+            "active": CLASSROOMS_PER_STATUS,
+            "paused": CLASSROOMS_PER_STATUS,
+            "locked": CLASSROOMS_PER_STATUS,
+            "finished": CLASSROOMS_PER_STATUS,
+        },
+    )
+
+
 async def create_student_classrooms(
     faker: Faker,
     active_session: ActiveSession,
