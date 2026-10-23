@@ -2,9 +2,10 @@ from datetime import timedelta
 
 from starlette import status
 
-from app.common.config_bdg import users_internal_bridge
+from app.common.config_bdg import subscriptions_bridge, users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
+from app.common.schemas.subscriptions_sch import UserPlanUpdateEventSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.dependencies.promocodes_dep import PromocodeByCode
 from app.subscriptions.models.promocode_redemptions_db import PromocodeRedemption
@@ -71,4 +72,7 @@ async def redeem_promocode(
     await Subscription.add_subscription_days_by_user_id(
         user_id=auth_data.user_id,
         subscription_days=promocode.subscription_days,
+    )
+    await subscriptions_bridge.publish_user_plan_update(
+        UserPlanUpdateEventSchema(user_id=auth_data.user_id)
     )

@@ -3,7 +3,7 @@ from pydantic import TypeAdapter
 from app.common.bridges.base_bdg import BaseBridge
 from app.common.bridges.utils import ResponsePipelineBuilder
 from app.common.config import settings
-from app.common.schemas.subscriptions_sch import PlanSchema
+from app.common.schemas.subscriptions_sch import PlanSchema, UserPlanUpdateEventSchema
 
 plan_type_adapter = TypeAdapter(PlanSchema)
 
@@ -22,4 +22,10 @@ class SubscriptionsBridge(BaseBridge):
             )
             .validate_status_code()
             .validate_json(plan_type_adapter)
+        )
+
+    async def publish_user_plan_update(self, data: UserPlanUpdateEventSchema) -> None:
+        await self.broker.publish(  # TODO (302) pragma: no cover
+            message=data.model_dump(mode="json"),
+            stream=settings.user_plans_updated_stream_name,
         )
