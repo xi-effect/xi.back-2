@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from faker import Faker
@@ -10,7 +11,7 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import settings
-from app.common.schemas.subscriptions_sch import PaidPlanKind
+from app.common.schemas.subscriptions_sch import PaidPlanKind, UserPlanUpdateEventSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.models.promocode_redemptions_db import PromocodeRedemption
 from app.subscriptions.models.promocodes_db import Promocode
@@ -41,6 +42,7 @@ async def test_promocode_redemption(
     users_internal_respx_mock: MockRouter,
     authorized_user_id: int,
     authorized_client: TestClient,
+    publish_user_plan_update_mock: AsyncMock,
     redeemable_promocode: Promocode,
     existing_subscription: Subscription | None,
     subscription_extended_from: datetime | None,
@@ -103,6 +105,10 @@ async def test_promocode_redemption(
         )
     else:
         users_internal_respx_mock.calls.assert_not_called()
+
+    publish_user_plan_update_mock.assert_awaited_once_with(
+        UserPlanUpdateEventSchema(user_id=authorized_user_id)
+    )
 
 
 async def test_promocode_redemption_promocode_usage_limit_reached(

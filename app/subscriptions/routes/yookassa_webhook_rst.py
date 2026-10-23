@@ -1,6 +1,8 @@
 from typing import assert_never
 
+from app.common.config_bdg import subscriptions_bridge
 from app.common.fastapi_ext import APIRouterExt
+from app.common.schemas.subscriptions_sch import UserPlanUpdateEventSchema
 from app.subscriptions.config import yookassa_client
 from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
@@ -34,6 +36,9 @@ async def handle_succeeded_payment(
     await Subscription.add_subscription_days_by_user_id(
         user_id=payment.user_id,
         subscription_days=payment.subscription_days,
+    )
+    await subscriptions_bridge.publish_user_plan_update(
+        UserPlanUpdateEventSchema(user_id=payment.user_id)
     )
 
     if (

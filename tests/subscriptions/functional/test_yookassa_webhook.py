@@ -2,6 +2,7 @@ import random
 from base64 import b64encode
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
 from faker import Faker
@@ -12,7 +13,7 @@ from respx import MockRouter, Route
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.common.schemas.subscriptions_sch import PaidPlanKind
+from app.common.schemas.subscriptions_sch import PaidPlanKind, UserPlanUpdateEventSchema
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
@@ -77,6 +78,7 @@ async def test_handling_event_from_yookassa_payment_succeeded(
     active_session: ActiveSession,
     client: TestClient,
     authorized_user_id: int,
+    publish_user_plan_update_mock: AsyncMock,
     yookassa_credentials: str,
     pending_payment: Payment,
     yookassa_retrieve_payment_mock: Route,
@@ -164,6 +166,9 @@ async def test_handling_event_from_yookassa_payment_succeeded(
         expected_headers={
             "Authorization": f"Basic {b64encode(yookassa_credentials.encode()).decode()}",
         },
+    )
+    publish_user_plan_update_mock.assert_awaited_once_with(
+        UserPlanUpdateEventSchema(user_id=authorized_user_id)
     )
 
 
