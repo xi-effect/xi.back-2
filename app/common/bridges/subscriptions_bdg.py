@@ -25,7 +25,7 @@ class SubscriptionsBridge(BaseBridge):
         )
 
     async def publish_user_plan_update(self, data: UserPlanUpdateEventSchema) -> None:
-        await self.broker.publish(  # TODO (302) pragma: no cover
+        await self.broker.publish(
             message=data.model_dump(mode="json"),
             stream=settings.user_plans_updated_stream_name,
         )

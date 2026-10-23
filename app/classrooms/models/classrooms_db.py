@@ -127,6 +127,38 @@ class Classroom(Base):
         )
         return dict((await db.session.execute(stmt)).tuples().all())
 
+    @classmethod
+    async def count_active_classrooms_by_tutor_id(cls, tutor_id: int) -> int:
+        return await cls.count_by_kwargs(
+            cls.id,
+            tutor_id=tutor_id,
+            status=ClassroomStatus.ACTIVE,
+        )
+
+    @classmethod
+    async def lock_all_active_classrooms_by_tutor_id(cls, tutor_id: int) -> None:
+        stmt = (
+            update(cls)
+            .filter_by(tutor_id=tutor_id, status=ClassroomStatus.ACTIVE)
+            .values(status=ClassroomStatus.LOCKED)
+        )
+        await db.session.execute(stmt)
+
+    @classmethod
+    async def unlock_classrooms_by_tutor_id(cls, tutor_id: int, limit: int) -> None:
+        classroom_ids_to_unlock = (
+            select(cls.id)
+            .filter_by(tutor_id=tutor_id, status=ClassroomStatus.LOCKED)
+            .order_by(cls.created_at.desc())
+            .limit(limit)
+        )
+        stmt = (
+            update(cls)
+            .filter(cls.id.in_(classroom_ids_to_unlock))
+            .values(status=ClassroomStatus.ACTIVE)
+        )
+        await db.session.execute(stmt)
+
 
 class IndividualClassroom(Classroom):
     __tablename__ = None

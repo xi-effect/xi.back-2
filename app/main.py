@@ -115,6 +115,7 @@ faststream = RedisRouter(
     settings.redis_faststream_dsn,
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
+faststream.include_router(classrooms.stream_router)  # type: ignore[arg-type]
 faststream.include_router(datalake.stream_router)  # type: ignore[arg-type]
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
 faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
