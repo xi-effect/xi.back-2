@@ -17,6 +17,7 @@ from app.classrooms.models.classrooms_db import (
 )
 from app.classrooms.models.enrollments_db import Enrollment
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.utils.datetime import datetime_utc_now
 from tests.classrooms.factories import (
     ClassroomStatusUpdateFactory,
@@ -35,13 +36,17 @@ pytestmark = pytest.mark.anyio
 
 @freeze_time()
 async def test_group_classroom_creation(
-    mock_stack: MockStack,
     active_session: ActiveSession,
+    mock_stack: MockStack,
+    tutor_user_id: int,
     tutor_client: TestClient,
 ) -> None:
     validate_subject_mock = mock_stack.enter_async_mock(
         "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
     )
+    active_classrooms_limit_mock = mock_stack.enter_async_mock(
+        classrooms_svc, "has_tutor_reached_active_classrooms_limit", return_value=False
+    )  # limiting is tested in test_classrooms_svc.py
 
     input_data: AnyJSON = GroupClassroomInputFactory.build_json()
 
@@ -69,6 +74,31 @@ async def test_group_classroom_creation(
     validate_subject_mock.assert_awaited_once_with(
         new_subject_id=input_data["subject_id"]
     )
+    active_classrooms_limit_mock.assert_awaited_once_with(tutor_id=tutor_user_id)
+
+
+async def test_group_classroom_creation_active_classrooms_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+) -> None:
+    mock_stack.enter_async_mock(
+        "app.classrooms.routes.classrooms_tutor_rst.validate_subject",
+    )
+    active_classrooms_limit_mock = mock_stack.enter_async_mock(
+        classrooms_svc, "has_tutor_reached_active_classrooms_limit", return_value=True
+    )  # limiting is tested in test_classrooms_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/classroom-service/roles/tutor/group-classrooms/",
+            json=GroupClassroomInputFactory.build_json(),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Active classrooms limit reached"},
+    )
+
+    active_classrooms_limit_mock.assert_awaited_once_with(tutor_id=tutor_user_id)
 
 
 async def test_classroom_retrieving(
@@ -151,6 +181,39 @@ async def test_group_classroom_updating(
     validate_subject_mock.assert_awaited_once_with(
         new_subject_id=patch_data.get("subject_id"),
         old_subject_id=group_classroom.subject_id,
+    )
+
+
+@pytest.mark.parametrize(
+    ("collection", "body_factory", "classroom"),
+    [
+        pytest.param(
+            "individual-classrooms",
+            IndividualClassroomPatchFactory,
+            lf("read_only_individual_classroom"),
+            id="individual",
+        ),
+        pytest.param(
+            "group-classrooms",
+            GroupClassroomPatchFactory,
+            lf("read_only_group_classroom"),
+            id="group",
+        ),
+    ],
+)
+async def test_classroom_updating_classroom_is_read_only(
+    tutor_client: TestClient,
+    collection: str,
+    body_factory: type[BaseModelFactory[Any]],
+    classroom: AnyClassroom,
+) -> None:
+    assert_response(
+        tutor_client.patch(
+            f"/api/protected/classroom-service/roles/tutor/{collection}/{classroom.id}/",
+            json=body_factory.build_json(),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Classroom is read-only"},
     )
 
 

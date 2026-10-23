@@ -3,6 +3,7 @@ from uuid import UUID
 import pytest
 from freezegun import freeze_time
 from pydantic_marshals.contains import assert_contains
+from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -11,8 +12,10 @@ from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccess
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.materials_db import ClassroomNoteMaterial
 from app.content.models.ydocs_db import YDocContentKind
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
@@ -21,10 +24,15 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_classroom_note_creation(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_id: int,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     response_json: AnyJSON = assert_response(
         tutor_client.post(
             "/api/protected/content-service/roles/tutor"
@@ -75,6 +83,8 @@ async def test_classroom_note_creation(
         await classroom_note_material.delete()
         await classroom_note_material.main_ydoc.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 async def test_classroom_note_creation_classroom_note_already_exists(
     tutor_client: TestClient,
@@ -90,22 +100,84 @@ async def test_classroom_note_creation_classroom_note_already_exists(
     )
 
 
+async def test_classroom_note_creation_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    classroom_id: int,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/note/storage-item/"
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
+
 @freeze_time()
+@pytest.mark.parametrize(
+    ("is_storage_limit_reached", "expected_content_token_payload"),
+    [
+        pytest.param(
+            False,
+            lfc(
+                lambda classroom_note_material, tutor_user_id: (
+                    ContentTokenPayloadSchema(
+                        material_id=classroom_note_material.id,
+                        ydoc_id=classroom_note_material.main_ydoc_id,
+                        user_id=tutor_user_id,
+                        can_upload_files=True,
+                        can_read_files=True,
+                        can_add_library_files=True,
+                        ydoc_access_level=YDocAccessLevel.READ_WRITE,
+                    )
+                ),
+            ),
+            id="limit_not_reached",
+        ),
+        pytest.param(
+            True,
+            lfc(
+                lambda classroom_note_material, tutor_user_id: (
+                    ContentTokenPayloadSchema(
+                        material_id=classroom_note_material.id,
+                        ydoc_id=classroom_note_material.main_ydoc_id,
+                        user_id=tutor_user_id,
+                        can_upload_files=False,
+                        can_read_files=True,
+                        can_add_library_files=False,
+                        ydoc_access_level=YDocAccessLevel.READ_ONLY,
+                    )
+                ),
+            ),
+            id="limit_reached",
+        ),
+    ],
+)
 async def test_classroom_note_storage_item_retrieving(
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     classroom_note_material: ClassroomNoteMaterial,
+    is_storage_limit_reached: bool,
+    expected_content_token_payload: ContentTokenPayloadSchema,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc,
+        "has_owner_reached_storage_limit",
+        return_value=is_storage_limit_reached,
+    )  # limiting is tested in test_storage_svc.py
+
     expected_content_token: str = content_token_provider.serialize_and_sign(
-        ContentTokenPayloadSchema(
-            material_id=classroom_note_material.id,
-            ydoc_id=classroom_note_material.main_ydoc_id,
-            user_id=tutor_user_id,
-            can_upload_files=True,
-            can_read_files=True,
-            can_add_library_files=True,
-            ydoc_access_level=YDocAccessLevel.READ_WRITE,
-        )
+        expected_content_token_payload
     )
 
     assert_response(
@@ -118,6 +190,8 @@ async def test_classroom_note_storage_item_retrieving(
             "content_token": expected_content_token,
         },
     )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 async def test_classroom_note_storage_item_retrieving_classroom_note_not_found(
