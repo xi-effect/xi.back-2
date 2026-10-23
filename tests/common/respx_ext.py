@@ -39,6 +39,15 @@ def notifications_respx_mock() -> Iterator[MockRouter]:
 
 
 @pytest.fixture()
+def subscriptions_respx_mock() -> Iterator[MockRouter]:
+    mock_router: MockRouter = mock(
+        base_url=f"{settings.bridge_base_url}/internal/subscription-service"
+    )
+    with mock_router:
+        yield mock_router
+
+
+@pytest.fixture()
 def users_internal_respx_mock() -> Iterator[MockRouter]:
     mock_router: MockRouter = mock(
         base_url=f"{settings.bridge_base_url}/internal/user-service"

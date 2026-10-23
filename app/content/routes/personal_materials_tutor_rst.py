@@ -6,7 +6,7 @@ from app.common.schemas.content_sch import ContentYDocItemSchema, YDocAccessLeve
 from app.content.dependencies.personal_materials_dep import MyPersonalMaterialByID
 from app.content.models.materials_db import PersonalMaterial
 from app.content.models.ydocs_db import YDoc
-from app.content.services import materials_svc
+from app.content.services import materials_svc, storage_svc
 
 router = APIRouterExt(tags=["personal materials"])
 
@@ -15,12 +15,14 @@ router = APIRouterExt(tags=["personal materials"])
     path="/roles/tutor/personal-materials/",
     status_code=status.HTTP_201_CREATED,
     response_model=PersonalMaterial.ResponseSchema,
+    responses=storage_svc.StorageLimitResponses.responses(),
     summary="Create a new personal material for the current user",
 )
 async def create_personal_material(
     auth_data: AuthorizationData,
     input_data: PersonalMaterial.InputSchema,
 ) -> PersonalMaterial:
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
     main_ydoc = await YDoc.create(
         owner_id=auth_data.user_id,
         content_kind=input_data.content_kind,
