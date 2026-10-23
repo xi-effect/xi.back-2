@@ -8,6 +8,7 @@ from app.classrooms.dependencies.invitations_dep import ForeignInvitationByCode
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     ClassroomKind,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
     StudentClassroomResponseSchema,
@@ -15,6 +16,7 @@ from app.classrooms.models.classrooms_db import (
 from app.classrooms.models.enrollments_db import Enrollment
 from app.classrooms.models.invitations_db import GroupInvitation, IndividualInvitation
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.config_bdg import notifications_bridge, users_internal_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -139,11 +141,20 @@ async def accept_individual_invitation(
     tutor_profile = user_id_to_profile[individual_invitation.tutor_id]
     student_profile = user_id_to_profile[student_id]
 
+    classroom_status = (
+        ClassroomStatus.LOCKED
+        if await classrooms_svc.has_tutor_reached_active_classrooms_limit(
+            tutor_id=individual_invitation.tutor_id
+        )
+        else ClassroomStatus.ACTIVE
+    )
+
     individual_classroom = await IndividualClassroom.create(
         tutor_id=individual_invitation.tutor_id,
         tutor_name=tutor_profile.display_name,
         student_id=student_id,
         student_name=student_profile.display_name,
+        status=classroom_status,
     )
 
     await notifications_bridge.send_notification(
