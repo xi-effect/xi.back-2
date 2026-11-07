@@ -21,7 +21,7 @@ async def promocodes(
     async with active_session():
         promocodes: list[Promocode] = [
             await Promocode.create(
-                **factories.PromocodeNoCodeInputFactory.build_python(),
+                **factories.PromocodeWithCodeInputFactory.build_python(),
             )
             for _ in range(PROMOCODES_LIST_SIZE)
         ]

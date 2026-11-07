@@ -2,24 +2,27 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Body
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import (
     MyTutorClassroomByID,
-    MyTutorGroupClassroomByID,
-    MyTutorIndividualClassroomByID,
+    MyTutorEditableGroupClassroomByID,
+    MyTutorEditableIndividualClassroomByID,
 )
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomSearchRequestSchema,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
     TutorClassroomResponseSchema,
     UserClassroomStatus,
 )
 from app.classrooms.models.tutorships_db import Tutorship
+from app.classrooms.services import classrooms_svc
 from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
@@ -29,12 +32,14 @@ from app.common.sqlalchemy_ext import db
 router = APIRouterExt(tags=["tutor classrooms"])
 
 
+# TODO (299) remove after xi.tutor switches to POST /roles/tutor/classrooms/searches/
 @router.get(
     path="/roles/tutor/classrooms/",
     response_model=list[TutorClassroomResponseSchema],
-    summary="List paginated tutor classrooms for the current user",
+    summary="Use `POST /api/protected/classroom-service/roles/tutor/classrooms/searches/` instead",
+    deprecated=True,
 )
-async def list_classrooms(
+async def list_classrooms_old(
     auth_data: AuthorizationData,
     created_before: AwareDatetime | None = None,
     limit: Annotated[int, Field(gt=0, le=100)] = 50,
@@ -43,6 +48,46 @@ async def list_classrooms(
     if created_before is not None:
         stmt = stmt.filter(Classroom.created_at < created_before)
     return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
+
+
+@router.post(
+    path="/roles/tutor/classrooms/searches/",
+    response_model=list[TutorClassroomResponseSchema],
+    summary="List paginated tutor classrooms for the current user",
+)
+async def list_classrooms(
+    auth_data: AuthorizationData,
+    data: ClassroomSearchRequestSchema,
+) -> Sequence[Classroom]:
+    return await Classroom.find_paginated_by_tutor_id(
+        tutor_id=auth_data.user_id,
+        search_params=data,
+    )
+
+
+class ClassroomStatusCountsSchema(BaseModel):
+    active: int
+    paused: int
+    locked: int
+    finished: int
+
+
+@router.get(
+    path="/roles/tutor/classroom-status-counts/",
+    summary="Retrieve tutor classroom status counts for the current user",
+)
+async def retrieve_classroom_status_counts(
+    auth_data: AuthorizationData,
+) -> ClassroomStatusCountsSchema:
+    status_counts = await Classroom.get_status_counts_by_tutor_id(
+        tutor_id=auth_data.user_id
+    )
+    return ClassroomStatusCountsSchema(
+        active=status_counts.get(ClassroomStatus.ACTIVE, 0),
+        paused=status_counts.get(ClassroomStatus.PAUSED, 0),
+        locked=status_counts.get(ClassroomStatus.LOCKED, 0),
+        finished=status_counts.get(ClassroomStatus.FINISHED, 0),
+    )
 
 
 class SubjectResponses(Responses):
@@ -70,15 +115,20 @@ async def validate_subject(
     path="/roles/tutor/group-classrooms/",
     status_code=status.HTTP_201_CREATED,
     response_model=GroupClassroom.TutorResponseSchema,
-    responses=SubjectResponses.responses(),
+    responses=Responses.chain(
+        SubjectResponses,
+        classrooms_svc.ActiveClassroomsLimitResponses,
+    ),
     summary="Create a new tutor group classroom for the current user",
 )
 async def create_group_classroom(
     auth_data: AuthorizationData,
     data: GroupClassroom.InputSchema,
 ) -> GroupClassroom:
-    # TODO amount limiting logic (subscription-based)
     await validate_subject(new_subject_id=data.subject_id)
+    await classrooms_svc.ensure_tutor_is_under_active_classrooms_limit(
+        tutor_id=auth_data.user_id
+    )
     return await GroupClassroom.create(
         tutor_id=auth_data.user_id,
         enrollments_count=0,
@@ -111,7 +161,7 @@ async def verify_classroom_access(_classroom: MyTutorClassroomByID) -> None:
     summary="Update tutor's individual classroom by id",
 )
 async def patch_individual_classroom(
-    individual_classroom: MyTutorIndividualClassroomByID,
+    individual_classroom: MyTutorEditableIndividualClassroomByID,
     data: IndividualClassroom.PatchSchema,
 ) -> IndividualClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)
@@ -130,7 +180,7 @@ async def patch_individual_classroom(
     summary="Update tutor's group classroom by id",
 )
 async def patch_group_classroom(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     data: GroupClassroom.PatchSchema,
 ) -> GroupClassroom:
     data_to_update = data.model_dump(exclude_defaults=True)

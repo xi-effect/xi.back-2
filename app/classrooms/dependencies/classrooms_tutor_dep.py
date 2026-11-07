@@ -11,6 +11,7 @@ from app.classrooms.dependencies.classrooms_dep import (
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
 )
@@ -61,4 +62,38 @@ async def get_my_tutor_group_classroom_by_id(
 
 MyTutorGroupClassroomByID = Annotated[
     GroupClassroom, Depends(get_my_tutor_group_classroom_by_id)
+]
+
+
+class ClassroomReadOnlyResponses(Responses):
+    CLASSROOM_IS_READ_ONLY = status.HTTP_409_CONFLICT, "Classroom is read-only"
+
+
+def verify_classroom_is_editable[T: Classroom](classroom: T) -> T:
+    if classroom.status is not ClassroomStatus.ACTIVE:
+        raise ClassroomReadOnlyResponses.CLASSROOM_IS_READ_ONLY
+    return classroom
+
+
+@with_responses(ClassroomReadOnlyResponses)
+async def get_my_tutor_editable_individual_classroom_by_id(
+    individual_classroom: MyTutorIndividualClassroomByID,
+) -> IndividualClassroom:
+    return verify_classroom_is_editable(individual_classroom)
+
+
+MyTutorEditableIndividualClassroomByID = Annotated[
+    IndividualClassroom, Depends(get_my_tutor_editable_individual_classroom_by_id)
+]
+
+
+@with_responses(ClassroomReadOnlyResponses)
+async def get_my_tutor_editable_group_classroom_by_id(
+    group_classroom: MyTutorGroupClassroomByID,
+) -> GroupClassroom:
+    return verify_classroom_is_editable(group_classroom)
+
+
+MyTutorEditableGroupClassroomByID = Annotated[
+    GroupClassroom, Depends(get_my_tutor_editable_group_classroom_by_id)
 ]

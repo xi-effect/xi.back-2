@@ -15,8 +15,10 @@ from starlette.testclient import TestClient
 
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.files_db import ClassroomFile, File
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.utils import repackage_json
 from tests.content.conftest import CONTENT_TYPES_AND_FILE_EXTENSIONS, FileInputData
 
@@ -26,11 +28,16 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_uploading_file_to_classroom(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     parametrized_file_input_data: FileInputData,
     classroom_id: int,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     file_id: UUID = assert_response(
         tutor_client.post(
             "/api/protected/content-service/roles/tutor"
@@ -102,6 +109,8 @@ async def test_uploading_file_to_classroom(
 
         await file.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 @pytest.mark.parametrize(
     "file_input_data",
@@ -142,6 +151,36 @@ async def test_uploading_file_to_classroom_content_type_mismatch(
         expected_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         expected_json={"detail": "File content doesn't match the content-type header"},
     )
+
+
+async def test_uploading_file_to_classroom_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+    uncategorized_file_input_data: FileInputData,
+    classroom_id: int,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor"
+            f"/classrooms/{classroom_id}/files/",
+            files={
+                "upload": (
+                    uncategorized_file_input_data.name,
+                    uncategorized_file_input_data.input_content,
+                    uncategorized_file_input_data.content_type,
+                )
+            },
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 async def test_adding_library_file_to_classroom(

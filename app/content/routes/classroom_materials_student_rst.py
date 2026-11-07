@@ -16,7 +16,7 @@ from app.content.models.materials_db import (
     ClassroomMaterialSearchRequestSchema,
     MaterialAccessMode,
 )
-from app.content.services import materials_svc
+from app.content.services import materials_svc, storage_svc
 
 router = APIRouterExt(tags=["student classroom materials"])
 
@@ -64,8 +64,14 @@ async def retrieve_classroom_material_storage_item(
             can_upload_files = False
             ydoc_access_level = YDocAccessLevel.READ_ONLY
         case MaterialAccessMode.READ_WRITE:
-            can_upload_files = True
-            ydoc_access_level = YDocAccessLevel.READ_WRITE
+            if await storage_svc.has_owner_reached_storage_limit(
+                owner_id=classroom_material.main_ydoc.owner_id
+            ):
+                can_upload_files = False
+                ydoc_access_level = YDocAccessLevel.READ_ONLY
+            else:
+                can_upload_files = True
+                ydoc_access_level = YDocAccessLevel.READ_WRITE
         case _:
             assert_never(classroom_material.student_access_mode)
 

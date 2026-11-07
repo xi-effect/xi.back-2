@@ -3,7 +3,9 @@ from collections.abc import Sequence
 from fastapi import Response
 from starlette import status
 
-from app.classrooms.dependencies.classrooms_tutor_dep import MyTutorGroupClassroomByID
+from app.classrooms.dependencies.classrooms_tutor_dep import (
+    MyTutorEditableGroupClassroomByID,
+)
 from app.classrooms.dependencies.invitations_dep import (
     MyGroupInvitationByGroupClassroomID,
     MyIndividualInvitationByID,
@@ -54,7 +56,7 @@ async def create_individual_invitation(
     summary="Create or retrieve a group tutor invitation for a group classroom by id",
 )
 async def create_or_retrieve_group_invitation(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     response: Response,
 ) -> GroupInvitation:
     group_invitation = await GroupInvitation.find_first_by_group_classroom_id(
@@ -73,7 +75,7 @@ async def create_or_retrieve_group_invitation(
     summary="Reset a group tutor invitation for a group classroom by id",
 )
 async def reset_group_invitation(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     group_invitation: MyGroupInvitationByGroupClassroomID,
 ) -> GroupInvitation:
     await group_invitation.delete()

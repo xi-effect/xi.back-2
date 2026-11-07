@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from app.common.bridges.datalake_bdg import DatalakeBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.bridges.pochta_bdg import PochtaBridge
+from app.common.bridges.subscriptions_bdg import SubscriptionsBridge
 from app.common.config import settings, tmex
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.main import app
@@ -144,3 +145,8 @@ def send_notification_mock(mock_stack: MockStack) -> AsyncMock:
 @pytest.fixture()
 def send_email_message_mock(mock_stack: MockStack) -> AsyncMock:
     return mock_stack.enter_async_mock(PochtaBridge, "send_email_message")
+
+
+@pytest.fixture()
+def publish_user_plan_update_mock(mock_stack: MockStack) -> AsyncMock:
+    return mock_stack.enter_async_mock(SubscriptionsBridge, "publish_user_plan_update")

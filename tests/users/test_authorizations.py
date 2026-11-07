@@ -67,6 +67,9 @@ pytestmark = pytest.mark.anyio
         pytest.param("GET", "/sessions/", id="list_sessions"),
         pytest.param("DELETE", "/sessions/", id="disable_all_sessions"),
         pytest.param("DELETE", "/sessions/1/", id="disable_session_by_id"),
+        # user_flags_rst
+        pytest.param("GET", "/users/current/flags/1/", id="retrieve_user_flag"),
+        pytest.param("PUT", "/users/current/flags/1/", id="upsert_user_flag"),
     ],
 )
 async def test_requesting_unauthorized(

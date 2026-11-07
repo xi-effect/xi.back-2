@@ -4,6 +4,7 @@ from uuid import UUID
 import pytest
 from freezegun import freeze_time
 from pydantic_marshals.contains import UnorderedLiteralCollection, assert_contains
+from pytest_lazy_fixtures import lfc
 from starlette import status
 from starlette.testclient import TestClient
 
@@ -12,8 +13,10 @@ from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccess
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.materials_db import PersonalMaterial
 from app.content.models.ydocs_db import YDoc
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.content import factories
@@ -24,9 +27,14 @@ pytestmark = pytest.mark.anyio
 @freeze_time()
 async def test_personal_material_creation(
     active_session: ActiveSession,
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=False
+    )  # limiting is tested in test_storage_svc.py
+
     input_data = factories.PersonalMaterialInputFactory.build_json()
 
     material_id: UUID = assert_response(
@@ -64,6 +72,29 @@ async def test_personal_material_creation(
         await personal_material.delete()
         await personal_material.main_ydoc.delete()
 
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
+
+async def test_personal_material_creation_storage_limit_reached(
+    mock_stack: MockStack,
+    tutor_user_id: int,
+    tutor_client: TestClient,
+) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc, "has_owner_reached_storage_limit", return_value=True
+    )  # limiting is tested in test_storage_svc.py
+
+    assert_response(
+        tutor_client.post(
+            "/api/protected/content-service/roles/tutor/personal-materials/",
+            json=factories.PersonalMaterialInputFactory.build_json(),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Storage limit reached"},
+    )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+
 
 async def test_personal_material_retrieving(
     tutor_client: TestClient,
@@ -84,21 +115,57 @@ async def test_personal_material_retrieving(
 
 
 @freeze_time()
+@pytest.mark.parametrize(
+    ("is_storage_limit_reached", "expected_content_token_payload"),
+    [
+        pytest.param(
+            False,
+            lfc(
+                lambda personal_material, tutor_user_id: ContentTokenPayloadSchema(
+                    material_id=personal_material.id,
+                    ydoc_id=personal_material.main_ydoc_id,
+                    user_id=tutor_user_id,
+                    can_upload_files=True,
+                    can_read_files=True,
+                    can_add_library_files=True,
+                    ydoc_access_level=YDocAccessLevel.READ_WRITE,
+                ),
+            ),
+            id="limit_not_reached",
+        ),
+        pytest.param(
+            True,
+            lfc(
+                lambda personal_material, tutor_user_id: ContentTokenPayloadSchema(
+                    material_id=personal_material.id,
+                    ydoc_id=personal_material.main_ydoc_id,
+                    user_id=tutor_user_id,
+                    can_upload_files=False,
+                    can_read_files=True,
+                    can_add_library_files=False,
+                    ydoc_access_level=YDocAccessLevel.READ_ONLY,
+                ),
+            ),
+            id="limit_reached",
+        ),
+    ],
+)
 async def test_personal_material_storage_item_retrieving(
+    mock_stack: MockStack,
     tutor_user_id: int,
     tutor_client: TestClient,
     personal_material: PersonalMaterial,
+    is_storage_limit_reached: bool,
+    expected_content_token_payload: ContentTokenPayloadSchema,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc,
+        "has_owner_reached_storage_limit",
+        return_value=is_storage_limit_reached,
+    )  # limiting is tested in test_storage_svc.py
+
     expected_content_token: str = content_token_provider.serialize_and_sign(
-        ContentTokenPayloadSchema(
-            material_id=personal_material.id,
-            ydoc_id=personal_material.main_ydoc_id,
-            user_id=tutor_user_id,
-            can_upload_files=True,
-            can_read_files=True,
-            can_add_library_files=True,
-            ydoc_access_level=YDocAccessLevel.READ_WRITE,
-        )
+        expected_content_token_payload
     )
 
     assert_response(
@@ -111,6 +178,8 @@ async def test_personal_material_storage_item_retrieving(
             "content_token": expected_content_token,
         },
     )
+
+    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 async def test_personal_material_updating(

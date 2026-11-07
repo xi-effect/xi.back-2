@@ -225,14 +225,17 @@ async def test_removing_classroom_student_enrollment_not_found(
     )
 
 
-@pytest.mark.parametrize(
+classroom_student_request_parametrization = pytest.mark.parametrize(
     "method",
     [
         pytest.param("POST", id="add"),
         pytest.param("DELETE", id="remove"),
     ],
 )
-async def test_adding_classroom_student_classroom_not_found(
+
+
+@classroom_student_request_parametrization
+async def test_classroom_student_requesting_classroom_not_found(
     tutor_client: TestClient,
     tutorship: Tutorship,
     deleted_group_classroom_id: int,
@@ -248,4 +251,24 @@ async def test_adding_classroom_student_classroom_not_found(
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Classroom not found"},
+    )
+
+
+@classroom_student_request_parametrization
+async def test_classroom_student_requesting_classroom_is_read_only(
+    tutor_client: TestClient,
+    tutorship: Tutorship,
+    read_only_group_classroom: GroupClassroom,
+    method: str,
+) -> None:
+    assert_response(
+        tutor_client.request(
+            method=method,
+            url=(
+                "/api/protected/classroom-service/roles/tutor"
+                f"/group-classrooms/{read_only_group_classroom.id}/students/{tutorship.student_id}/"
+            ),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Classroom is read-only"},
     )

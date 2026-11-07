@@ -2,8 +2,9 @@ from polyfactory import Use
 
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.schemas.autocomplete_sch import TagSchema
+from app.common.schemas.subscriptions_sch import PlanSchema
 from app.common.schemas.user_contacts_sch import UserContactSchema
-from app.common.schemas.users_sch import UserProfileSchema
+from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.common.schemas.vacancy_form_sch import VacancyFormSchema
 from tests.common.id_provider import IDProvider
 from tests.common.polyfactory_ext import BaseModelFactory
@@ -11,6 +12,20 @@ from tests.common.polyfactory_ext import BaseModelFactory
 
 class TagFactory(BaseModelFactory[TagSchema]):
     __model__ = TagSchema
+
+
+class PlanFactory(BaseModelFactory[PlanSchema]):
+    __model__ = PlanSchema
+
+
+class HighStorageLimitPlanFactory(BaseModelFactory[PlanSchema]):
+    __model__ = PlanSchema
+
+    max_total_storage_bytes = Use(
+        BaseModelFactory.__faker__.pyint,
+        min_value=10**9,
+        max_value=10**12,
+    )
 
 
 class VacancyFormWithMessageSchema(VacancyFormSchema):
@@ -31,6 +46,10 @@ class ProxyAuthDataFactory(BaseModelFactory[ProxyAuthData]):
 
 class UserProfileFactory(BaseModelFactory[UserProfileSchema]):
     __model__ = UserProfileSchema
+
+
+class DetailedUserFactory(BaseModelFactory[DetailedUserSchema]):
+    __model__ = DetailedUserSchema
 
 
 class UserContactFactory(BaseModelFactory[UserContactSchema]):

@@ -1,11 +1,13 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import StrEnum, auto
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, ClassVar, Literal, Self
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
-from sqlalchemy import DateTime, Enum, String, Text, select, update
+from sqlalchemy import DateTime, Enum, Select, String, Text, select, update
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql.functions import count
 
 from app.common.config import Base
 from app.common.sqlalchemy_ext import db
@@ -29,6 +31,23 @@ UserClassroomStatus = Literal[
     ClassroomStatus.PAUSED,
     ClassroomStatus.FINISHED,
 ]
+
+
+class ClassroomCursorSchema(BaseModel):
+    created_at: AwareDatetime
+
+
+class ClassroomFiltersSchema(BaseModel):
+    statuses: Annotated[
+        set[ClassroomStatus] | None,
+        Field(min_length=1, max_length=len(ClassroomStatus)),
+    ] = None
+
+
+class ClassroomSearchRequestSchema(BaseModel):
+    cursor: ClassroomCursorSchema | None = None
+    limit: Annotated[int, Field(gt=0, lt=100)] = 12
+    filters: ClassroomFiltersSchema
 
 
 class Classroom(Base):
@@ -70,6 +89,75 @@ class Classroom(Base):
             (created_at, AwareDatetime),
         ],
     )
+
+    @classmethod
+    def select_by_search_params(
+        cls,
+        search_params: ClassroomSearchRequestSchema,
+    ) -> Select[tuple[Self]]:
+        stmt = select(cls)
+
+        if search_params.filters.statuses is not None:
+            stmt = stmt.filter(cls.status.in_(search_params.filters.statuses))
+
+        if search_params.cursor is not None:
+            stmt = stmt.filter(cls.created_at < search_params.cursor.created_at)
+
+        return stmt.order_by(cls.created_at.desc()).limit(search_params.limit)
+
+    @classmethod
+    async def find_paginated_by_tutor_id(
+        cls,
+        tutor_id: int,
+        search_params: ClassroomSearchRequestSchema,
+    ) -> Sequence[Self]:
+        return await db.get_all(
+            cls.select_by_search_params(search_params).filter_by(tutor_id=tutor_id)
+        )
+
+    @classmethod
+    async def get_status_counts_by_tutor_id(
+        cls,
+        tutor_id: int,
+    ) -> dict[ClassroomStatus, int]:
+        stmt = (
+            select(cls.status, count())
+            .filter_by(tutor_id=tutor_id)
+            .group_by(cls.status)
+        )
+        return dict((await db.session.execute(stmt)).tuples().all())
+
+    @classmethod
+    async def count_active_classrooms_by_tutor_id(cls, tutor_id: int) -> int:
+        return await cls.count_by_kwargs(
+            cls.id,
+            tutor_id=tutor_id,
+            status=ClassroomStatus.ACTIVE,
+        )
+
+    @classmethod
+    async def lock_all_active_classrooms_by_tutor_id(cls, tutor_id: int) -> None:
+        stmt = (
+            update(cls)
+            .filter_by(tutor_id=tutor_id, status=ClassroomStatus.ACTIVE)
+            .values(status=ClassroomStatus.LOCKED)
+        )
+        await db.session.execute(stmt)
+
+    @classmethod
+    async def unlock_classrooms_by_tutor_id(cls, tutor_id: int, limit: int) -> None:
+        classroom_ids_to_unlock = (
+            select(cls.id)
+            .filter_by(tutor_id=tutor_id, status=ClassroomStatus.LOCKED)
+            .order_by(cls.created_at.desc())
+            .limit(limit)
+        )
+        stmt = (
+            update(cls)
+            .filter(cls.id.in_(classroom_ids_to_unlock))
+            .values(status=ClassroomStatus.ACTIVE)
+        )
+        await db.session.execute(stmt)
 
 
 class IndividualClassroom(Classroom):

@@ -1,15 +1,9 @@
 import pytest
-from pydantic_marshals.contains import UnorderedLiteralCollection
 from pytest_lazy_fixtures import lf, lfc
 from starlette import status
 from starlette.testclient import TestClient
 
-from app.classrooms.models.classrooms_db import (
-    AnyClassroom,
-    GroupClassroom,
-    IndividualClassroom,
-)
-from app.classrooms.models.enrollments_db import Enrollment
+from app.classrooms.models.classrooms_db import AnyClassroom, ClassroomStatus
 from app.common.schemas.classrooms_sch import ClassroomRole
 from tests.common.assert_contains_ext import assert_response
 from tests.common.utils import remove_none_values
@@ -109,33 +103,50 @@ async def test_listing_classroom_participant_ids_classroom_not_found(
     )
 
 
+active_only_filter_parametrization = pytest.mark.parametrize(
+    "active_only",
+    [
+        pytest.param(False, id="all_statuses"),
+        pytest.param(True, id="active_only"),
+    ],
+)
+
+
+@active_only_filter_parametrization
 async def test_listing_tutor_classroom_ids(
     internal_client: TestClient,
     tutor_user_id: int,
-    individual_classroom: IndividualClassroom,
-    group_classroom: GroupClassroom,
+    tutor_classrooms: list[AnyClassroom],
+    active_only: bool,
 ) -> None:
     assert_response(
         internal_client.get(
             f"/internal/classroom-service/tutors/{tutor_user_id}/classroom-ids/",
+            params={"active_only": active_only},
         ),
-        expected_json=UnorderedLiteralCollection(
-            [individual_classroom.id, group_classroom.id],
-        ),
+        expected_json=[
+            classroom.id
+            for classroom in tutor_classrooms
+            if not active_only or classroom.status is ClassroomStatus.ACTIVE
+        ],
     )
 
 
+@active_only_filter_parametrization
 async def test_listing_student_classroom_ids(
     internal_client: TestClient,
     student_user_id: int,
-    individual_classroom: IndividualClassroom,
-    enrollment: Enrollment,
+    student_classrooms: list[AnyClassroom],
+    active_only: bool,
 ) -> None:
     assert_response(
         internal_client.get(
             f"/internal/classroom-service/students/{student_user_id}/classroom-ids/",
+            params={"active_only": active_only},
         ),
-        expected_json=UnorderedLiteralCollection(
-            [individual_classroom.id, enrollment.group_classroom_id],
-        ),
+        expected_json=[
+            classroom.id
+            for classroom in student_classrooms
+            if not active_only or classroom.status is ClassroomStatus.ACTIVE
+        ],
     )

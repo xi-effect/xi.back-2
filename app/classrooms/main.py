@@ -2,6 +2,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from faststream.redis import RedisRouter
+
 from app.classrooms.routes import (
     classrooms_int,
     classrooms_student_rst,
@@ -12,6 +14,7 @@ from app.classrooms.routes import (
     tutorships_mub,
     tutorships_student_rst,
     tutorships_tutor_rst,
+    user_plans_sub,
 )
 from app.common.dependencies.api_key_dep import APIKeyProtection
 from app.common.dependencies.authorization_dep import ProxyAuthorized
@@ -19,6 +22,9 @@ from app.common.dependencies.mub_dep import MUBProtection
 from app.common.fastapi_ext import APIRouterExt
 
 outside_router = APIRouterExt(prefix="/api/public/classroom-service")
+
+stream_router = RedisRouter()
+stream_router.include_router(user_plans_sub.router)
 
 authorized_router = APIRouterExt(
     dependencies=[ProxyAuthorized],

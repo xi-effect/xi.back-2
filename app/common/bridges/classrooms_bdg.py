@@ -31,22 +31,32 @@ class ClassroomsBridge(BaseBridge):
             .validate_json(integer_list_type_adapter)
         )
 
-    async def list_tutor_classroom_ids(self, tutor_id: int) -> list[int]:
+    async def list_tutor_classroom_ids(
+        self,
+        tutor_id: int,
+        active_only: bool = False,
+    ) -> list[int]:
         return (
             await ResponsePipelineBuilder.initialize_from_request(
                 self.client.get(
                     f"/tutors/{tutor_id}/classroom-ids/",
+                    params={"active_only": active_only},
                 )
             )
             .validate_status_code()
             .validate_json(integer_list_type_adapter)
         )
 
-    async def list_student_classroom_ids(self, student_id: int) -> list[int]:
+    async def list_student_classroom_ids(
+        self,
+        student_id: int,
+        active_only: bool = False,
+    ) -> list[int]:
         return (
             await ResponsePipelineBuilder.initialize_from_request(
                 self.client.get(
                     f"/students/{student_id}/classroom-ids/",
+                    params={"active_only": active_only},
                 )
             )
             .validate_status_code()

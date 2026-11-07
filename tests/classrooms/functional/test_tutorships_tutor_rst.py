@@ -102,7 +102,7 @@ async def test_tutorship_retrieving(
 ) -> None:
     student_profile_data: AnyJSON = UserProfileFactory.build_json()
     users_internal_bridge_mock = users_internal_respx_mock.get(
-        path=f"/users/{tutorship.student_id}/"
+        path=f"/users/{tutorship.student_id}/profile/"
     ).respond(json=student_profile_data)
 
     assert_response(

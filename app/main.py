@@ -2,7 +2,8 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import Annotated, Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.exception_handlers import http_exception_handler
 from fastapi.openapi.docs import get_swagger_ui_html
 from faststream import BaseMiddleware, StreamMessage
 from faststream.redis.fastapi import RedisRouter
@@ -36,7 +37,7 @@ from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_en
 from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
 from app.common.socketio.rooms import user_room
 from app.common.socketio.store import user_id_to_sids
-from app.common.sqlalchemy_ext import session_context
+from app.common.sqlalchemy_ext import db, session_context
 from app.common.starlette_cors_ext import CorrectCORSMiddleware
 from app.common.tmexio_ext import remove_ping_pong_logs
 
@@ -114,6 +115,7 @@ faststream = RedisRouter(
     settings.redis_faststream_dsn,
     middlewares=[FastStreamDatabaseSessionMiddleware],
 )
+faststream.include_router(classrooms.stream_router)  # type: ignore[arg-type]
 faststream.include_router(datalake.stream_router)  # type: ignore[arg-type]
 faststream.include_router(notifications.stream_router)  # type: ignore[arg-type]
 faststream.include_router(pochta.stream_router)  # type: ignore[arg-type]
@@ -242,3 +244,14 @@ async def database_session_middleware(
     async with sessionmaker.begin() as session:
         session_context.set(session)
         return await call_next(request)
+
+
+@app.exception_handler(HTTPException)
+async def rollback_on_http_exception(
+    request: Request,
+    exception: HTTPException,
+) -> Response:
+    session = session_context.get()
+    if session is not None:
+        await db.session.rollback()
+    return await http_exception_handler(request, exception)

@@ -36,7 +36,9 @@ async def update_room_metadata(
 
 
 async def generate_access_token(livekit_room: Room, user_id: int) -> str:
-    current_user_profile = await users_internal_bridge.retrieve_user(user_id=user_id)
+    current_user_profile = await users_internal_bridge.retrieve_user_profile(
+        user_id=user_id
+    )
 
     return livekit.generate_access_token(
         room_name=livekit_room.name,

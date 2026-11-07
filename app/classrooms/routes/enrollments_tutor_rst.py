@@ -1,6 +1,7 @@
 from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import (
+    MyTutorEditableGroupClassroomByID,
     MyTutorGroupClassroomByID,
 )
 from app.classrooms.dependencies.tutorships_dep import MyTutorTutorshipByIDs
@@ -57,7 +58,7 @@ class ExistingEnrollmentResponses(Responses):
     summary="Add a tutor student to a group classroom by ids",
 )
 async def add_classroom_student(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     tutorship: MyTutorTutorshipByIDs,
 ) -> None:
     if (
@@ -110,7 +111,7 @@ class EnrollmentResponses(Responses):
     summary="Remove a tutor student from a group classroom by ids",
 )
 async def remove_classroom_student(
-    group_classroom: MyTutorGroupClassroomByID,
+    group_classroom: MyTutorEditableGroupClassroomByID,
     student_id: int,
 ) -> None:
     enrollment = await Enrollment.find_first_by_kwargs(

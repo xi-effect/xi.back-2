@@ -8,6 +8,7 @@ from app.classrooms.dependencies.classrooms_dep import ClassroomByID
 from app.classrooms.models.classrooms_db import (
     AnyClassroom,
     Classroom,
+    ClassroomStatus,
     GroupClassroom,
     IndividualClassroom,
 )
@@ -55,35 +56,39 @@ async def list_classroom_participant_ids(
 
 @router.get(
     path="/tutors/{tutor_id}/classroom-ids/",
-    summary="List all classroom ids for a tutor by id",
+    summary="List classroom ids for a tutor by id",
 )
 async def list_tutor_classroom_ids(
     tutor_id: Annotated[int, Path()],
+    active_only: Annotated[bool, Query()] = False,
 ) -> list[int]:
+    stmt = select(Classroom.id).filter_by(tutor_id=tutor_id)
+    if active_only:
+        stmt = stmt.filter_by(status=ClassroomStatus.ACTIVE)
     return await db.get_all_with_assumed_limit(
-        select(Classroom.id)
-        .filter_by(tutor_id=tutor_id)
-        .order_by(Classroom.created_at.desc()),
+        stmt.order_by(Classroom.created_at.desc()),
         limit=100,
     )
 
 
 @router.get(
     path="/students/{student_id}/classroom-ids/",
-    summary="List all classroom ids for a student by id",
+    summary="List classroom ids for a student by id",
 )
 async def list_student_classroom_ids(
     student_id: Annotated[int, Path()],
+    active_only: Annotated[bool, Query()] = False,
 ) -> list[int]:
-    return await db.get_all_with_assumed_limit(
-        select(Classroom.id)
-        .join(Enrollment, isouter=True)
-        .filter(
-            or_(
-                IndividualClassroom.student_id == student_id,
-                Enrollment.student_id == student_id,
-            )
+    stmt = select(Classroom.id)
+    if active_only:
+        stmt = stmt.filter_by(status=ClassroomStatus.ACTIVE)
+    stmt = stmt.join(Enrollment, isouter=True).filter(
+        or_(
+            IndividualClassroom.student_id == student_id,
+            Enrollment.student_id == student_id,
         )
-        .order_by(Classroom.created_at.desc()),
+    )
+    return await db.get_all_with_assumed_limit(
+        stmt.order_by(Classroom.created_at.desc()),
         limit=100,
     )
