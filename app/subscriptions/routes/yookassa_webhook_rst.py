@@ -55,13 +55,22 @@ async def handle_succeeded_payment(
         await AutoRenewal.delete_by_user_id(user_id=payment.user_id)
 
 
+PERMISSION_REVOKED_REASON = "permission_revoked"
+
+
 async def handle_canceled_payment(
     yookassa_payment: YooKassaCanceledPaymentSchema,
 ) -> None:
-    await Payment.find_and_complete_by_id(
+    cancellation_reason = yookassa_payment.cancellation_details.reason
+    payment = await Payment.find_and_complete_by_id(
         payment_id=yookassa_payment.metadata.payment_id,
-        cancellation_reason=yookassa_payment.cancellation_details.reason,
+        cancellation_reason=cancellation_reason,
     )
+    if payment is None:
+        return  # the payment is unknown or was already completed
+
+    if cancellation_reason == PERMISSION_REVOKED_REASON:
+        await AutoRenewal.delete_by_user_id(user_id=payment.user_id)
 
 
 class UnexpectedYooKassaEventException(Exception):
