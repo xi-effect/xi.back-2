@@ -3,8 +3,9 @@ from faker import Faker
 from respx import MockRouter
 
 from app.common.config import settings
+from app.common.schemas.content_sch import YDocContentKind
 from app.content.models.files_db import File, FileKind
-from app.content.models.ydocs_db import YDoc, YDocContentKind
+from app.content.models.ydocs_db import YDoc
 from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.respx_ext import assert_last_httpx_request
