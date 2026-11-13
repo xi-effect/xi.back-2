@@ -5,12 +5,16 @@ from starlette import status
 
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
-from app.common.schemas.content_sch import ContentYDocItemSchema, YDocAccessLevel
+from app.common.schemas.content_sch import (
+    ContentYDocItemSchema,
+    YDocAccessLevel,
+    YDocContentKind,
+)
 from app.content.dependencies.classroom_notes_dep import (
     ClassroomNoteMaterialByClassroomID,
 )
 from app.content.models.materials_db import ClassroomNoteMaterial
-from app.content.models.ydocs_db import YDoc, YDocContentKind
+from app.content.models.ydocs_db import YDoc
 from app.content.services import materials_svc, storage_svc
 
 router = APIRouterExt(tags=["tutor classroom notes"])
