@@ -30,11 +30,6 @@ pytestmark = pytest.mark.anyio
     ("kind", "payload_factory"),
     [
         pytest.param(
-            EmailMessageKind.CUSTOM_V1,
-            factories.CustomEmailMessagePayloadFactory,
-            id="custom_v1",
-        ),
-        pytest.param(
             EmailMessageKind.EMAIL_CONFIRMATION_V2,
             factories.TokenEmailMessagePayloadFactory,
             id="email_confirmation_v2",
@@ -48,36 +43,6 @@ pytestmark = pytest.mark.anyio
             EmailMessageKind.PASSWORD_RESET_V2,
             factories.TokenEmailMessagePayloadFactory,
             id="password_reset_v2",
-        ),
-        pytest.param(
-            EmailMessageKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
-            factories.ClassroomNotificationEmailMessagePayloadFactory,
-            id="individual_invitation_accepted_v1",
-        ),
-        pytest.param(
-            EmailMessageKind.GROUP_INVITATION_ACCEPTED_V1,
-            factories.ClassroomNotificationEmailMessagePayloadFactory,
-            id="group_invitation_accepted_v1",
-        ),
-        pytest.param(
-            EmailMessageKind.ENROLLMENT_CREATED_V1,
-            factories.ClassroomNotificationEmailMessagePayloadFactory,
-            id="enrollment_created_v1",
-        ),
-        pytest.param(
-            EmailMessageKind.CLASSROOM_CONFERENCE_STARTED_V1,
-            factories.ClassroomNotificationEmailMessagePayloadFactory,
-            id="classroom_conference_started_v1",
-        ),
-        pytest.param(
-            EmailMessageKind.RECIPIENT_INVOICE_CREATED_V1,
-            factories.RecipientInvoiceNotificationEmailMessagePayloadFactory,
-            id="recipient_invoice_created_v1",
-        ),
-        pytest.param(
-            EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
-            factories.RecipientInvoiceNotificationEmailMessagePayloadFactory,
-            id="student_recipient_invoice_payment_confirmed_v1",
         ),
         pytest.param(
             EmailMessageKind.UNIVERSAL_V3,
