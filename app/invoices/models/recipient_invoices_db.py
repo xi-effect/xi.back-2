@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import StrEnum, auto
 from typing import Annotated, Any, Self
 
-from pydantic import AwareDatetime, BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from pydantic_marshals.base import CompositeMarshalModel
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import Enum, ForeignKey, Select, and_, or_, select
@@ -32,19 +32,66 @@ class RecipientInvoiceCursorSchema(BaseModel):
     recipient_invoice_id: int
 
 
+class RecipientInvoiceFiltersSchema(BaseModel):
+    status__in: Annotated[
+        set[PaymentStatus] | None,
+        Field(min_length=1, max_length=len(PaymentStatus)),
+    ] = None
+    payment_type__in: Annotated[
+        set[PaymentType | None] | None,
+        Field(min_length=1, max_length=len(PaymentType) + 1),
+    ] = None
+    created_at__ge: AwareDatetime | None = None
+    created_at__lt: AwareDatetime | None = None
+    total__ge: Annotated[Decimal, Field(ge=0, decimal_places=2)] | None = None
+    total__le: Annotated[Decimal, Field(ge=0, decimal_places=2)] | None = None
+
+    @model_validator(mode="after")
+    def validate_created_at_range(self) -> Self:
+        if (
+            self.created_at__ge is not None
+            and self.created_at__lt is not None
+            and self.created_at__ge >= self.created_at__lt
+        ):
+            raise ValueError("created_at__lt must be later in time than created_at__ge")
+        return self
+
+    @model_validator(mode="after")
+    def validate_total_range(self) -> Self:
+        if (
+            self.total__ge is not None
+            and self.total__le is not None
+            and self.total__ge > self.total__le
+        ):
+            raise ValueError("total__le must be greater than or equal to total__ge")
+        return self
+
+
+class TutorInvoiceFiltersSchema(RecipientInvoiceFiltersSchema):
+    student_id__in: Annotated[set[int] | None, Field(min_length=1, max_length=20)] = (
+        None
+    )
+
+
+class StudentInvoiceFiltersSchema(RecipientInvoiceFiltersSchema):
+    tutor_id__in: Annotated[set[int] | None, Field(min_length=1, max_length=20)] = None
+
+
 class RecipientInvoiceSearchRequestSchema(BaseModel):
     cursor: RecipientInvoiceCursorSchema | None = None
     limit: Annotated[int, Field(gt=0, lt=100)] = 12
 
 
 class TutorInvoiceSearchRequestSchema(RecipientInvoiceSearchRequestSchema):
-    # filters
-    pass
+    filters: TutorInvoiceFiltersSchema = Field(
+        default_factory=TutorInvoiceFiltersSchema
+    )
 
 
 class StudentInvoiceSearchRequestSchema(RecipientInvoiceSearchRequestSchema):
-    # filters
-    pass
+    filters: StudentInvoiceFiltersSchema = Field(
+        default_factory=StudentInvoiceFiltersSchema
+    )
 
 
 class RecipientInvoice(Base):
@@ -108,25 +155,67 @@ class RecipientInvoice(Base):
         )
 
     @classmethod
+    def select_by_search_params(
+        cls,
+        search_params: (
+            TutorInvoiceSearchRequestSchema | StudentInvoiceSearchRequestSchema
+        ),
+    ) -> Select[tuple[Self]]:
+        stmt = select(cls).join(cls.invoice)
+
+        if search_params.filters.status__in is not None:
+            stmt = stmt.filter(cls.status.in_(search_params.filters.status__in))
+
+        if search_params.filters.payment_type__in is not None:
+            payment_type_conditions = []
+            payment_types = search_params.filters.payment_type__in - {None}
+            if len(payment_types) != 0:
+                payment_type_conditions.append(cls.payment_type.in_(payment_types))
+            if None in search_params.filters.payment_type__in:
+                payment_type_conditions.append(cls.payment_type.is_(None))
+            stmt = stmt.filter(or_(*payment_type_conditions))
+
+        if search_params.filters.created_at__ge is not None:
+            stmt = stmt.filter(
+                Invoice.created_at >= search_params.filters.created_at__ge
+            )
+
+        if search_params.filters.created_at__lt is not None:
+            stmt = stmt.filter(
+                Invoice.created_at < search_params.filters.created_at__lt
+            )
+
+        if search_params.filters.total__ge is not None:
+            stmt = stmt.filter(cls.total >= search_params.filters.total__ge)
+
+        if search_params.filters.total__le is not None:
+            stmt = stmt.filter(cls.total <= search_params.filters.total__le)
+
+        if search_params.cursor is not None:
+            stmt = cls.select_after_cursor(stmt=stmt, cursor=search_params.cursor)
+
+        return stmt.order_by(Invoice.created_at.desc(), cls.id).limit(
+            search_params.limit
+        )
+
+    @classmethod
     async def find_paginated_by_tutor_id(
         cls,
         tutor_id: int,
         search_params: TutorInvoiceSearchRequestSchema,
         classroom_id: int | None = None,
     ) -> Sequence[Self]:
-        stmt = select(cls).join(cls.invoice).filter_by(tutor_id=tutor_id)
+        stmt = cls.select_by_search_params(search_params).filter(
+            Invoice.tutor_id == tutor_id
+        )
 
         if classroom_id is not None:
-            stmt = stmt.filter_by(classroom_id=classroom_id)
+            stmt = stmt.filter(Invoice.classroom_id == classroom_id)
 
-        if search_params.cursor is not None:
-            stmt = cls.select_after_cursor(stmt=stmt, cursor=search_params.cursor)
+        if search_params.filters.student_id__in is not None:
+            stmt = stmt.filter(cls.student_id.in_(search_params.filters.student_id__in))
 
-        return await db.get_all(
-            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(
-                limit=search_params.limit
-            )
-        )
+        return await db.get_all(stmt)
 
     @classmethod
     async def find_paginated_by_student_id(
@@ -135,19 +224,17 @@ class RecipientInvoice(Base):
         search_params: StudentInvoiceSearchRequestSchema,
         classroom_id: int | None = None,
     ) -> Sequence[Self]:
-        stmt = select(cls).filter_by(student_id=student_id).join(cls.invoice)
+        stmt = cls.select_by_search_params(search_params).filter(
+            cls.student_id == student_id
+        )
 
         if classroom_id is not None:
-            stmt = stmt.filter_by(classroom_id=classroom_id)
+            stmt = stmt.filter(Invoice.classroom_id == classroom_id)
 
-        if search_params.cursor is not None:
-            stmt = cls.select_after_cursor(stmt=stmt, cursor=search_params.cursor)
+        if search_params.filters.tutor_id__in is not None:
+            stmt = stmt.filter(Invoice.tutor_id.in_(search_params.filters.tutor_id__in))
 
-        return await db.get_all(
-            stmt=stmt.order_by(Invoice.created_at.desc(), cls.id).limit(
-                limit=search_params.limit
-            )
-        )
+        return await db.get_all(stmt)
 
 
 class DetailedRecipientInvoiceSchema(CompositeMarshalModel):
