@@ -29,6 +29,7 @@ from app import (
     scheduler,
     subscriptions,
     supbot,
+    tasks,
     users,
 )
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
@@ -207,6 +208,7 @@ app.include_router(supbot.api_router)
 app.include_router(classrooms.api_router)
 app.include_router(users.api_router)
 app.include_router(subscriptions.api_router)
+app.include_router(tasks.api_router)
 
 old_openapi = app.openapi
 
