@@ -1,4 +1,8 @@
+from uuid import UUID
+
 from pydantic import BaseModel
+
+from app.common.schemas.content_sch import YDocContentKind
 
 
 class BaseMetadataSchema(BaseModel):
@@ -6,8 +10,13 @@ class BaseMetadataSchema(BaseModel):
         return self.model_dump_json(exclude_none=True)
 
 
+class ActiveMaterialSchema(BaseModel):
+    id: UUID
+    content_kind: YDocContentKind
+
+
 class RoomMetadataSchema(BaseMetadataSchema):
-    active_material_id: int | None = None
+    active_material: ActiveMaterialSchema | None = None
 
 
 class ParticipantMetadataSchema(BaseMetadataSchema):

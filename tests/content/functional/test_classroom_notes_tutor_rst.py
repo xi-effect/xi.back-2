@@ -8,10 +8,13 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider
-from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccessLevel
+from app.common.schemas.content_sch import (
+    ContentTokenPayloadSchema,
+    YDocAccessLevel,
+    YDocContentKind,
+)
 from app.common.utils.datetime import datetime_utc_now
 from app.content.models.materials_db import ClassroomNoteMaterial
-from app.content.models.ydocs_db import YDocContentKind
 from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response

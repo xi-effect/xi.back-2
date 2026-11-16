@@ -20,9 +20,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, contains_eager, mapped_column, relationship
 
 from app.common.config import Base
+from app.common.schemas.content_sch import YDocContentKind
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
-from app.content.models.ydocs_db import YDoc, YDocContentKind
+from app.content.models.ydocs_db import YDoc
 
 
 class MaterialAccessKind(StrEnum):

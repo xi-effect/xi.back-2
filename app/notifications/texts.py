@@ -31,12 +31,39 @@ INDIVIDUAL_INVITATION_ACCEPTED_V1_MESSAGE = """
 INDIVIDUAL_INVITATION_ACCEPTED_V1_BUTTON_TEXT = """
 Открыть
 """
+INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_THEME = """
++1 кабинет на платформе sovlium
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER = """
+Ученик принял ваше приглашение
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_HEADER = """
+Всё готово к первому занятию
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_CONTENT = """
+В кабинете вы можете проводить занятия, хранить учебные материалы и вести учёт оплаты.
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_BUTTON_TEXT = """
+Открыть кабинет
+"""
 
 GROUP_INVITATION_ACCEPTED_V1_MESSAGE = """
 В группе новый ученик
 """
 GROUP_INVITATION_ACCEPTED_V1_BUTTON_TEXT = """
 Открыть группу
+"""
+GROUP_INVITATION_ACCEPTED_V1_EMAIL_THEME = """
++1 ученик в группе
+"""
+GROUP_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER = """
+Ученик принял приглашение в группу
+"""
+GROUP_INVITATION_ACCEPTED_V1_EMAIL_HEADER = """
+Пополнение в команде!
+"""
+GROUP_INVITATION_ACCEPTED_V1_EMAIL_CONTENT = """
+Все ученики в группе могут подключаться к занятиям и изучать учебные материалы.
 """
 
 ENROLLMENT_CREATED_V1_MESSAGE = """
@@ -45,12 +72,36 @@ ENROLLMENT_CREATED_V1_MESSAGE = """
 ENROLLMENT_CREATED_V1_BUTTON_TEXT = """
 Открыть группу
 """
+ENROLLMENT_CREATED_V1_EMAIL_THEME = """
+Вас добавили в группу
+"""
+ENROLLMENT_CREATED_V1_EMAIL_PRE_HEADER = """
+Репетитор добавил вас в группу
+"""
+ENROLLMENT_CREATED_V1_EMAIL_HEADER = """
+Пора открывать новые горизонты!
+"""
+ENROLLMENT_CREATED_V1_EMAIL_CONTENT = """
+Вы будете получать уведомления о занятиях и сможете изучать материалы группы. Успехов!
+"""
 
 CLASSROOM_CONFERENCE_STARTED_V1_MESSAGE = """
 Занятие началось
 """
 CLASSROOM_CONFERENCE_STARTED_V1_BUTTON_TEXT = """
 Присоединиться
+"""
+CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_THEME = """
+Занятие началось
+"""
+CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_PRE_HEADER = """
+Репетитор начал видеозвонок
+"""
+CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_HEADER = """
+Время подключаться!
+"""
+CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_CONTENT = """
+Присоединяйтесь к видеозвонку. Если не сможете присутствовать, сообщите репетитору.
 """
 
 RECIPIENT_INVOICE_CREATED_V1_MESSAGE = """
@@ -59,12 +110,39 @@ RECIPIENT_INVOICE_CREATED_V1_MESSAGE = """
 RECIPIENT_INVOICE_CREATED_V1_BUTTON_TEXT = """
 Посмотреть счёт
 """
+RECIPIENT_INVOICE_CREATED_V1_EMAIL_THEME = """
+Новый счёт на оплату
+"""
+RECIPIENT_INVOICE_CREATED_V1_EMAIL_PRE_HEADER = """
+Репетитор выставил вам счёт
+"""
+RECIPIENT_INVOICE_CREATED_V1_EMAIL_HEADER = """
+Оплатите счёт удобным способом
+"""
+RECIPIENT_INVOICE_CREATED_V1_EMAIL_CONTENT = """
+Вы получили новый счёт. Пожалуйста, отправьте деньги репетитору и пометьте счёт как оплаченный.
+"""
 
 STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_MESSAGE = """
 Оплачен новый счёт. Подтвердите, что получили деньги
 """
 STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_BUTTON_TEXT = """
 Посмотреть счёт
+"""
+STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_THEME = """
+Новый оплаченный счёт
+"""
+STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_PRE_HEADER = """
+Ученик подтвердил оплату по счёту
+"""
+STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_HEADER = """
+Вы получили платёж?
+"""
+STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_CONTENT = """
+Чтобы учесть счёт в заработке, подтвердите, что получили деньги. Если деньги не пришли, свяжитесь с учеником.
+"""
+STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_BUTTON_TEXT = """
+Подтвердить
 """
 
 CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT = """

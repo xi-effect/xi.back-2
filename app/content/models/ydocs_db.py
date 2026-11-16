@@ -1,6 +1,5 @@
 from collections.abc import AsyncIterable, AsyncIterator
 from datetime import datetime
-from enum import StrEnum, auto
 from pathlib import Path
 from typing import Final, Self
 from uuid import UUID, uuid4
@@ -11,6 +10,7 @@ from sqlalchemy import DateTime, Enum, insert, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.config import Base, settings
+from app.common.schemas.content_sch import YDocContentKind
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
 
@@ -30,11 +30,6 @@ async def write_file_from_chunks(path: Path, chunks: AsyncIterable[bytes]) -> No
     async with aiofiles.open(path, "wb") as file:
         async for chunk in chunks:
             await file.write(chunk)
-
-
-class YDocContentKind(StrEnum):
-    NOTE = auto()
-    BOARD = auto()
 
 
 class YDoc(Base):

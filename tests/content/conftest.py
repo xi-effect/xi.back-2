@@ -23,6 +23,7 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
+from app.common.schemas.content_sch import YDocContentKind
 from app.content.models.files_db import (
     ClassroomFile,
     ContentDisposition,
@@ -38,7 +39,7 @@ from app.content.models.materials_db import (
     PersonalMaterial,
 )
 from app.content.models.ydoc_files_db import YDocFile
-from app.content.models.ydocs_db import YDoc, YDocContentKind
+from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.id_provider import IDProvider
 from tests.common.types import AnyJSON, PytestRequest

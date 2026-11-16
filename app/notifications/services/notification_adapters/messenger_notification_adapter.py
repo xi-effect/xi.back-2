@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
     ClassroomScheduleFocusNotificationPayloadSchema,
@@ -32,9 +33,9 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_MESSAGE,
             button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path=f"/classrooms/{payload.classroom_id}",
-                params={"tab": "overview", "role": "tutor"},
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.TUTOR,
             ),
         )
 
@@ -45,9 +46,9 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.GROUP_INVITATION_ACCEPTED_V1_MESSAGE,
             button_text=texts.GROUP_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path=f"/classrooms/{payload.classroom_id}",
-                params={"tab": "overview", "role": "tutor"},
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.TUTOR,
             ),
         )
 
@@ -58,9 +59,9 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.ENROLLMENT_CREATED_V1_MESSAGE,
             button_text=texts.ENROLLMENT_CREATED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path=f"/classrooms/{payload.classroom_id}",
-                params={"tab": "overview", "role": "student"},
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.STUDENT,
             ),
         )
 
@@ -71,10 +72,7 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_MESSAGE,
             button_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path=f"/classrooms/{payload.classroom_id}",
-                params={"tab": "overview", "role": "student", "goto": "call"},
-            ),
+            button_link=self.build_classroom_conference_url(payload),
         )
 
     def adapt_recipient_invoice_created_v1(
@@ -84,13 +82,9 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.RECIPIENT_INVOICE_CREATED_V1_MESSAGE,
             button_text=texts.RECIPIENT_INVOICE_CREATED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path="/payments",
-                params={
-                    "tab": "invoices",
-                    "role": "student",
-                    "recipient_invoice_id": payload.recipient_invoice_id,
-                },
+            button_link=self.build_recipient_invoice_url(
+                payload,
+                ClassroomRole.STUDENT,
             ),
         )
 
@@ -101,14 +95,7 @@ class MessengerNotificationAdapter(
         return MessengerMessagePayloadSchema(
             message_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_MESSAGE,
             button_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_BUTTON_TEXT,
-            button_link=self.build_url(
-                path="/payments",
-                params={
-                    "tab": "invoices",
-                    "role": "tutor",
-                    "recipient_invoice_id": payload.recipient_invoice_id,
-                },
-            ),
+            button_link=self.build_recipient_invoice_url(payload, ClassroomRole.TUTOR),
         )
 
     def adapt_single_classroom_event_created_v1(

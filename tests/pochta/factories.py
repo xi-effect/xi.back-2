@@ -5,28 +5,10 @@ from app.pochta.schemas.unisender_go_sch import (
 from tests.common.polyfactory_ext import BaseModelFactory
 
 
-class CustomEmailMessagePayloadFactory(
-    BaseModelFactory[pochta_sch.CustomEmailMessagePayloadSchema]
-):
-    __model__ = pochta_sch.CustomEmailMessagePayloadSchema
-
-
 class TokenEmailMessagePayloadFactory(
     BaseModelFactory[pochta_sch.TokenEmailMessagePayloadSchema]
 ):
     __model__ = pochta_sch.TokenEmailMessagePayloadSchema
-
-
-class ClassroomNotificationEmailMessagePayloadFactory(
-    BaseModelFactory[pochta_sch.ClassroomNotificationEmailMessagePayloadSchema]
-):
-    __model__ = pochta_sch.ClassroomNotificationEmailMessagePayloadSchema
-
-
-class RecipientInvoiceNotificationEmailMessagePayloadFactory(
-    BaseModelFactory[pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema]
-):
-    __model__ = pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema
 
 
 class UniversalEmailMessagePayloadFactory(

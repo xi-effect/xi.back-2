@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import StrEnum, auto
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -8,6 +8,11 @@ class YDocAccessLevel(StrEnum):
     NO_ACCESS = "no-access"
     READ_ONLY = "read-only"
     READ_WRITE = "read-write"
+
+
+class YDocContentKind(StrEnum):
+    NOTE = auto()
+    BOARD = auto()
 
 
 class ContentTokenPayloadSchema(BaseModel):

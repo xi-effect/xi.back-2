@@ -89,7 +89,7 @@ async def test_classroom_conference_metadata_updating(
         outsider_client.put(
             "/api/protected/conference-service/roles/tutor"
             f"/classrooms/{classroom_id}/conference/metadata/",
-            json=new_room_metadata.model_dump(),
+            json=new_room_metadata.model_dump(mode="json"),
         ),
     )
 
@@ -239,7 +239,7 @@ async def test_classroom_conference_participant_metadata_updating(
             f"/api/protected/conference-service/roles/{role}"
             f"/classrooms/{classroom_id}/conference"
             f"/participants/{participant_user_id_in_path}/metadata/",
-            json=new_participant_metadata.model_dump(),
+            json=new_participant_metadata.model_dump(mode="json"),
         ),
     )
 
@@ -283,7 +283,7 @@ async def test_classroom_conference_participant_metadata_updating_participant_no
             f"/api/protected/conference-service/roles/{role}"
             f"/classrooms/{classroom_id}/conference"
             f"/participants/{participant_user_id_in_path}/metadata/",
-            json=new_participant_metadata.model_dump(),
+            json=new_participant_metadata.model_dump(mode="json"),
         ),
         expected_code=status.HTTP_404_NOT_FOUND,
         expected_json={"detail": "Conference participant not found"},

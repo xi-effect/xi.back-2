@@ -18,150 +18,6 @@ from tests.notifications import factories
 pytestmark = pytest.mark.anyio
 
 
-async def test_individual_invitation_accepted_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: (
-        notifications_sch.InvitationAcceptanceNotificationPayloadSchema
-    ) = factories.InvitationAcceptanceNotificationPayloadFactory.build(
-        kind=notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.ClassroomNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
-            classroom_id=notification_payload.classroom_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
-async def test_group_invitation_accepted_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: (
-        notifications_sch.InvitationAcceptanceNotificationPayloadSchema
-    ) = factories.InvitationAcceptanceNotificationPayloadFactory.build(
-        kind=notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V1
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.ClassroomNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.GROUP_INVITATION_ACCEPTED_V1,
-            classroom_id=notification_payload.classroom_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
-async def test_group_enrollment_created_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: notifications_sch.EnrollmentNotificationPayloadSchema = (
-        factories.EnrollmentNotificationPayloadFactory.build(
-            kind=notifications_sch.NotificationKind.ENROLLMENT_CREATED_V1
-        )
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.ClassroomNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.ENROLLMENT_CREATED_V1,
-            classroom_id=notification_payload.classroom_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
-async def test_classroom_conference_started_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: notifications_sch.ClassroomNotificationPayloadSchema = (
-        factories.ClassroomNotificationPayloadFactory.build(
-            kind=notifications_sch.NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1
-        )
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.ClassroomNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.CLASSROOM_CONFERENCE_STARTED_V1,
-            classroom_id=notification_payload.classroom_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
-async def test_recipient_invoice_created_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: (
-        notifications_sch.RecipientInvoiceNotificationPayloadSchema
-    ) = factories.RecipientInvoiceNotificationPayloadFactory.build(
-        kind=notifications_sch.NotificationKind.RECIPIENT_INVOICE_CREATED_V1
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.RECIPIENT_INVOICE_CREATED_V1,
-            recipient_invoice_id=notification_payload.recipient_invoice_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
-async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapting(
-    notification_mock: Mock,
-) -> None:
-    notification_payload: (
-        notifications_sch.RecipientInvoiceNotificationPayloadSchema
-    ) = factories.RecipientInvoiceNotificationPayloadFactory.build(
-        kind=notifications_sch.NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1
-    )
-    notification_mock.payload = notification_payload
-
-    email_notification_adapter = EmailNotificationAdapter(
-        notification=notification_mock
-    )
-
-    assert_contains(
-        email_notification_adapter.adapt(),
-        pochta_sch.RecipientInvoiceNotificationEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
-            recipient_invoice_id=notification_payload.recipient_invoice_id,
-            notification_id=notification_mock.id,
-        ).model_dump(),
-    )
-
-
 def assert_universal_email_message_payload(
     universal_email_message_payload: pochta_sch.UniversalEmailMessagePayloadSchema,
     expected_notification_id: UUID,
@@ -200,6 +56,189 @@ def assert_universal_email_message_payload(
                 **expected_button_link_query,
                 "read_notification_id": [expected_notification_id],
             },
+        },
+    )
+
+
+async def test_individual_invitation_accepted_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceNotificationPayloadSchema
+    ) = factories.InvitationAcceptanceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_THEME,
+        expected_pre_header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_HEADER,
+        expected_content=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_group_invitation_accepted_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceNotificationPayloadSchema
+    ) = factories.InvitationAcceptanceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_THEME,
+        expected_pre_header=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_HEADER,
+        expected_content=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.GROUP_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_group_enrollment_created_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.EnrollmentNotificationPayloadSchema = (
+        factories.EnrollmentNotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.ENROLLMENT_CREATED_V1
+        )
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.ENROLLMENT_CREATED_V1_EMAIL_THEME,
+        expected_pre_header=texts.ENROLLMENT_CREATED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.ENROLLMENT_CREATED_V1_EMAIL_HEADER,
+        expected_content=texts.ENROLLMENT_CREATED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.ENROLLMENT_CREATED_V1_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["student"],
+        },
+    )
+
+
+async def test_classroom_conference_started_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.ClassroomNotificationPayloadSchema = (
+        factories.ClassroomNotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.CLASSROOM_CONFERENCE_STARTED_V1
+        )
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_THEME,
+        expected_pre_header=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_HEADER,
+        expected_content=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["student"],
+            "goto": ["call"],
+        },
+    )
+
+
+async def test_recipient_invoice_created_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.RecipientInvoiceNotificationPayloadSchema
+    ) = factories.RecipientInvoiceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.RECIPIENT_INVOICE_CREATED_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_THEME,
+        expected_pre_header=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_HEADER,
+        expected_content=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.RECIPIENT_INVOICE_CREATED_V1_BUTTON_TEXT,
+        expected_button_link_path="/payments",
+        expected_button_link_query={
+            "tab": ["invoices"],
+            "role": ["student"],
+            "recipient_invoice_id": [str(notification_payload.recipient_invoice_id)],
+        },
+    )
+
+
+async def test_student_recipient_invoice_payment_confirmed_v1_notification_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.RecipientInvoiceNotificationPayloadSchema
+    ) = factories.RecipientInvoiceNotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1
+    )
+    notification_mock.payload = notification_payload
+
+    email_notification_adapter = EmailNotificationAdapter(
+        notification=notification_mock
+    )
+
+    assert_universal_email_message_payload(
+        email_notification_adapter.adapt(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_THEME,
+        expected_pre_header=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_PRE_HEADER,
+        expected_header=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_HEADER,
+        expected_content=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_CONTENT,
+        expected_button_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_BUTTON_TEXT,
+        expected_button_link_path="/payments",
+        expected_button_link_query={
+            "tab": ["invoices"],
+            "role": ["tutor"],
+            "recipient_invoice_id": [str(notification_payload.recipient_invoice_id)],
         },
     )
 
@@ -485,8 +524,7 @@ async def test_custom_v1_notification_adapting(
 
     assert_contains(
         email_notification_adapter.adapt(),
-        pochta_sch.CustomEmailMessagePayloadSchema(
-            kind=pochta_sch.EmailMessageKind.CUSTOM_V1,
+        pochta_sch.UniversalEmailMessagePayloadSchema(
             theme=notification_payload.theme,
             pre_header=notification_payload.pre_header,
             header=notification_payload.header,
