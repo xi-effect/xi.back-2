@@ -3,6 +3,7 @@ from typing import Any, assert_never, cast
 from urllib.parse import urlencode
 
 from app.common.config import settings
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
     ClassroomScheduleFocusNotificationPayloadSchema,
@@ -30,6 +31,43 @@ class BaseNotificationAdapter[T](ABC):
             }
         )
         return f"{settings.frontend_app_base_url}{path}?{query_string}"
+
+    def build_classroom_overview_url(
+        self,
+        classroom_id: int,
+        role: ClassroomRole,
+    ) -> str:
+        return self.build_url(
+            path=f"/classrooms/{classroom_id}",
+            params={"tab": "overview", "role": role},
+        )
+
+    def build_classroom_conference_url(
+        self,
+        payload: ClassroomNotificationPayloadSchema,
+    ) -> str:
+        return self.build_url(
+            path=f"/classrooms/{payload.classroom_id}",
+            params={
+                "tab": "overview",
+                "role": ClassroomRole.STUDENT,
+                "goto": "call",
+            },
+        )
+
+    def build_recipient_invoice_url(
+        self,
+        payload: RecipientInvoiceNotificationPayloadSchema,
+        role: ClassroomRole,
+    ) -> str:
+        return self.build_url(
+            path="/payments",
+            params={
+                "tab": "invoices",
+                "role": role,
+                "recipient_invoice_id": payload.recipient_invoice_id,
+            },
+        )
 
     def build_persisted_classroom_event_instance_url(
         self, payload: PersistedClassroomEventInstanceNotificationPayloadSchema

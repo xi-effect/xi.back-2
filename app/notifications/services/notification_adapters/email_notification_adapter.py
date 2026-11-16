@@ -1,3 +1,4 @@
+from app.common.schemas.classrooms_sch import ClassroomRole
 from app.common.schemas.notifications_sch import (
     ClassroomNotificationPayloadSchema,
     ClassroomScheduleFocusNotificationPayloadSchema,
@@ -8,79 +9,104 @@ from app.common.schemas.notifications_sch import (
     RecipientInvoiceNotificationPayloadSchema,
     RepeatedClassroomEventInstanceNotificationPayloadSchema,
 )
-from app.common.schemas.pochta_sch import (
-    AnyEmailMessagePayload,
-    ClassroomNotificationEmailMessagePayloadSchema,
-    CustomEmailMessagePayloadSchema,
-    EmailMessageKind,
-    RecipientInvoiceNotificationEmailMessagePayloadSchema,
-    UniversalEmailMessagePayloadSchema,
-)
+from app.common.schemas.pochta_sch import UniversalEmailMessagePayloadSchema
 from app.notifications import texts
 from app.notifications.services.notification_adapters.base_notification_adapter import (
     BaseNotificationAdapter,
 )
 
 
-class EmailNotificationAdapter(BaseNotificationAdapter[AnyEmailMessagePayload]):
+class EmailNotificationAdapter(
+    BaseNotificationAdapter[UniversalEmailMessagePayloadSchema]
+):
     def adapt_individual_invitation_accepted_v1(
         self,
         payload: InvitationAcceptanceNotificationPayloadSchema,
-    ) -> ClassroomNotificationEmailMessagePayloadSchema:
-        return ClassroomNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
-            classroom_id=payload.classroom_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_THEME,
+            pre_header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER,
+            header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_HEADER,
+            content=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_CONTENT,
+            button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_BUTTON_TEXT,
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.TUTOR,
+            ),
         )
 
     def adapt_group_invitation_accepted_v1(
         self,
         payload: InvitationAcceptanceNotificationPayloadSchema,
-    ) -> ClassroomNotificationEmailMessagePayloadSchema:
-        return ClassroomNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.GROUP_INVITATION_ACCEPTED_V1,
-            classroom_id=payload.classroom_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_THEME,
+            pre_header=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_PRE_HEADER,
+            header=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_HEADER,
+            content=texts.GROUP_INVITATION_ACCEPTED_V1_EMAIL_CONTENT,
+            button_text=texts.GROUP_INVITATION_ACCEPTED_V1_BUTTON_TEXT,
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.TUTOR,
+            ),
         )
 
     def adapt_enrollment_created_v1(
         self,
         payload: EnrollmentNotificationPayloadSchema,
-    ) -> ClassroomNotificationEmailMessagePayloadSchema:
-        return ClassroomNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.ENROLLMENT_CREATED_V1,
-            classroom_id=payload.classroom_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.ENROLLMENT_CREATED_V1_EMAIL_THEME,
+            pre_header=texts.ENROLLMENT_CREATED_V1_EMAIL_PRE_HEADER,
+            header=texts.ENROLLMENT_CREATED_V1_EMAIL_HEADER,
+            content=texts.ENROLLMENT_CREATED_V1_EMAIL_CONTENT,
+            button_text=texts.ENROLLMENT_CREATED_V1_BUTTON_TEXT,
+            button_link=self.build_classroom_overview_url(
+                payload.classroom_id,
+                ClassroomRole.STUDENT,
+            ),
         )
 
     def adapt_classroom_conference_started_v1(
         self,
         payload: ClassroomNotificationPayloadSchema,
-    ) -> ClassroomNotificationEmailMessagePayloadSchema:
-        return ClassroomNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.CLASSROOM_CONFERENCE_STARTED_V1,
-            classroom_id=payload.classroom_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_THEME,
+            pre_header=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_PRE_HEADER,
+            header=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_HEADER,
+            content=texts.CLASSROOM_CONFERENCE_STARTED_V1_EMAIL_CONTENT,
+            button_text=texts.CLASSROOM_CONFERENCE_STARTED_V1_BUTTON_TEXT,
+            button_link=self.build_classroom_conference_url(payload),
         )
 
     def adapt_recipient_invoice_created_v1(
         self,
         payload: RecipientInvoiceNotificationPayloadSchema,
-    ) -> RecipientInvoiceNotificationEmailMessagePayloadSchema:
-        return RecipientInvoiceNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.RECIPIENT_INVOICE_CREATED_V1,
-            recipient_invoice_id=payload.recipient_invoice_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_THEME,
+            pre_header=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_PRE_HEADER,
+            header=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_HEADER,
+            content=texts.RECIPIENT_INVOICE_CREATED_V1_EMAIL_CONTENT,
+            button_text=texts.RECIPIENT_INVOICE_CREATED_V1_BUTTON_TEXT,
+            button_link=self.build_recipient_invoice_url(
+                payload,
+                ClassroomRole.STUDENT,
+            ),
         )
 
     def adapt_student_recipient_invoice_payment_confirmed_v1(
         self,
         payload: RecipientInvoiceNotificationPayloadSchema,
-    ) -> RecipientInvoiceNotificationEmailMessagePayloadSchema:
-        return RecipientInvoiceNotificationEmailMessagePayloadSchema(
-            kind=EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1,
-            recipient_invoice_id=payload.recipient_invoice_id,
-            notification_id=self.notification.id,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
+            theme=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_THEME,
+            pre_header=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_PRE_HEADER,
+            header=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_HEADER,
+            content=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_CONTENT,
+            button_text=texts.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_BUTTON_TEXT,
+            button_link=self.build_recipient_invoice_url(payload, ClassroomRole.TUTOR),
         )
 
     def adapt_single_classroom_event_created_v1(
@@ -183,9 +209,8 @@ class EmailNotificationAdapter(BaseNotificationAdapter[AnyEmailMessagePayload]):
 
     def adapt_custom_v1(
         self, payload: CustomNotificationPayloadSchema
-    ) -> CustomEmailMessagePayloadSchema:
-        return CustomEmailMessagePayloadSchema(
-            kind=EmailMessageKind.CUSTOM_V1,
+    ) -> UniversalEmailMessagePayloadSchema:
+        return UniversalEmailMessagePayloadSchema(
             theme=payload.theme,
             pre_header=payload.pre_header,
             header=payload.header,
