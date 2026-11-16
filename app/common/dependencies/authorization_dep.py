@@ -10,7 +10,6 @@ from app.common.fastapi_ext import Responses, with_responses
 
 AUTH_SESSION_ID_HEADER_NAME: Final[str] = "X-Session-ID"
 AUTH_USER_ID_HEADER_NAME: Final[str] = "X-User-ID"
-AUTH_USERNAME_HEADER_NAME: Final[str] = "X-Username"
 
 SessionIDHeader = Annotated[
     str | None,
@@ -34,41 +33,26 @@ UserIDHeader = Annotated[
     ),
 ]
 
-UsernameHeader = Annotated[
-    str | None,
-    Depends(
-        APIKeyHeader(
-            name=AUTH_USERNAME_HEADER_NAME,
-            auto_error=False,
-            scheme_name="username header",
-        )
-    ),
-]
-
 
 class ProxyAuthData(BaseModel):
     session_id: int
     user_id: int
-    username: str
 
     @property
     def as_headers(self) -> dict[str, str]:
         return {
             AUTH_SESSION_ID_HEADER_NAME: str(self.session_id),
             AUTH_USER_ID_HEADER_NAME: str(self.user_id),
-            AUTH_USERNAME_HEADER_NAME: self.username,
         }
 
 
 def construct_proxy_auth_data(
     session_id_token: SessionIDHeader = None,
     user_id_token: UserIDHeader = None,
-    username_token: UsernameHeader = None,
 ) -> ProxyAuthData:
     return ProxyAuthData(
         session_id=session_id_token,
         user_id=user_id_token,
-        username=username_token,
     )
 
 
@@ -80,13 +64,11 @@ class AuthorizedResponses(Responses):
 async def authorize_proxy(
     session_id_token: SessionIDHeader = None,
     user_id_token: UserIDHeader = None,
-    username_token: UsernameHeader = None,
 ) -> ProxyAuthData:
     try:  # using try-except to use pydantic's validation
         proxy_auth_data = construct_proxy_auth_data(
             session_id_token=session_id_token,
             user_id_token=user_id_token,
-            username_token=username_token,
         )
     except ValidationError:  # noqa: WPS329  # bug
         raise AuthorizedResponses.PROXY_AUTH_MISSING  # TODO (203) pragma: no cover

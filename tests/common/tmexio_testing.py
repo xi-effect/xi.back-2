@@ -14,7 +14,6 @@ from tmexio.types import DataType
 from app.common.dependencies.authorization_dep import (
     AUTH_SESSION_ID_HEADER_NAME,
     AUTH_USER_ID_HEADER_NAME,
-    AUTH_USERNAME_HEADER_NAME,
     ProxyAuthData,
 )
 from app.common.dependencies.authorization_sio_dep import header_to_wsgi_var
@@ -242,5 +241,4 @@ def proxy_auth_data_to_sio_environ(proxy_auth_data: ProxyAuthData) -> dict[str, 
             proxy_auth_data.session_id
         ),
         header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME): str(proxy_auth_data.user_id),
-        header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME): proxy_auth_data.username,
     }
