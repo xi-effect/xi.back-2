@@ -2,8 +2,7 @@ from collections.abc import Sequence
 from typing import Annotated
 
 from fastapi import Body
-from pydantic import AwareDatetime, BaseModel, Field
-from sqlalchemy import select
+from pydantic import BaseModel
 from starlette import status
 
 from app.classrooms.dependencies.classrooms_tutor_dep import (
@@ -27,27 +26,8 @@ from app.common.config_bdg import autocomplete_bridge
 from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.schemas.autocomplete_sch import TagKind
-from app.common.sqlalchemy_ext import db
 
 router = APIRouterExt(tags=["tutor classrooms"])
-
-
-# TODO (299) remove after xi.tutor switches to POST /roles/tutor/classrooms/searches/
-@router.get(
-    path="/roles/tutor/classrooms/",
-    response_model=list[TutorClassroomResponseSchema],
-    summary="Use `POST /api/protected/classroom-service/roles/tutor/classrooms/searches/` instead",
-    deprecated=True,
-)
-async def list_classrooms_old(
-    auth_data: AuthorizationData,
-    created_before: AwareDatetime | None = None,
-    limit: Annotated[int, Field(gt=0, le=100)] = 50,
-) -> Sequence[Classroom]:
-    stmt = select(Classroom).filter_by(tutor_id=auth_data.user_id)
-    if created_before is not None:
-        stmt = stmt.filter(Classroom.created_at < created_before)
-    return await db.get_all(stmt.order_by(Classroom.created_at.desc()).limit(limit))
 
 
 @router.post(
