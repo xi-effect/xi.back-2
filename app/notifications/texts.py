@@ -29,7 +29,7 @@ INDIVIDUAL_INVITATION_ACCEPTED_V1_MESSAGE = """
 У вас появился новый кабинет
 """
 INDIVIDUAL_INVITATION_ACCEPTED_V1_BUTTON_TEXT = """
-Открыть
+Открыть кабинет
 """
 INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_THEME = """
 +1 кабинет на платформе sovlium
@@ -42,9 +42,6 @@ INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_HEADER = """
 """
 INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_CONTENT = """
 В кабинете вы можете проводить занятия, хранить учебные материалы и вести учёт оплаты.
-"""
-INDIVIDUAL_INVITATION_ACCEPTED_V1_EMAIL_BUTTON_TEXT = """
-Открыть кабинет
 """
 
 GROUP_INVITATION_ACCEPTED_V1_MESSAGE = """
@@ -140,9 +137,6 @@ STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_HEADER = """
 """
 STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_CONTENT = """
 Чтобы учесть счёт в заработке, подтвердите, что получили деньги. Если деньги не пришли, свяжитесь с учеником.
-"""
-STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1_EMAIL_BUTTON_TEXT = """
-Подтвердить
 """
 
 CLASSROOM_EVENT_INSTANCE_BUTTON_TEXT = """
