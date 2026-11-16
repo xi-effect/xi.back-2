@@ -5,7 +5,9 @@ from app.common.schemas.notifications_sch import (
     ClassroomScheduleFocusNotificationPayloadSchema,
     CustomNotificationPayloadSchema,
     EnrollmentNotificationPayloadSchema,
+    EnrollmentV2NotificationPayloadSchema,
     InvitationAcceptanceNotificationPayloadSchema,
+    InvitationAcceptanceV2NotificationPayloadSchema,
     NotificationKind,
     PersistedClassroomEventInstanceNotificationPayloadSchema,
     RecipientInvoiceNotificationPayloadSchema,
@@ -128,6 +130,29 @@ def build_notification_adapter(
             match payload.kind:
                 case NotificationKind.CUSTOM_V1:
                     return custom_notification_adapters.CustomV1NotificationAdapter(
+                        notification=notification,
+                        payload=payload,
+                    )
+                case _:
+                    assert_never(payload.kind)
+        case InvitationAcceptanceV2NotificationPayloadSchema():
+            match payload.kind:
+                case NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2:
+                    return classroom_notification_adapters.IndividualInvitationAcceptedV2NotificationAdapter(
+                        notification=notification,
+                        payload=payload,
+                    )
+                case NotificationKind.GROUP_INVITATION_ACCEPTED_V2:
+                    return classroom_notification_adapters.GroupInvitationAcceptedV2NotificationAdapter(
+                        notification=notification,
+                        payload=payload,
+                    )
+                case _:
+                    assert_never(payload.kind)
+        case EnrollmentV2NotificationPayloadSchema():
+            match payload.kind:
+                case NotificationKind.ENROLLMENT_CREATED_V2:
+                    return classroom_notification_adapters.EnrollmentCreatedV2NotificationAdapter(
                         notification=notification,
                         payload=payload,
                     )

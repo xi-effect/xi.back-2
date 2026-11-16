@@ -37,6 +37,9 @@ NOTIFICATION_KIND_TO_NOTIFICATION_ADAPTER_TYPE: dict[
     NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1: event_notification_adapters.ClassroomEventRepetitionUpdatedV1NotificationAdapter,
     NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1: event_notification_adapters.ClassroomEventRepetitionCancelledV1NotificationAdapter,
     NotificationKind.CUSTOM_V1: custom_notification_adapters.CustomV1NotificationAdapter,
+    NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2: classroom_notification_adapters.IndividualInvitationAcceptedV2NotificationAdapter,
+    NotificationKind.GROUP_INVITATION_ACCEPTED_V2: classroom_notification_adapters.GroupInvitationAcceptedV2NotificationAdapter,
+    NotificationKind.ENROLLMENT_CREATED_V2: classroom_notification_adapters.EnrollmentCreatedV2NotificationAdapter,
 }
 
 

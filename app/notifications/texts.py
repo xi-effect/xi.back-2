@@ -263,3 +263,60 @@ CLASSROOM_EVENT_REPETITION_CANCELLED_V1_EMAIL_HEADER = """
 CLASSROOM_EVENT_REPETITION_CANCELLED_V1_EMAIL_CONTENT = """
 Перейдите по ссылке, чтобы узнать подробности и посмотреть обновлённое расписание.
 """
+
+INDIVIDUAL_INVITATION_ACCEPTED_V2_BUTTON_TEXT = """
+Открыть кабинет
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V2_MESSAGE_TEMPLATE = """
+У вас новый ученик — {student_name}
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_THEME_TEMPLATE = """
++1 ученик на платформе sovlium — {student_name}
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_PRE_HEADER = """
+Ученик принял ваше приглашение
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_HEADER = """
+Всё готово к первому занятию
+"""
+INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_CONTENT_TEMPLATE = """
+У вас появился новый кабинет. Ученик — {student_name}. В кабинете вы можете проводить занятия, хранить учебные материалы и вести учёт оплаты
+"""
+
+GROUP_INVITATION_ACCEPTED_V2_BUTTON_TEXT = """
+Открыть группу
+"""
+GROUP_INVITATION_ACCEPTED_V2_MESSAGE_TEMPLATE = """
+В группе новый ученик — {student_name}
+"""
+GROUP_INVITATION_ACCEPTED_V2_EMAIL_THEME = """
++1 ученик в группе
+"""
+GROUP_INVITATION_ACCEPTED_V2_EMAIL_PRE_HEADER = """
+Ученик принял приглашение в группу
+"""
+GROUP_INVITATION_ACCEPTED_V2_EMAIL_HEADER = """
+Пополнение в команде!
+"""
+GROUP_INVITATION_ACCEPTED_V2_EMAIL_CONTENT_TEMPLATE = """
+Ваш новый ученик — {student_name}. Все ученики в группе могут подключаться к занятиям и изучать учебные материалы.
+"""
+
+ENROLLMENT_CREATED_V2_BUTTON_TEXT = """
+Открыть группу
+"""
+ENROLLMENT_CREATED_V2_MESSAGE_TEMPLATE = """
+Вас добавили в группу {group_name}
+"""
+ENROLLMENT_CREATED_V2_EMAIL_THEME_TEMPLATE = """
+Вас добавили в группу {group_name}
+"""
+ENROLLMENT_CREATED_V2_EMAIL_PRE_HEADER = """
+Репетитор добавил вас в группу
+"""
+ENROLLMENT_CREATED_V2_EMAIL_HEADER = """
+Пора открывать новые горизонты!
+"""
+ENROLLMENT_CREATED_V2_EMAIL_CONTENT = """
+Вы будете получать уведомления о занятиях и сможете изучать материалы группы. Успехов!
+"""

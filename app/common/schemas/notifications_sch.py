@@ -31,6 +31,11 @@ class NotificationKind(StrEnum):
 
     CUSTOM_V1 = auto()
 
+    INDIVIDUAL_INVITATION_ACCEPTED_V2 = auto()
+    GROUP_INVITATION_ACCEPTED_V2 = auto()
+
+    ENROLLMENT_CREATED_V2 = auto()
+
 
 class InvitationAcceptanceNotificationPayloadSchema(BaseModel):
     kind: Literal[
@@ -107,6 +112,26 @@ class CustomNotificationPayloadSchema(BaseModel):
     button_link: str
 
 
+class InvitationAcceptanceV2NotificationPayloadSchema(BaseModel):
+    kind: Literal[
+        NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2,
+        NotificationKind.GROUP_INVITATION_ACCEPTED_V2,
+    ]
+
+    invitation_id: int
+    classroom_id: int
+    student_id: int
+    student_name: str
+
+
+class EnrollmentV2NotificationPayloadSchema(BaseModel):
+    kind: Literal[NotificationKind.ENROLLMENT_CREATED_V2]
+
+    classroom_id: int
+    student_id: int
+    group_name: str
+
+
 AnyNotificationPayloadSchema = Annotated[
     InvitationAcceptanceNotificationPayloadSchema
     | EnrollmentNotificationPayloadSchema
@@ -115,7 +140,9 @@ AnyNotificationPayloadSchema = Annotated[
     | PersistedClassroomEventInstanceNotificationPayloadSchema
     | RepeatedClassroomEventInstanceNotificationPayloadSchema
     | ClassroomScheduleFocusNotificationPayloadSchema
-    | CustomNotificationPayloadSchema,
+    | CustomNotificationPayloadSchema
+    | InvitationAcceptanceV2NotificationPayloadSchema
+    | EnrollmentV2NotificationPayloadSchema,
     Field(discriminator="kind"),
 ]
 

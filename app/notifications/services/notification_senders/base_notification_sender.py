@@ -24,6 +24,9 @@ NOTIFICATION_KIND_TO_NOTIFICATION_CATEGORY: dict[
     NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: NotificationCategory.EVENT_REMINDERS,
     NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1: NotificationCategory.EVENT_REMINDERS,
     NotificationKind.CUSTOM_V1: None,
+    NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2: NotificationCategory.CLASSROOMS,
+    NotificationKind.GROUP_INVITATION_ACCEPTED_V2: NotificationCategory.CLASSROOMS,
+    NotificationKind.ENROLLMENT_CREATED_V2: NotificationCategory.CLASSROOMS,
 }
 
 

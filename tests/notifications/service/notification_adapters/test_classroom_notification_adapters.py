@@ -7,8 +7,11 @@ from app.notifications import texts
 from app.notifications.services.notification_adapters.classroom_notification_adapters import (
     ClassroomConferenceStartedV1NotificationAdapter,
     EnrollmentCreatedV1NotificationAdapter,
+    EnrollmentCreatedV2NotificationAdapter,
     GroupInvitationAcceptedV1NotificationAdapter,
+    GroupInvitationAcceptedV2NotificationAdapter,
     IndividualInvitationAcceptedV1NotificationAdapter,
+    IndividualInvitationAcceptedV2NotificationAdapter,
 )
 from tests.notifications import factories
 from tests.notifications.utils import (
@@ -245,5 +248,190 @@ async def test_classroom_conference_started_v1_email_adapting(
             "tab": ["overview"],
             "role": ["student"],
             "goto": ["call"],
+        },
+    )
+
+
+async def test_individual_invitation_accepted_v2_messenger_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema
+    ) = factories.InvitationAcceptanceV2NotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2,
+    )
+
+    notification_adapter = IndividualInvitationAcceptedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_messenger_message_payload(
+        notification_adapter.to_messenger_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_message_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_MESSAGE_TEMPLATE.format(
+            student_name=notification_payload.student_name
+        ),
+        expected_button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["schedule"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_individual_invitation_accepted_v2_email_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema
+    ) = factories.InvitationAcceptanceV2NotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2,
+    )
+
+    notification_adapter = IndividualInvitationAcceptedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_universal_email_message_payload(
+        notification_adapter.to_universal_email_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_THEME_TEMPLATE.format(
+            student_name=notification_payload.student_name
+        ),
+        expected_pre_header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_PRE_HEADER,
+        expected_header=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_HEADER,
+        expected_content=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_EMAIL_CONTENT_TEMPLATE.format(
+            student_name=notification_payload.student_name
+        ),
+        expected_button_text=texts.INDIVIDUAL_INVITATION_ACCEPTED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["schedule"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_group_invitation_accepted_v2_messenger_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema
+    ) = factories.InvitationAcceptanceV2NotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V2,
+    )
+
+    notification_adapter = GroupInvitationAcceptedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_messenger_message_payload(
+        notification_adapter.to_messenger_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_message_text=texts.GROUP_INVITATION_ACCEPTED_V2_MESSAGE_TEMPLATE.format(
+            student_name=notification_payload.student_name
+        ),
+        expected_button_text=texts.GROUP_INVITATION_ACCEPTED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_group_invitation_accepted_v2_email_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: (
+        notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema
+    ) = factories.InvitationAcceptanceV2NotificationPayloadFactory.build(
+        kind=notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V2,
+    )
+
+    notification_adapter = GroupInvitationAcceptedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_universal_email_message_payload(
+        notification_adapter.to_universal_email_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.GROUP_INVITATION_ACCEPTED_V2_EMAIL_THEME,
+        expected_pre_header=texts.GROUP_INVITATION_ACCEPTED_V2_EMAIL_PRE_HEADER,
+        expected_header=texts.GROUP_INVITATION_ACCEPTED_V2_EMAIL_HEADER,
+        expected_content=texts.GROUP_INVITATION_ACCEPTED_V2_EMAIL_CONTENT_TEMPLATE.format(
+            student_name=notification_payload.student_name
+        ),
+        expected_button_text=texts.GROUP_INVITATION_ACCEPTED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["tutor"],
+        },
+    )
+
+
+async def test_enrollment_created_v2_messenger_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.EnrollmentV2NotificationPayloadSchema = (
+        factories.EnrollmentV2NotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.ENROLLMENT_CREATED_V2,
+        )
+    )
+
+    notification_adapter = EnrollmentCreatedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_messenger_message_payload(
+        notification_adapter.to_messenger_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_message_text=texts.ENROLLMENT_CREATED_V2_MESSAGE_TEMPLATE.format(
+            group_name=notification_payload.group_name
+        ),
+        expected_button_text=texts.ENROLLMENT_CREATED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["student"],
+        },
+    )
+
+
+async def test_enrollment_created_v2_email_adapting(
+    notification_mock: Mock,
+) -> None:
+    notification_payload: notifications_sch.EnrollmentV2NotificationPayloadSchema = (
+        factories.EnrollmentV2NotificationPayloadFactory.build(
+            kind=notifications_sch.NotificationKind.ENROLLMENT_CREATED_V2,
+        )
+    )
+
+    notification_adapter = EnrollmentCreatedV2NotificationAdapter(
+        notification=notification_mock,
+        payload=notification_payload,
+    )
+
+    assert_universal_email_message_payload(
+        notification_adapter.to_universal_email_message_payload(),
+        expected_notification_id=notification_mock.id,
+        expected_theme=texts.ENROLLMENT_CREATED_V2_EMAIL_THEME_TEMPLATE.format(
+            group_name=notification_payload.group_name
+        ),
+        expected_pre_header=texts.ENROLLMENT_CREATED_V2_EMAIL_PRE_HEADER,
+        expected_header=texts.ENROLLMENT_CREATED_V2_EMAIL_HEADER,
+        expected_content=texts.ENROLLMENT_CREATED_V2_EMAIL_CONTENT,
+        expected_button_text=texts.ENROLLMENT_CREATED_V2_BUTTON_TEXT,
+        expected_button_link_path=f"/classrooms/{notification_payload.classroom_id}",
+        expected_button_link_query={
+            "tab": ["overview"],
+            "role": ["student"],
         },
     )
