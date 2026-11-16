@@ -18,5 +18,6 @@ jobs:
       check_coverage: true
       check_migrations: true
       enable_deployment: true
-      is_mainline: true
+      is_mainline_staging: true
+      is_mainline_production: ${{ github.ref_name == 'main' }}
     secrets: inherit

@@ -8,7 +8,7 @@ from starlette import status
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.utils.datetime import datetime_utc_now
 from app.subscriptions.dependencies.promocodes_dep import PromocodeByCode, PromocodeByID
-from app.subscriptions.models.promocodes_db import Promocode
+from app.subscriptions.models.promocodes_db import Promocode, promocode_code_generator
 
 router = APIRouterExt(tags=["promocodes mub"])
 
@@ -30,7 +30,7 @@ async def list_promocodes(
     )
 
 
-def validate_promocode_validity_period[T: Promocode.ValidityPeriodInputSchema](
+def validate_promocode_validity_period[T: Promocode.SettingsSchema](
     data: T,
 ) -> T:
     if (
@@ -41,8 +41,8 @@ def validate_promocode_validity_period[T: Promocode.ValidityPeriodInputSchema](
 
 
 class PromocodeBatchGenerationRequestSchema(BaseModel):
-    validity_period: Annotated[
-        Promocode.ValidityPeriodInputSchema,
+    settings: Annotated[
+        Promocode.SettingsSchema,
         AfterValidator(validate_promocode_validity_period),
     ]
     title_template: Annotated[
@@ -68,7 +68,8 @@ async def generate_promocode_batch(
         (
             await Promocode.create(
                 title=data.title_template.format(index=index),
-                **data.validity_period.model_dump(),
+                code=promocode_code_generator.generate_token(),
+                **data.settings.model_dump(),
             )
         ).code
         for index in range(data.batch_size)

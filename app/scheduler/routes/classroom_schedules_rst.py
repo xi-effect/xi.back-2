@@ -472,7 +472,8 @@ async def retrieve_tutor_schedule(
     schedule_adapter: ScheduleResponseSchemaAdapter = (
         await build_classroom_schedule_adapter(
             classroom_ids=await classrooms_bridge.list_tutor_classroom_ids(
-                tutor_id=auth_data.user_id
+                tutor_id=auth_data.user_id,
+                active_only=True,
             ),
             happens_after=time_frame.happens_after,
             happens_before=time_frame.happens_before,
@@ -493,7 +494,8 @@ async def retrieve_student_schedule(
     schedule_adapter: ScheduleResponseSchemaAdapter = (
         await build_classroom_schedule_adapter(
             classroom_ids=await classrooms_bridge.list_student_classroom_ids(
-                student_id=auth_data.user_id
+                student_id=auth_data.user_id,
+                active_only=True,
             ),
             happens_after=time_frame.happens_after,
             happens_before=time_frame.happens_before,

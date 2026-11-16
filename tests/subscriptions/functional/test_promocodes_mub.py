@@ -23,31 +23,31 @@ from tests.subscriptions import factories
 
 pytestmark = pytest.mark.anyio
 
-promocode_validity_period_factory_parametrization = pytest.mark.parametrize(
-    "validity_period_factory",
+promocode_settings_factory_parametrization = pytest.mark.parametrize(
+    "settings_factory",
     [
         pytest.param(
-            factories.LimitedPromocodeValidityPeriodInputFactory,
+            factories.LimitedPeriodPromocodeSettingsFactory,
             id="limited_validity_period",
         ),
         pytest.param(
-            factories.UnlimitedPromocodeValidityPeriodInputFactory,
+            factories.UnlimitedPeriodPromocodeSettingsFactory,
             id="unlimited_validity_period",
         ),
     ],
 )
 
 
-@promocode_validity_period_factory_parametrization
+@promocode_settings_factory_parametrization
 @freeze_time()
 async def test_promocode_batch_generation(
     active_session: ActiveSession,
     mub_client: TestClient,
-    validity_period_factory: type[BaseModelFactory[Any]],
+    settings_factory: type[BaseModelFactory[Any]],
 ) -> None:
     data: PromocodeBatchGenerationRequestSchema = (
         factories.PromocodeBatchGenerationRequestFactory.build(
-            validity_period=validity_period_factory.build()
+            settings=settings_factory.build()
         )
     )
 
@@ -67,9 +67,10 @@ async def test_promocode_batch_generation(
             assert_contains(
                 promocode,
                 {
-                    **data.validity_period.model_dump(),
+                    **data.settings.model_dump(),
                     "id": int,
                     "title": data.title_template.format(index=index),
+                    "usage_count": 0,
                     "created_at": datetime_utc_now(),
                     "updated_at": datetime_utc_now(),
                 },
@@ -85,7 +86,7 @@ async def test_promocode_batch_generation_invalid_period(
             "/mub/subscription-service/promocode-batch-generation-requests/",
             json=factories.PromocodeBatchGenerationRequestFactory.build_json(
                 factory_use_construct=True,
-                validity_period=factories.InvalidPromocodeValidityPeriodInputFactory.build(),
+                settings=factories.InvalidPeriodPromocodeSettingsFactory.build(),
             ),
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -93,7 +94,7 @@ async def test_promocode_batch_generation_invalid_period(
             "detail": [
                 {
                     "type": "value_error",
-                    "loc": ["body", "validity_period"],
+                    "loc": ["body", "settings"],
                     "msg": "Value error, the end date cannot be earlier than the start date",
                 }
             ]
@@ -101,29 +102,30 @@ async def test_promocode_batch_generation_invalid_period(
     )
 
 
-@promocode_validity_period_factory_parametrization
+@promocode_settings_factory_parametrization
 @freeze_time()
 async def test_promocode_creation(
     active_session: ActiveSession,
     mub_client: TestClient,
-    validity_period_factory: type[BaseModelFactory[Any]],
+    settings_factory: type[BaseModelFactory[Any]],
 ) -> None:
     promocode_input_data: AnyJSON = factories.PromocodeWithCodeInputFactory.build_json()
-    validity_period_data: AnyJSON = validity_period_factory.build_json()
+    settings_data: AnyJSON = settings_factory.build_json()
 
     promocode_id: int = assert_response(
         mub_client.post(
             "/mub/subscription-service/promocodes/",
             json={
                 **promocode_input_data,
-                **validity_period_data,
+                **settings_data,
             },
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **promocode_input_data,
-            **validity_period_data,
+            **settings_data,
             "id": int,
+            "usage_count": 0,
             "created_at": datetime_utc_now(),
             "updated_at": datetime_utc_now(),
         },
@@ -135,30 +137,33 @@ async def test_promocode_creation(
         await promocode.delete()
 
 
-@promocode_validity_period_factory_parametrization
+@promocode_settings_factory_parametrization
 @freeze_time()
 async def test_promocode_creation_with_generated_code(
     active_session: ActiveSession,
     mub_client: TestClient,
-    validity_period_factory: type[BaseModelFactory[Any]],
+    settings_factory: type[BaseModelFactory[Any]],
 ) -> None:
-    promocode_input_data: AnyJSON = factories.PromocodeNoCodeInputFactory.build_json()
-    validity_period_data: AnyJSON = validity_period_factory.build_json()
+    promocode_input_data: AnyJSON = factories.PromocodeNoCodeInputFactory.build_json(
+        factory_use_construct=True
+    )
+    settings_data: AnyJSON = settings_factory.build_json()
 
     promocode_data: AnyJSON = assert_response(
         mub_client.post(
             "/mub/subscription-service/promocodes/",
             json={
                 **promocode_input_data,
-                **validity_period_data,
+                **settings_data,
             },
         ),
         expected_code=status.HTTP_201_CREATED,
         expected_json={
             **promocode_input_data,
-            **validity_period_data,
+            **settings_data,
             "id": int,
             "code": str,
+            "usage_count": 0,
             "created_at": datetime_utc_now(),
             "updated_at": datetime_utc_now(),
         },
@@ -179,7 +184,7 @@ async def test_promocode_creation_invalid_period(
             "/mub/subscription-service/promocodes/",
             json={
                 **factories.PromocodeWithCodeInputFactory.build_json(),
-                **factories.InvalidPromocodeValidityPeriodInputFactory.build_json(),
+                **factories.InvalidPeriodPromocodeSettingsFactory.build_json(),
             },
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -204,7 +209,7 @@ async def test_promocode_creation_promocode_already_exists(
             "/mub/subscription-service/promocodes/",
             json={
                 **factories.PromocodeNoCodeInputFactory.build_json(),
-                **factories.LimitedPromocodeValidityPeriodInputFactory.build_json(),
+                **factories.LimitedPeriodPromocodeSettingsFactory.build_json(),
                 "code": other_promocode.code,
             },
         ),
@@ -239,32 +244,65 @@ async def test_promocode_retrieving(
     )
 
 
-@promocode_validity_period_factory_parametrization
+@promocode_settings_factory_parametrization
 @freeze_time()
 async def test_promocode_updating(
     mub_client: TestClient,
     promocode: Promocode,
     promocode_data: AnyJSON,
-    validity_period_factory: type[BaseModelFactory[Any]],
+    settings_factory: type[BaseModelFactory[Any]],
 ) -> None:
     promocode_put_data: AnyJSON = factories.PromocodeUpdateFactory.build_json()
-    validity_period_data: AnyJSON = validity_period_factory.build_json()
+    settings_data: AnyJSON = settings_factory.build_json()
 
     assert_response(
         mub_client.put(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
             json={
                 **promocode_put_data,
-                **validity_period_data,
+                **settings_data,
             },
         ),
         expected_json={
             **promocode_data,
             **promocode_put_data,
-            **validity_period_data,
+            **settings_data,
             "updated_at": datetime_utc_now(),
         },
     )
+
+
+@promocode_settings_factory_parametrization
+@freeze_time()
+async def test_promocode_updating_with_generated_code(
+    mub_client: TestClient,
+    promocode: Promocode,
+    promocode_data: AnyJSON,
+    settings_factory: type[BaseModelFactory[Any]],
+) -> None:
+    promocode_put_data: AnyJSON = factories.PromocodeUpdateFactory.build_json(
+        factory_use_construct=True, code=None
+    )
+    settings_data: AnyJSON = settings_factory.build_json()
+
+    response_json: AnyJSON = assert_response(
+        mub_client.put(
+            f"/mub/subscription-service/promocodes/{promocode.id}/",
+            json={
+                **promocode_put_data,
+                **settings_data,
+            },
+        ),
+        expected_json={
+            **promocode_data,
+            **promocode_put_data,
+            **settings_data,
+            "code": str,
+            "updated_at": datetime_utc_now(),
+        },
+    ).json()
+
+    assert response_json["code"] != promocode_data["code"]
 
 
 async def test_promocode_updating_invalid_period(
@@ -276,7 +314,7 @@ async def test_promocode_updating_invalid_period(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
             json={
                 **factories.PromocodeUpdateFactory.build_json(),
-                **factories.InvalidPromocodeValidityPeriodInputFactory.build_json(),
+                **factories.InvalidPeriodPromocodeSettingsFactory.build_json(),
             },
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -302,7 +340,7 @@ async def test_promocode_updating_promocode_already_exists(
             f"/mub/subscription-service/promocodes/{promocode.id}/",
             json={
                 **factories.PromocodeUpdateFactory.build_json(),
-                **factories.LimitedPromocodeValidityPeriodInputFactory.build_json(),
+                **factories.LimitedPeriodPromocodeSettingsFactory.build_json(),
                 "code": other_promocode.code,
             },
         ),

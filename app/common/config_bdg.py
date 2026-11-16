@@ -4,6 +4,7 @@ from app.common.bridges.classrooms_bdg import ClassroomsBridge
 from app.common.bridges.datalake_bdg import DatalakeBridge
 from app.common.bridges.notifications_bdg import NotificationsBridge
 from app.common.bridges.pochta_bdg import PochtaBridge
+from app.common.bridges.subscriptions_bdg import SubscriptionsBridge
 from app.common.bridges.users_internal_bdg import UsersInternalBridge
 from app.common.bridges.users_public_bdg import UsersPublicBridge
 
@@ -12,6 +13,7 @@ classrooms_bridge = ClassroomsBridge()
 datalake_bridge = DatalakeBridge()
 notifications_bridge = NotificationsBridge()
 pochta_bridge = PochtaBridge()
+subscriptions_bridge = SubscriptionsBridge()
 users_internal_bridge = UsersInternalBridge()
 users_public_bridge = UsersPublicBridge()
 
@@ -21,6 +23,7 @@ all_bridges: tuple[BaseBridge, ...] = (
     datalake_bridge,
     notifications_bridge,
     pochta_bridge,
+    subscriptions_bridge,
     users_internal_bridge,
     users_public_bridge,
 )

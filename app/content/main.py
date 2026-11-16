@@ -17,6 +17,7 @@ from app.content.routes import (
     library_files_rst,
     materials_tutor_rst,
     personal_materials_tutor_rst,
+    storage_usage_tutor_rst,
     ydoc_files_rst,
     ydocs_int,
 )
@@ -36,6 +37,7 @@ authorized_router.include_router(personal_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_tutor_rst.router)
 authorized_router.include_router(classroom_materials_student_rst.router)
 authorized_router.include_router(classroom_notes_tutor_rst.router)
+authorized_router.include_router(storage_usage_tutor_rst.router)
 
 internal_router = APIRouterExt(
     dependencies=[APIKeyProtection],

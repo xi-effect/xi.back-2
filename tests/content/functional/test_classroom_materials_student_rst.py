@@ -11,8 +11,10 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider
 from app.common.schemas.content_sch import ContentTokenPayloadSchema, YDocAccessLevel
 from app.content.models.materials_db import ClassroomMaterial, MaterialAccessMode
+from app.content.services import storage_svc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.mock_stack import MockStack
 from tests.common.types import AnyJSON
 
 pytestmark = pytest.mark.anyio
@@ -49,10 +51,15 @@ async def test_classroom_material_retrieving(
 
 @freeze_time()
 @pytest.mark.parametrize(
-    ("student_access_mode", "expected_content_token_payload"),
+    (
+        "student_access_mode",
+        "is_storage_limit_reached",
+        "expected_content_token_payload",
+    ),
     [
         pytest.param(
             MaterialAccessMode.READ_ONLY,
+            None,
             lfc(
                 lambda classroom_material, student_user_id: ContentTokenPayloadSchema(
                     material_id=classroom_material.id,
@@ -64,10 +71,11 @@ async def test_classroom_material_retrieving(
                     ydoc_access_level=YDocAccessLevel.READ_ONLY,
                 ),
             ),
-            id=MaterialAccessMode.READ_ONLY.value,
+            id="read_only-limit_not_checked",
         ),
         pytest.param(
             MaterialAccessMode.READ_WRITE,
+            False,
             lfc(
                 lambda classroom_material, student_user_id: ContentTokenPayloadSchema(
                     material_id=classroom_material.id,
@@ -79,17 +87,42 @@ async def test_classroom_material_retrieving(
                     ydoc_access_level=YDocAccessLevel.READ_WRITE,
                 ),
             ),
-            id=MaterialAccessMode.READ_WRITE.value,
+            id="read_write-limit_not_reached",
+        ),
+        pytest.param(
+            MaterialAccessMode.READ_WRITE,
+            True,
+            lfc(
+                lambda classroom_material, student_user_id: ContentTokenPayloadSchema(
+                    material_id=classroom_material.id,
+                    ydoc_id=classroom_material.main_ydoc_id,
+                    user_id=student_user_id,
+                    can_upload_files=False,
+                    can_read_files=True,
+                    can_add_library_files=False,
+                    ydoc_access_level=YDocAccessLevel.READ_ONLY,
+                ),
+            ),
+            id="read_write-limit_reached",
         ),
     ],
 )
 async def test_classroom_material_storage_item_retrieving(
     active_session: ActiveSession,
+    mock_stack: MockStack,
+    tutor_user_id: int,
     student_client: TestClient,
     classroom_material: ClassroomMaterial,
     student_access_mode: MaterialAccessMode,
+    is_storage_limit_reached: bool | None,
     expected_content_token_payload: ContentTokenPayloadSchema,
 ) -> None:
+    storage_limit_mock = mock_stack.enter_async_mock(
+        storage_svc,
+        "has_owner_reached_storage_limit",
+        return_value=bool(is_storage_limit_reached),
+    )  # limiting is tested in test_storage_svc.py
+
     async with active_session() as session:
         session.add(classroom_material)
         classroom_material.student_access_mode = student_access_mode
@@ -109,6 +142,11 @@ async def test_classroom_material_storage_item_retrieving(
             "content_token": expected_content_token,
         },
     )
+
+    if is_storage_limit_reached is None:
+        storage_limit_mock.assert_not_awaited()
+    else:
+        storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
 
 
 classroom_material_student_request_parametrization = pytest.mark.parametrize(

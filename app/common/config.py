@@ -172,6 +172,7 @@ class Settings(BaseSettings):
     notifications_send_stream_name: str = "notifications.send"
     email_messages_send_stream_name: str = "email-messages.send"
     datalake_events_record_stream_name: str = "datalake-events.record"
+    user_plans_updated_stream_name: str = "user-plans.updated"
 
     livekit_url: str = "ws://localhost:7880"
     livekit_api_key: str = "devkey"
@@ -187,6 +188,11 @@ class Settings(BaseSettings):
 
     vk_notifications_bot: VKBotSettings | None = None
     vk_server_base_url: str = "https://api.vk.ru/method"
+
+    yookassa_server_base_url: str = "https://api.yookassa.ru/v3"
+    yookassa_shop_id: str = "local"
+    yookassa_secret_key: str = "local"
+    yookassa_return_url: str = "https://app.sovlium.ru"
 
     sentry_dsn: str | None = None
 

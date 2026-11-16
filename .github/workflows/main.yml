@@ -24,7 +24,10 @@ on:
       enable_deployment:
         type: boolean
         required: true
-      is_mainline:
+      is_mainline_staging:
+        type: boolean
+        required: true
+      is_mainline_production:
         type: boolean
         required: true
 
@@ -49,12 +52,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: 3.12
           cache: pip
@@ -69,21 +72,21 @@ jobs:
 
       - name: Load Cached Venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v6
         with:
           path: .venv
           key: ${{ env.repository_cache_name }}-venv-${{ hashFiles('**/poetry.lock') }}
           restore-keys: ${{ env.repository_cache_name }}-venv-
 
       - name: Load Cached Pre-commit
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pre-commit
           key: ${{ env.repository_cache_name }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: ${{ env.repository_cache_name }}-pre-commit-
 
       - name: Load Mypy Cache
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v6
         with:
           path: .mypy_cache
           key: ${{ env.repository_cache_name }}-mypy
@@ -141,9 +144,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment:
-          - staging
-          - production
+        include:
+          - environment: staging
+            is_mainline: ${{ inputs.is_mainline_staging }}
+          - environment: production
+            is_mainline: ${{ inputs.is_mainline_production }}
 
     runs-on: ubuntu-latest
     environment: ${{ matrix.environment }}
@@ -165,15 +170,15 @@ jobs:
             cd ~/xieffect-core
             docker pull ${{ env.pull_image }}
             docker tag ${{ env.pull_image }} ${{ env.deploy_image }}
-            ${{ inputs.is_mainline }} || docker tag ${{ env.deploy_image }} ${{ env.deploy_image }}-backup
+            ${{ !matrix.is_mainline }} || docker tag ${{ env.deploy_image }} ${{ env.deploy_image }}-backup
             docker rmi ${{ env.pull_image }}
             docker compose run --rm ${{ vars.compose_migration_service }}
             docker compose up -d ${{ vars.compose_app_service }}
-            ${{ !inputs.is_mainline }} || docker compose exec ${{ vars.compose_app_service }} alembic heads | cut -d ' ' --fields=1 > ${{ vars.version_filename }}
+            ${{ matrix.is_mainline }} || docker compose exec ${{ vars.compose_app_service }} alembic heads | cut -d ' ' --fields=1 > ${{ vars.version_filename }}
           script_stop: true
 
       - name: Report status to discord
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           content: |-
@@ -184,7 +189,7 @@ jobs:
 
       - name: Report failure to discord
         if: ${{ failure() }}
-        uses: tsickert/discord-webhook@v5.3.0
+        uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
           content: |-

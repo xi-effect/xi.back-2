@@ -54,5 +54,6 @@ jobs:
       check_coverage: ${{ contains(github.event.pull_request.labels.*.name, 'ci:covered') }}
       check_migrations: ${{ contains(github.event.pull_request.labels.*.name, 'ci:migrated') }}
       enable_deployment: ${{ contains(github.event.pull_request.labels.*.name, 'ci:deployable') }}
-      is_mainline: false
+      is_mainline_staging: false
+      is_mainline_production: false
     secrets: inherit

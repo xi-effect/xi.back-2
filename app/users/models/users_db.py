@@ -23,7 +23,6 @@ class OnboardingStage(StrEnum):
     EMAIL_CONFIRMATION = "email-confirmation"
     USER_INFORMATION = "user-information"
     DEFAULT_LAYOUT = "default-layout"
-    NOTIFICATIONS = "notifications"
     TRAINING = "training"
     COMPLETED = "completed"
 

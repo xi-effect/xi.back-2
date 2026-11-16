@@ -21,7 +21,7 @@ from app.content.models.materials_db import (
 )
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
-from app.content.services import materials_svc
+from app.content.services import materials_svc, storage_svc
 
 router = APIRouterExt(tags=["tutor classroom materials"])
 
@@ -46,6 +46,7 @@ async def list_classroom_materials(
     path="/roles/tutor/classrooms/{classroom_id}/materials/",
     status_code=status.HTTP_201_CREATED,
     response_model=ClassroomMaterial.ResponseSchema,
+    responses=storage_svc.StorageLimitResponses.responses(),
     summary="Create a new material in a classroom by id",
 )
 async def create_classroom_material(
@@ -53,6 +54,7 @@ async def create_classroom_material(
     classroom_id: Annotated[int, Path()],
     input_data: ClassroomMaterial.InputSchema,
 ) -> ClassroomMaterial:
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
     main_ydoc = await YDoc.create(
         owner_id=auth_data.user_id,
         content_kind=input_data.content_kind,
@@ -73,7 +75,11 @@ class DuplicateMaterialInputSchema(ClassroomMaterial.DuplicateInputSchema):
     path="/roles/tutor/classrooms/{classroom_id}/material-duplicates/",
     status_code=status.HTTP_201_CREATED,
     response_model=ClassroomMaterial.ResponseSchema,
-    responses=Responses.chain(MaterialResponses, MyMaterialResponses),
+    responses=Responses.chain(
+        MaterialResponses,
+        MyMaterialResponses,
+        storage_svc.StorageLimitResponses,
+    ),
     summary="Duplicate any material to a classroom by id",
 )
 async def duplicate_material_to_classroom(
@@ -87,6 +93,7 @@ async def duplicate_material_to_classroom(
         raise MaterialResponses.MATERIAL_NOT_FOUND
     if source_material.main_ydoc.owner_id != auth_data.user_id:
         raise MyMaterialResponses.MATERIAL_ACCESS_DENIED
+    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
 
     main_ydoc = await source_material.main_ydoc.duplicate()
     await YDocFile.duplicate_all_links_by_ydoc_id(
@@ -127,12 +134,23 @@ async def retrieve_classroom_material_storage_item(
     classroom_material: MyClassroomMaterialByIDs,
     auth_data: AuthorizationData,
 ) -> ContentYDocItemSchema:
+    if await storage_svc.has_owner_reached_storage_limit(
+        owner_id=classroom_material.main_ydoc.owner_id
+    ):
+        can_upload_files = False
+        can_add_library_files = False
+        ydoc_access_level = YDocAccessLevel.READ_ONLY
+    else:
+        can_upload_files = True
+        can_add_library_files = True
+        ydoc_access_level = YDocAccessLevel.READ_WRITE
+
     return materials_svc.build_ydoc_item(
         material=classroom_material,
         user_id=auth_data.user_id,
-        can_upload_files=True,
-        can_add_library_files=True,
-        ydoc_access_level=YDocAccessLevel.READ_WRITE,
+        can_upload_files=can_upload_files,
+        can_add_library_files=can_add_library_files,
+        ydoc_access_level=ydoc_access_level,
     )
 
 

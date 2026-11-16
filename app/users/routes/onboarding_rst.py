@@ -21,12 +21,10 @@ VALID_TRANSITIONS_BY_MODE: dict[
 ] = {
     TransitionMode.FORWARDS: {
         (OnboardingStage.USER_INFORMATION, OnboardingStage.DEFAULT_LAYOUT),
-        (OnboardingStage.DEFAULT_LAYOUT, OnboardingStage.NOTIFICATIONS),
-        (OnboardingStage.NOTIFICATIONS, OnboardingStage.TRAINING),
+        (OnboardingStage.DEFAULT_LAYOUT, OnboardingStage.TRAINING),
         (OnboardingStage.TRAINING, OnboardingStage.COMPLETED),
     },
     TransitionMode.BACKWARDS: {
-        (OnboardingStage.NOTIFICATIONS, OnboardingStage.DEFAULT_LAYOUT),
         (OnboardingStage.DEFAULT_LAYOUT, OnboardingStage.USER_INFORMATION),
     },
 }
