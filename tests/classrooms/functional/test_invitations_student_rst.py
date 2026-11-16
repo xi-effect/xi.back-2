@@ -24,7 +24,7 @@ from app.classrooms.models.tutorships_db import Tutorship
 from app.classrooms.services import classrooms_svc
 from app.common.config import settings
 from app.common.schemas.notifications_sch import (
-    InvitationAcceptanceNotificationPayloadSchema,
+    InvitationAcceptanceV2NotificationPayloadSchema,
     NotificationInputV2Schema,
     NotificationKind,
     SingleUserRecipientFilterSchema,
@@ -202,11 +202,12 @@ async def test_individual_invitation_accepting(
 
     send_notification_mock.assert_awaited_once_with(
         NotificationInputV2Schema(
-            payload=InvitationAcceptanceNotificationPayloadSchema(
-                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
+            payload=InvitationAcceptanceV2NotificationPayloadSchema(
+                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2,
                 invitation_id=individual_invitation.id,
                 classroom_id=classroom_id,
                 student_id=student_user_id,
+                student_name=user_profiles[student_user_id].display_name,
             ),
             recipient_filters=[
                 SingleUserRecipientFilterSchema(user_id=individual_invitation.tutor_id),
@@ -314,6 +315,7 @@ async def test_group_invitation_previewing_has_already_joined(
 async def test_group_invitation_accepting(
     active_session: ActiveSession,
     send_notification_mock: AsyncMock,
+    users_internal_respx_mock: MockRouter,
     tutor_user_id: int,
     student_user_id: int,
     student_client: TestClient,
@@ -322,6 +324,11 @@ async def test_group_invitation_accepting(
     group_invitation: GroupInvitation,
     existing_tutorship: Tutorship | None,
 ) -> None:
+    student_profile: UserProfileSchema = UserProfileFactory.build()
+    users_internal_bridge_mock = users_internal_respx_mock.get(
+        path=f"/users/{student_user_id}/profile/"
+    ).respond(json=student_profile.model_dump(mode="json"))
+
     initial_invitation_usage_count = group_invitation.usage_count
 
     assert_response(
@@ -371,16 +378,22 @@ async def test_group_invitation_accepting(
 
     send_notification_mock.assert_awaited_once_with(
         NotificationInputV2Schema(
-            payload=InvitationAcceptanceNotificationPayloadSchema(
-                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
+            payload=InvitationAcceptanceV2NotificationPayloadSchema(
+                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V2,
                 invitation_id=group_invitation.id,
                 classroom_id=group_classroom.id,
                 student_id=student_user_id,
+                student_name=student_profile.display_name,
             ),
             recipient_filters=[
                 SingleUserRecipientFilterSchema(user_id=group_invitation.tutor_id),
             ],
         )
+    )
+
+    assert_last_httpx_request(
+        users_internal_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
     )
 
 

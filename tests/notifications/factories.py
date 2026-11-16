@@ -67,6 +67,18 @@ class CustomNotificationPayloadFactory(
     __model__ = notifications_sch.CustomNotificationPayloadSchema
 
 
+class InvitationAcceptanceV2NotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema]
+):
+    __model__ = notifications_sch.InvitationAcceptanceV2NotificationPayloadSchema
+
+
+class EnrollmentV2NotificationPayloadFactory(
+    BaseModelFactory[notifications_sch.EnrollmentV2NotificationPayloadSchema]
+):
+    __model__ = notifications_sch.EnrollmentV2NotificationPayloadSchema
+
+
 NOTIFICATION_KIND_TO_PAYLOAD_FACTORY: dict[
     notifications_sch.NotificationKind, type[BaseModelFactory[Any]]
 ] = {
@@ -85,6 +97,9 @@ NOTIFICATION_KIND_TO_PAYLOAD_FACTORY: dict[
     notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_UPDATED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
     notifications_sch.NotificationKind.CLASSROOM_EVENT_REPETITION_CANCELLED_V1: ClassroomScheduleFocusNotificationPayloadFactory,
     notifications_sch.NotificationKind.CUSTOM_V1: CustomNotificationPayloadFactory,
+    notifications_sch.NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2: InvitationAcceptanceV2NotificationPayloadFactory,
+    notifications_sch.NotificationKind.GROUP_INVITATION_ACCEPTED_V2: InvitationAcceptanceV2NotificationPayloadFactory,
+    notifications_sch.NotificationKind.ENROLLMENT_CREATED_V2: EnrollmentV2NotificationPayloadFactory,
 }
 
 

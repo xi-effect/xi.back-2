@@ -22,7 +22,7 @@ from app.common.dependencies.authorization_dep import AuthorizationData
 from app.common.fastapi_ext import APIRouterExt, Responses
 from app.common.responses import LimitedListResponses
 from app.common.schemas.notifications_sch import (
-    InvitationAcceptanceNotificationPayloadSchema,
+    InvitationAcceptanceV2NotificationPayloadSchema,
     NotificationInputV2Schema,
     NotificationKind,
     SingleUserRecipientFilterSchema,
@@ -159,11 +159,12 @@ async def accept_individual_invitation(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=InvitationAcceptanceNotificationPayloadSchema(
-                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V1,
+            payload=InvitationAcceptanceV2NotificationPayloadSchema(
+                kind=NotificationKind.INDIVIDUAL_INVITATION_ACCEPTED_V2,
                 invitation_id=individual_invitation.id,
                 classroom_id=individual_classroom.id,
                 student_id=student_id,
+                student_name=student_profile.display_name,
             ),
             recipient_filters=[
                 SingleUserRecipientFilterSchema(user_id=individual_invitation.tutor_id),
@@ -189,6 +190,10 @@ async def accept_group_invitation(
     if group_invitation.group_classroom.is_full:
         raise LimitedListResponses.QUANTITY_EXCEEDED
 
+    student_profile = await users_internal_bridge.retrieve_user_profile(
+        user_id=student_id
+    )
+
     await GroupClassroom.update_enrollments_count_by_group_classroom_id(
         group_classroom_id=group_invitation.group_classroom_id, delta=1
     )
@@ -200,11 +205,12 @@ async def accept_group_invitation(
 
     await notifications_bridge.send_notification(
         NotificationInputV2Schema(
-            payload=InvitationAcceptanceNotificationPayloadSchema(
-                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V1,
+            payload=InvitationAcceptanceV2NotificationPayloadSchema(
+                kind=NotificationKind.GROUP_INVITATION_ACCEPTED_V2,
                 invitation_id=group_invitation.id,
                 classroom_id=group_invitation.group_classroom_id,
                 student_id=student_id,
+                student_name=student_profile.display_name,
             ),
             recipient_filters=[
                 SingleUserRecipientFilterSchema(
