@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.common.schemas.content_sch import YDocContentKind
 
@@ -16,7 +16,6 @@ class ActiveMaterialSchema(BaseModel):
 
 
 class RoomMetadataSchema(BaseMetadataSchema):
-    active_material_id: int | None = Field(None, deprecated=True)
     active_material: ActiveMaterialSchema | None = None
 
 
