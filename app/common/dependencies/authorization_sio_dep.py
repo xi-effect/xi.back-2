@@ -5,7 +5,6 @@ from tmexio import AsyncSocket, register_dependency
 from app.common.dependencies.authorization_dep import (
     AUTH_SESSION_ID_HEADER_NAME,
     AUTH_USER_ID_HEADER_NAME,
-    AUTH_USERNAME_HEADER_NAME,
     ProxyAuthData,
 )
 
@@ -21,7 +20,6 @@ async def authorize_from_wsgi_environ(environ: dict[str, Any]) -> ProxyAuthData:
     return ProxyAuthData(
         session_id=environ.get(header_to_wsgi_var(AUTH_SESSION_ID_HEADER_NAME)),
         user_id=environ.get(header_to_wsgi_var(AUTH_USER_ID_HEADER_NAME)),
-        username=environ.get(header_to_wsgi_var(AUTH_USERNAME_HEADER_NAME)),
     )
 
 
