@@ -4,6 +4,7 @@ from app.common.schemas.demo_form_sch import DemoFormSchema
 from app.users.models.user_flag_kinds_db import UserFlagKind
 from app.users.models.users_db import User
 from app.users.routes.user_flags_rst import UserFlagValueSchema
+from app.users.routes.user_storage_items_rst import UserStorageItemValueSchema
 from tests.common.polyfactory_ext import BaseModelFactory, BasePatchModelFactory
 from tests.users.utils import generate_username
 
@@ -42,3 +43,9 @@ class UserFlagKindPatchFactory(BasePatchModelFactory[UserFlagKind.PatchSchema]):
 
 class UserFlagValueFactory(BaseModelFactory[UserFlagValueSchema]):
     __model__ = UserFlagValueSchema
+
+
+class UserStorageItemValueFactory(BaseModelFactory[UserStorageItemValueSchema]):
+    __model__ = UserStorageItemValueSchema
+
+    value = Use(BaseModelFactory.__faker__.pydict, value_types=[str, int, bool])

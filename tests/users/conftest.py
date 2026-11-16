@@ -11,7 +11,9 @@ from app.common.schemas.users_sch import DetailedUserSchema, UserProfileSchema
 from app.users.models.sessions_db import Session
 from app.users.models.user_flag_kinds_db import UserFlagKind
 from app.users.models.user_flags_db import UserFlag
+from app.users.models.user_storage_items_db import UserStorageItem
 from app.users.models.users_db import User
+from app.users.routes.user_storage_items_rst import UserStorageItemValueSchema
 from tests.common.active_session import ActiveSession
 from tests.common.types import AnyJSON, Factory, PytestRequest
 from tests.common.utils import repackage_json
@@ -278,6 +280,43 @@ async def user_flag(
             user_id=user.id,
             user_flag_kind_id=user_flag_kind.id,
         )
+
+
+@pytest.fixture()
+async def user_storage_item(
+    faker: Faker,
+    active_session: ActiveSession,
+    user: User,
+) -> AsyncIterator[UserStorageItem]:
+    async with active_session():
+        user_storage_item = await UserStorageItem.create(
+            user_id=user.id,
+            key=faker.uuid4(),
+            **factories.UserStorageItemValueFactory.build_python(),
+        )
+
+    yield user_storage_item
+
+    async with active_session():
+        await UserStorageItem.delete_by_kwargs(
+            user_id=user.id,
+            key=user_storage_item.key,
+        )
+
+
+@pytest.fixture()
+async def user_storage_item_data(user_storage_item: UserStorageItem) -> AnyJSON:
+    return repackage_json(UserStorageItemValueSchema, user_storage_item)
+
+
+@pytest.fixture()
+async def deleted_user_storage_item_key(
+    active_session: ActiveSession,
+    user_storage_item: UserStorageItem,
+) -> str:
+    async with active_session():
+        await user_storage_item.delete()
+    return user_storage_item.key
 
 
 @pytest.fixture(params=[True, False])
