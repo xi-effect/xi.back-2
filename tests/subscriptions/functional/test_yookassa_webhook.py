@@ -19,6 +19,7 @@ from app.subscriptions.models.auto_renewals_db import AutoRenewal
 from app.subscriptions.models.payments_db import Payment
 from app.subscriptions.models.subscriptions_db import Subscription
 from app.subscriptions.routes.yookassa_webhook_rst import (
+    PERMISSION_REVOKED_REASON,
     InvalidPaymentStatusException,
     SucceededPaymentNotFoundException,
     UnexpectedYooKassaEventException,
@@ -27,6 +28,7 @@ from app.subscriptions.schemas.payments_sch import PaymentCorrelationSchema
 from app.subscriptions.schemas.subscriptions_sch import SubscriptionPeriod
 from app.subscriptions.schemas.yookassa_sch import (
     YooKassaCanceledPaymentSchema,
+    YooKassaCancellationDetailsSchema,
     YooKassaEventSchema,
     YooKassaEventType,
     YooKassaPaymentMethodSchema,
@@ -198,18 +200,44 @@ async def test_handling_event_from_yookassa_payment_succeeded_payment_not_found(
     )
 
 
+@pytest.mark.parametrize(
+    ("is_permission_revoked", "existing_auto_renewal", "is_auto_renewal_absent"),
+    [
+        pytest.param(False, None, True, id="other_reason_no_auto_renewal"),
+        pytest.param(
+            False, lf("auto_renewal"), False, id="other_reason_existing_auto_renewal"
+        ),
+        pytest.param(True, None, True, id="permission_revoked_no_auto_renewal"),
+        pytest.param(
+            True,
+            lf("auto_renewal"),
+            True,
+            id="permission_revoked_existing_auto_renewal",
+        ),
+    ],
+)
 @freeze_time()
 async def test_handling_event_from_yookassa_payment_canceled(
+    faker: Faker,
     active_session: ActiveSession,
     client: TestClient,
     authorized_user_id: int,
     yookassa_credentials: str,
     pending_payment: Payment,
     yookassa_retrieve_payment_mock: Route,
+    is_permission_revoked: bool,
+    existing_auto_renewal: AutoRenewal | None,
+    is_auto_renewal_absent: bool,
 ) -> None:
+    cancellation_reason = (
+        PERMISSION_REVOKED_REASON if is_permission_revoked else faker.word()
+    )
     yookassa_payment: YooKassaCanceledPaymentSchema = (
         factories.YooKassaCanceledPaymentFactory.build(
-            metadata=PaymentCorrelationSchema(payment_id=pending_payment.id)
+            metadata=PaymentCorrelationSchema(payment_id=pending_payment.id),
+            cancellation_details=YooKassaCancellationDetailsSchema(
+                reason=cancellation_reason
+            ),
         )
     )
     yookassa_retrieve_payment_mock.respond(
@@ -236,11 +264,25 @@ async def test_handling_event_from_yookassa_payment_canceled(
             pending_payment,
             {
                 "completed_at": datetime_utc_now(),
-                "cancellation_reason": yookassa_payment.cancellation_details.reason,
+                "cancellation_reason": cancellation_reason,
             },
         )
 
         assert await Subscription.find_first_by_id(authorized_user_id) is None
+
+        auto_renewal = await AutoRenewal.find_first_by_id(authorized_user_id)
+        if is_auto_renewal_absent:
+            assert auto_renewal is None
+        else:
+            assert existing_auto_renewal is not None
+            assert auto_renewal is not None
+            assert_contains(
+                auto_renewal,
+                {
+                    "provider_payment_method_id": existing_auto_renewal.provider_payment_method_id,
+                    "renewal_period": existing_auto_renewal.renewal_period,
+                },
+            )
 
     assert_last_httpx_request(
         yookassa_retrieve_payment_mock,
@@ -336,6 +378,57 @@ async def test_handling_event_from_yookassa_payment_already_completed(
         )
 
         assert await Subscription.find_first_by_id(authorized_user_id) is None
+
+    assert_last_httpx_request(
+        yookassa_retrieve_payment_mock,
+        expected_headers={
+            "Authorization": f"Basic {b64encode(yookassa_credentials.encode()).decode()}",
+        },
+    )
+
+
+async def test_handling_event_from_yookassa_payment_canceled_repeated_permission_revoked(
+    active_session: ActiveSession,
+    yookassa_respx_mock: MockRouter,
+    client: TestClient,
+    authorized_user_id: int,
+    yookassa_credentials: str,
+    auto_renewal: AutoRenewal,
+    cancelled_payment: Payment,
+) -> None:
+    yookassa_payment: YooKassaCanceledPaymentSchema = (
+        factories.YooKassaCanceledPaymentFactory.build(
+            metadata=PaymentCorrelationSchema(payment_id=cancelled_payment.id),
+            cancellation_details=YooKassaCancellationDetailsSchema(
+                reason=PERMISSION_REVOKED_REASON
+            ),
+        )
+    )
+    yookassa_retrieve_payment_mock = yookassa_respx_mock.get(
+        path=f"/payments/{cancelled_payment.provider_payment_id}"
+    ).respond(json=yookassa_payment.model_dump(mode="json"))
+
+    assert_nodata_response(
+        client.post(
+            "/api/public/subscription-service/yookassa-events/",
+            json=factories.YooKassaEventFactory.build_json(
+                event=YooKassaEventType.PAYMENT_CANCELED,
+                object=factories.YooKassaEventObjectFactory.build(
+                    id=cancelled_payment.provider_payment_id
+                ),
+            ),
+        ),
+        expected_code=status.HTTP_200_OK,
+    )
+
+    async with active_session():
+        assert_contains(
+            await AutoRenewal.find_first_by_id(authorized_user_id),
+            {
+                "provider_payment_method_id": auto_renewal.provider_payment_method_id,
+                "renewal_period": auto_renewal.renewal_period,
+            },
+        )
 
     assert_last_httpx_request(
         yookassa_retrieve_payment_mock,
