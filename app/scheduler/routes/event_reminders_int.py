@@ -38,7 +38,10 @@ class EventInstanceReminderListAdapter(BaseEventInstanceListAdapter):
         self,
     ) -> Iterator[NotificationInputV2Schema]:
         for sole_event_instance in self.sole_event_instances:
-            event = self.events_by_id[sole_event_instance.event_id]
+            event = self.events_by_id.get(sole_event_instance.event_id)
+            if event is None:
+                continue
+
             yield NotificationInputV2Schema(
                 payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                     kind=NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,
@@ -61,7 +64,10 @@ class EventInstanceReminderListAdapter(BaseEventInstanceListAdapter):
         for (
             persisted_repeated_event_instance
         ) in self.persisted_repeated_event_instances:
-            event = self.events_by_id[persisted_repeated_event_instance.event_id]
+            event = self.events_by_id.get(persisted_repeated_event_instance.event_id)
+            if event is None:
+                continue
+
             yield NotificationInputV2Schema(
                 payload=PersistedClassroomEventInstanceNotificationPayloadSchema(
                     kind=NotificationKind.PERSISTED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,
@@ -91,7 +97,12 @@ class EventInstanceReminderListAdapter(BaseEventInstanceListAdapter):
             ):
                 continue
 
-            event = self.events_by_id[virtual_repeated_event_instance_value.event_id]
+            event = self.events_by_id.get(
+                virtual_repeated_event_instance_value.event_id
+            )
+            if event is None:
+                continue
+
             yield NotificationInputV2Schema(
                 payload=RepeatedClassroomEventInstanceNotificationPayloadSchema(
                     kind=NotificationKind.REPEATED_CLASSROOM_EVENT_INSTANCE_REMINDER_V1,

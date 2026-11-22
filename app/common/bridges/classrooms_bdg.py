@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 from pydantic import TypeAdapter
 
 from app.common.bridges.base_bdg import BaseBridge
@@ -57,6 +59,25 @@ class ClassroomsBridge(BaseBridge):
                 self.client.get(
                     f"/students/{student_id}/classroom-ids/",
                     params={"active_only": active_only},
+                )
+            )
+            .validate_status_code()
+            .validate_json(integer_list_type_adapter)
+        )
+
+    async def filter_classroom_ids(
+        self,
+        classroom_ids: Iterable[int],
+        active_only: bool = False,
+    ) -> list[int]:
+        return (
+            await ResponsePipelineBuilder.initialize_from_request(
+                self.client.get(
+                    "/classroom-ids/",
+                    params={
+                        "classroom_ids": list(classroom_ids),
+                        "active_only": active_only,
+                    },
                 )
             )
             .validate_status_code()
