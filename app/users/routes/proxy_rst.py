@@ -81,7 +81,6 @@ async def proxy_auth(
 
     response.headers["X-Session-ID"] = str(session.id)
     response.headers["X-User-ID"] = str(user.id)
-    response.headers["X-Username"] = user.username
 
 
 @router.get(

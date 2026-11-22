@@ -16,7 +16,6 @@ def add_mub_session_to_response(response: Response, session: Session) -> None:
 
     response.headers["X-Session-ID"] = str(session.id)
     response.headers["X-User-ID"] = str(session.user_id)
-    response.headers["X-Username"] = session.user.username
 
     response.headers["X-Session-Cookie"] = AUTH_COOKIE_NAME
     response.headers["X-Session-Token"] = session.token

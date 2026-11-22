@@ -70,7 +70,6 @@ async def test_requesting_proxy_auth(
         authorized_proxy_client.get(proxy_auth_path),
         expected_headers={
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-ID": str(session.id),
         },
     )
@@ -89,7 +88,6 @@ async def test_requesting_options_in_proxy_auth(
         ),
         expected_headers={
             "X-User-ID": None,
-            "X-Username": None,
             "X-Session-ID": None,
         },
     )
@@ -118,7 +116,6 @@ async def test_optional_proxy_authorization_unauthorized(
         expected_cookies={AUTH_COOKIE_NAME: None},
         expected_headers={
             "X-User-ID": None,
-            "X-Username": None,
             "X-Session-ID": None,
         },
     )
@@ -145,7 +142,6 @@ async def test_renewing_session_in_proxy_auth(
         expected_cookies={AUTH_COOKIE_NAME: str},
         expected_headers={
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-ID": str(session.id),
         },
     )
