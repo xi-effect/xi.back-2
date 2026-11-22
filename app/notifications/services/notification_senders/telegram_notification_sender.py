@@ -3,9 +3,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from app.notifications.config import telegram_app
 from app.notifications.models.delivery_methods_db import TelegramDeliveryMethod
 from app.notifications.models.notifications_db import Notification
-from app.notifications.services.notification_adapters.messenger_notification_adapter import (
-    MessengerNotificationAdapter,
-)
+from app.notifications.services import notifications_svc
 from app.notifications.services.notification_senders.base_notification_sender import (
     BaseNotificationSender,
     session_lock,
@@ -16,9 +14,9 @@ class TelegramNotificationSender(BaseNotificationSender):
     def __init__(self, notification: Notification) -> None:
         super().__init__(notification=notification)
 
-        self.message_payload = MessengerNotificationAdapter(
-            notification=self.notification
-        ).adapt()
+        self.message_payload = notifications_svc.build_notification_adapter(
+            notification=self.notification,
+        ).to_messenger_message_payload()
 
     async def send_notification(self, recipient_user_id: int) -> None:
         async with session_lock:
