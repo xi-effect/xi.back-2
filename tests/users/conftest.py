@@ -114,7 +114,6 @@ async def session(session_factory: Factory[Session]) -> Session:
 async def user_proxy_auth_data(user: User, session: Session) -> ProxyAuthData:
     return ProxyAuthData(
         user_id=user.id,
-        username=user.username,
         session_id=session.id,
     )
 
@@ -160,7 +159,6 @@ async def other_user_proxy_auth_data(
 ) -> ProxyAuthData:
     return ProxyAuthData(
         user_id=other_user.id,
-        username=other_user.username,
         session_id=other_session.id,
     )
 
