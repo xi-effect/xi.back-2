@@ -1,4 +1,7 @@
+import random
+
 import pytest
+from faker import Faker
 from pytest_lazy_fixtures import lf, lfc
 from starlette import status
 from starlette.testclient import TestClient
@@ -148,5 +151,38 @@ async def test_listing_student_classroom_ids(
             classroom.id
             for classroom in student_classrooms
             if not active_only or classroom.status is ClassroomStatus.ACTIVE
+        ],
+    )
+
+
+@active_only_filter_parametrization
+async def test_filtering_classroom_ids(
+    faker: Faker,
+    internal_client: TestClient,
+    deleted_group_classroom_id: int,
+    student_classrooms: list[AnyClassroom],
+    active_only: bool,
+) -> None:
+    requested_classroom_ids: list[int] = random.sample(
+        [classroom.id for classroom in student_classrooms],
+        k=faker.random_int(min=1, max=len(student_classrooms) - 1),
+    )
+
+    assert_response(
+        internal_client.get(
+            "/internal/classroom-service/classroom-ids/",
+            params={
+                "classroom_ids": [
+                    deleted_group_classroom_id,
+                    *requested_classroom_ids,
+                ],
+                "active_only": active_only,
+            },
+        ),
+        expected_json=[
+            classroom.id
+            for classroom in student_classrooms
+            if classroom.id in requested_classroom_ids
+            and (not active_only or classroom.status is ClassroomStatus.ACTIVE)
         ],
     )
