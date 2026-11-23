@@ -16,6 +16,7 @@ from app.notifications.routes import (
     delivery_methods_rst,
     delivery_methods_tgm,
     disabled_delivery_routes_rst,
+    notification_settings_rst,
     notifications_mub,
     notifications_rst,
     notifications_sub,
@@ -41,6 +42,7 @@ authorized_router = APIRouterExt(
 )
 authorized_router.include_router(delivery_methods_rst.router)
 authorized_router.include_router(disabled_delivery_routes_rst.router)
+authorized_router.include_router(notification_settings_rst.router)
 authorized_router.include_router(notifications_rst.router)
 authorized_router.include_router(user_contacts_rst.router)
 
