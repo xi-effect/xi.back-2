@@ -92,3 +92,17 @@ async def list_student_classroom_ids(
         stmt.order_by(Classroom.created_at.desc()),
         limit=100,
     )
+
+
+@router.get(
+    path="/classroom-ids/",
+    summary="Filter classroom ids to the existing ones",
+)
+async def filter_classroom_ids(
+    classroom_ids: Annotated[list[int], Query(min_length=1, max_length=100)],
+    active_only: Annotated[bool, Query()] = False,
+) -> Sequence[int]:
+    stmt = select(Classroom.id).filter(Classroom.id.in_(classroom_ids))
+    if active_only:
+        stmt = stmt.filter_by(status=ClassroomStatus.ACTIVE)
+    return await db.get_all(stmt.order_by(Classroom.created_at.desc()))
