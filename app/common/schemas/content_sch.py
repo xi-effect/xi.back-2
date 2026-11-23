@@ -15,6 +15,14 @@ class YDocContentKind(StrEnum):
     BOARD = auto()
 
 
+class FileKind(StrEnum):
+    UNCATEGORIZED = "uncategorized"
+    IMAGE = "image"
+    DOCUMENT = "document"
+    AUDIO = "audio"
+    PRESENTATION = "presentation"
+
+
 class ContentTokenPayloadSchema(BaseModel):
     material_id: UUID
     ydoc_id: UUID

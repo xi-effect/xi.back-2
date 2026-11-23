@@ -14,7 +14,7 @@ from app.common.filetype_ext import (
     match_image_filetype,
     match_presentation_filetype,
 )
-from app.content.models.files_db import FileKind
+from app.common.schemas.content_sch import FileKind
 
 FILE_KIND_TO_FILETYPE_MATCHER: dict[
     FileKind, Callable[[bytes], filetype.Type | None]

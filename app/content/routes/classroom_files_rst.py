@@ -6,7 +6,7 @@ from starlette import status
 from starlette.responses import Response
 
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
 from app.content.dependencies.classroom_files_dep import (
     ClassroomFileByIDs,
     get_classroom_file_by_ids,
@@ -48,7 +48,10 @@ async def list_classroom_files(
     path="/roles/tutor/classrooms/{classroom_id}/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.TutorResponseSchema,
-    responses=storage_svc.StorageLimitResponses.responses(),
+    responses=Responses.chain(
+        storage_svc.StorageLimitResponses,
+        storage_svc.FileSizeResponses,
+    ),
     summary="Upload a new file to a classroom by id",
 )
 async def upload_file_to_classroom(
@@ -57,7 +60,6 @@ async def upload_file_to_classroom(
     upload: UploadFile,
     file_kind: UploadFileKind,
 ) -> File:
-    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
     file = await files_svc.create_file_from_upload(
         upload=upload,
         file_kind=file_kind,
