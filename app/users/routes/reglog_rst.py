@@ -42,7 +42,8 @@ CrossSiteMode = Annotated[bool, Depends(is_cross_site_mode)]
     path="/signup/",
     response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
-    summary="Register a new account",
+    summary="Use `POST /api/public/user-service/v2/signup/` instead",
+    deprecated=True,
 )
 async def signup(
     data: User.InputSchema,
@@ -55,6 +56,48 @@ async def signup(
         raise UsernameResponses.USERNAME_IN_USE
 
     user = await User.create(**data.model_dump())
+
+    await notifications_bridge.create_or_update_email_delivery_method(
+        user_id=user.id,
+        email=user.email,
+    )
+
+    token = email_confirmation_token_provider.serialize_and_sign(
+        EmailConfirmationTokenPayloadSchema(user_id=user.id)
+    )
+    await pochta_bridge.send_email_message(
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=token,
+            ),
+            recipient_emails=[user.email],
+        )
+    )
+
+    user.timeout_email_confirmation_resend()
+
+    session = await Session.create(user=user, is_cross_site=is_cross_site)
+    add_session_to_response(response, session)
+
+    return user
+
+
+@router.post(
+    path="/v2/signup/",
+    response_model=User.FullSchema,
+    responses=UserEmailResponses.responses(),
+    summary="Register a new account",
+)
+async def signup_v2(
+    data: User.InputV2Schema,
+    is_cross_site: CrossSiteMode,
+    response: Response,
+) -> User:
+    if not await is_email_unique(data.email):
+        raise UserEmailResponses.EMAIL_IN_USE
+
+    user = await User.create(**data.model_dump(), username="")
 
     await notifications_bridge.create_or_update_email_delivery_method(
         user_id=user.id,

@@ -17,6 +17,14 @@ class UserInputFactory(BaseModelFactory[User.InputSchema]):
     password = Use(BaseModelFactory.__faker__.password)
 
 
+class UserInputV2Factory(BaseModelFactory[User.InputV2Schema]):
+    __model__ = User.InputV2Schema
+
+    email = Use(BaseModelFactory.__faker__.email)
+    display_name = Use(BaseModelFactory.__faker__.pystr, min_chars=2, max_chars=30)
+    password = Use(BaseModelFactory.__faker__.password)
+
+
 class UserFullPatchFactory(BasePatchModelFactory[User.PatchMUBSchema]):
     __model__ = User.PatchMUBSchema
 

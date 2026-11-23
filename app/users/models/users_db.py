@@ -104,6 +104,12 @@ class User(Base):
             (password, PasswordType),
         ]
     )
+    InputV2Schema = EmailSchema.extend(
+        columns=[
+            (display_name, DisplayNameType),
+            (password, PasswordType),
+        ]
+    )
     PasswordSchema = MappedModel.create(columns=[password])
     CredentialsSchema = EmailSchema.extend(columns=[password])
     UserProfileSchema = MappedModel.create(columns=[id, username, display_name])
@@ -117,8 +123,13 @@ class User(Base):
         ]
     )
     SettingsPatchSchema = SettingsSchema.as_patch()
-    FullSchema = SettingsSchema.extend(
+    FullSchema = MappedModel.create(
         columns=[
+            username,
+            (display_name, DisplayNameType),
+            default_layout,
+            theme,
+            language,
             id,
             (created_at, AwareDatetime),
             email,

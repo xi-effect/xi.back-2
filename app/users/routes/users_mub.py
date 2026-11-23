@@ -18,7 +18,8 @@ router = APIRouterExt(tags=["users mub"])
     status_code=status.HTTP_201_CREATED,
     response_model=User.FullSchema,
     responses=Responses.chain(UsernameResponses, UserEmailResponses),
-    summary="Create a new user",
+    summary="Use `POST /mub/user-service/v2/users/` instead",
+    deprecated=True,
 )
 async def create_user(user_data: User.InputSchema) -> User:
     if not await is_email_unique(user_data.email):
@@ -26,6 +27,19 @@ async def create_user(user_data: User.InputSchema) -> User:
     if not await is_username_unique(user_data.username):
         raise UsernameResponses.USERNAME_IN_USE
     return await User.create(**user_data.model_dump())
+
+
+@router.post(
+    "/v2/users/",
+    status_code=status.HTTP_201_CREATED,
+    response_model=User.FullSchema,
+    responses=UserEmailResponses.responses(),
+    summary="Create a new user",
+)
+async def create_user_v2(user_data: User.InputV2Schema) -> User:
+    if not await is_email_unique(user_data.email):
+        raise UserEmailResponses.EMAIL_IN_USE
+    return await User.create(**user_data.model_dump(), username="")
 
 
 @router.get(

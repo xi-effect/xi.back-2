@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -24,8 +25,10 @@ from app.users.models.users_db import OnboardingStage, User
 from app.users.utils.authorization import AUTH_COOKIE_NAME
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
+from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.respx_ext import assert_last_httpx_request
 from tests.common.types import AnyJSON, PytestRequest
+from tests.users import factories
 from tests.users.utils import assert_session_from_cookie
 
 pytestmark = pytest.mark.anyio
@@ -132,6 +135,92 @@ async def test_signing_up_conflict(
     )
 
 
+@freeze_time()
+async def test_signing_up_v2(
+    notifications_respx_mock: MockRouter,
+    active_session: ActiveSession,
+    client: TestClient,
+    send_email_message_mock: AsyncMock,
+    normalized_email: str,
+    parametrized_email: str,
+    is_cross_site: bool,
+) -> None:
+    user_input_data: AnyJSON = factories.UserInputV2Factory.build_json()
+    notifications_bridge_mock = notifications_respx_mock.put(
+        path__regex=rf"/users/(?P<user_id>\d+)/delivery-methods/{DeliveryMethodKind.EMAIL}/",
+    ).respond(status_code=status.HTTP_201_CREATED)
+
+    response = assert_response(
+        client.post(
+            "/api/public/user-service/v2/signup/",
+            json={**user_input_data, "email": parametrized_email},
+            headers={"X-Testing": "true"} if is_cross_site else None,
+        ),
+        expected_json={
+            **user_input_data,
+            "email": normalized_email,
+            "password": None,
+            "id": int,
+            "created_at": datetime_utc_now(),
+            "username": "",
+            "default_layout": None,
+            "theme": "system",
+            "language": "ru",
+            "onboarding_stage": OnboardingStage.EMAIL_CONFIRMATION,
+            "password_last_changed_at": datetime_utc_now(),
+            "email_confirmation_resend_allowed_at": (
+                datetime_utc_now() + timedelta(minutes=10)
+            ),
+        },
+        expected_cookies={AUTH_COOKIE_NAME: str},
+    )
+    user_id = response.json()["id"]
+
+    assert_last_httpx_request(
+        notifications_bridge_mock,
+        expected_headers={"X-Api-Key": settings.api_key},
+        expected_path=f"/internal/notification-service/users/{user_id}/delivery-methods/email/",
+        expected_json={"email": normalized_email},
+    )
+
+    expected_token = email_confirmation_token_provider.serialize_and_sign(
+        EmailConfirmationTokenPayloadSchema(user_id=user_id)
+    )
+    send_email_message_mock.assert_awaited_once_with(
+        EmailMessageInputSchema(
+            payload=TokenEmailMessagePayloadSchema(
+                kind=EmailMessageKind.EMAIL_CONFIRMATION_V2,
+                token=expected_token,
+            ),
+            recipient_emails=[normalized_email],
+        )
+    )
+
+    async with active_session():
+        await assert_session_from_cookie(response, is_cross_site=is_cross_site)
+        user = await User.find_first_by_id(user_id)
+        assert user is not None
+        assert user.is_password_valid(user_input_data["password"])
+        await user.delete()
+
+
+async def test_signing_up_v2_email_already_in_use(
+    client: TestClient,
+    user: User,
+    is_cross_site: bool,
+) -> None:
+    assert_response(
+        client.post(
+            "/api/public/user-service/v2/signup/",
+            json=factories.UserInputV2Factory.build_json(email=user.email),
+            headers={"X-Testing": "true"} if is_cross_site else None,
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Email already in use"},
+        expected_headers={"Set-Cookie": None},
+    )
+
+
 async def test_signing_in(
     client: TestClient,
     active_session: ActiveSession,
@@ -188,22 +277,23 @@ async def test_signing_in_wrong_password(
 
 
 @pytest.mark.parametrize(
-    "path",
+    ("path", "body_factory"),
     [
-        pytest.param("signup/", id="signup"),
-        pytest.param("signin/", id="signin"),
+        pytest.param("signup/", factories.UserInputFactory, id="signup"),
+        pytest.param("v2/signup/", factories.UserInputV2Factory, id="signup_v2"),
+        pytest.param("signin/", factories.UserInputFactory, id="signin"),
     ],
 )
 async def test_reglog_invalid_email(
     faker: Faker,
     client: TestClient,
-    user_data: AnyJSON,
     path: str,
+    body_factory: type[BaseModelFactory[Any]],
 ) -> None:
     assert_response(
         client.post(
             f"/api/public/user-service/{path}",
-            json={**user_data, "email": faker.word()},
+            json={**body_factory.build_json(), "email": faker.word()},
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={
