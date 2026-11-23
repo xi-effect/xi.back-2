@@ -1,11 +1,9 @@
 from collections.abc import Sequence
 from datetime import datetime
-from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, ClassVar, Literal, Self
 from uuid import UUID, uuid4
 
-import aiofiles
 from pydantic import AwareDatetime, BaseModel, Field
 from pydantic_marshals.sqlalchemy import MappedModel
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Select, select
@@ -13,17 +11,9 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.config import Base, settings
+from app.common.schemas.content_sch import FileKind
 from app.common.sqlalchemy_ext import db
 from app.common.utils.datetime import datetime_utc_now
-
-
-class FileKind(StrEnum):
-    UNCATEGORIZED = "uncategorized"
-    IMAGE = "image"
-    DOCUMENT = "document"
-    AUDIO = "audio"
-    PRESENTATION = "presentation"
-
 
 ContentDisposition = Literal["inline", "attachment"]
 
@@ -113,32 +103,6 @@ class File(Base):
     @property
     def content_disposition(self) -> ContentDisposition:
         return FILE_KIND_TO_CONTENT_DISPOSITION.get(self.kind, "attachment")
-
-    @classmethod
-    async def create_with_content(
-        cls,
-        content: bytes,
-        owner_id: int,
-        uploader_id: int,
-        name: str,
-        extension: str,
-        file_kind: FileKind,
-        content_type: str,
-    ) -> Self:
-        file = await cls.create(
-            owner_id=owner_id,
-            uploader_id=uploader_id,
-            name=name,
-            extension=extension,
-            kind=file_kind,
-            content_type=content_type,
-            size_bytes=len(content),
-            file_tags=[],
-        )
-        file.path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiofiles.open(file.path, "wb") as f:
-            await f.write(content)
-        return file
 
     async def delete(self) -> None:
         self.path.unlink(missing_ok=True)

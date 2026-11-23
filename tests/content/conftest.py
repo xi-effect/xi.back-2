@@ -23,12 +23,11 @@ from starlette.testclient import TestClient
 from app.common.config import content_token_provider, settings
 from app.common.dependencies.authorization_dep import ProxyAuthData
 from app.common.filetype_ext import PRESENTATION_CONTENT_TYPE
-from app.common.schemas.content_sch import YDocContentKind
+from app.common.schemas.content_sch import FileKind, YDocContentKind
 from app.content.models.files_db import (
     ClassroomFile,
     ContentDisposition,
     File,
-    FileKind,
     FileTag,
 )
 from app.content.models.materials_db import (

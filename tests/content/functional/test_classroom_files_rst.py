@@ -1,6 +1,7 @@
 import random
 from io import BytesIO
 from typing import Literal
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -35,7 +36,7 @@ async def test_uploading_file_to_classroom(
     classroom_id: int,
 ) -> None:
     storage_limit_mock = mock_stack.enter_async_mock(
-        storage_svc, "has_owner_reached_storage_limit", return_value=False
+        storage_svc, "ensure_owner_can_store_file"
     )  # limiting is tested in test_storage_svc.py
 
     file_id: UUID = assert_response(
@@ -109,7 +110,11 @@ async def test_uploading_file_to_classroom(
 
         await file.delete()
 
-    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+    storage_limit_mock.assert_awaited_once_with(
+        owner_id=tutor_user_id,
+        file_kind=parametrized_file_input_data.kind,
+        size_bytes=len(parametrized_file_input_data.input_content),
+    )
 
 
 @pytest.mark.parametrize(
@@ -161,7 +166,11 @@ async def test_uploading_file_to_classroom_storage_limit_reached(
     classroom_id: int,
 ) -> None:
     storage_limit_mock = mock_stack.enter_async_mock(
-        storage_svc, "has_owner_reached_storage_limit", return_value=True
+        storage_svc,
+        "ensure_owner_can_store_file",
+        mock=AsyncMock(
+            side_effect=storage_svc.StorageLimitResponses.STORAGE_LIMIT_REACHED
+        ),
     )  # limiting is tested in test_storage_svc.py
 
     assert_response(
@@ -180,7 +189,11 @@ async def test_uploading_file_to_classroom_storage_limit_reached(
         expected_json={"detail": "Storage limit reached"},
     )
 
-    storage_limit_mock.assert_awaited_once_with(owner_id=tutor_user_id)
+    storage_limit_mock.assert_awaited_once_with(
+        owner_id=tutor_user_id,
+        file_kind=uncategorized_file_input_data.kind,
+        size_bytes=len(uncategorized_file_input_data.input_content),
+    )
 
 
 async def test_adding_library_file_to_classroom(

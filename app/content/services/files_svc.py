@@ -1,15 +1,19 @@
+from collections.abc import AsyncIterator
 from datetime import datetime
 from io import BytesIO
 from os import stat
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from fastapi import UploadFile
 from PIL import Image
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse
 
-from app.content.models.files_db import File, FileKind
+from app.common.schemas.content_sch import FileKind
+from app.content.models.files_db import File
+from app.content.models.ydocs_db import CONTENT_COPY_CHUNK_SIZE, write_file_from_chunks
+from app.content.services import storage_svc
 
 
 def convert_image_content_to_webp(image_content: bytes) -> bytes:
@@ -26,32 +30,58 @@ WEBP_CONTENT_TYPE = "image/webp"
 WEBP_EXTENSION = "webp"
 
 
+async def read_upload_in_chunks(upload: UploadFile) -> AsyncIterator[bytes]:
+    while True:
+        chunk = await upload.read(CONTENT_COPY_CHUNK_SIZE)
+        if len(chunk) == 0:
+            break
+        yield chunk
+
+
+async def yield_single_chunk(chunk: bytes) -> AsyncIterator[bytes]:
+    yield chunk
+
+
 async def create_file_from_upload(
     upload: UploadFile,
     file_kind: FileKind,
     owner_id: int,
     uploader_id: int,
 ) -> File:
+    upload_size = cast(int, upload.size)
+    await storage_svc.ensure_owner_can_store_file(
+        owner_id=owner_id,
+        file_kind=file_kind,
+        size_bytes=upload_size,
+    )
+
     filename = Path(upload.filename or "upload")
 
     if file_kind is FileKind.IMAGE:
-        upload_content = convert_image_content_to_webp(await upload.read())
+        image_content = convert_image_content_to_webp(await upload.read())
+        size_bytes = len(image_content)
+        chunks = yield_single_chunk(image_content)
         content_type = WEBP_CONTENT_TYPE
         extension = WEBP_EXTENSION
     else:
-        upload_content = await upload.read()
+        size_bytes = upload_size
+        chunks = read_upload_in_chunks(upload)
         content_type = upload.content_type or DEFAULT_CONTENT_TYPE
         extension = filename.suffix.lstrip(".")
 
-    return await File.create_with_content(
-        content=upload_content,
+    file = await File.create(
         owner_id=owner_id,
         uploader_id=uploader_id,
         name=filename.stem,
         extension=extension,
-        file_kind=file_kind,
+        kind=file_kind,
         content_type=content_type,
+        size_bytes=size_bytes,
+        file_tags=[],
     )
+    file.path.parent.mkdir(parents=True, exist_ok=True)
+    await write_file_from_chunks(path=file.path, chunks=chunks)
+    return file
 
 
 def parse_http_datetime(value: str) -> datetime:

@@ -3,7 +3,7 @@ from starlette import status
 from starlette.responses import Response
 
 from app.common.dependencies.authorization_dep import AuthorizationData
-from app.common.fastapi_ext import APIRouterExt
+from app.common.fastapi_ext import APIRouterExt, Responses
 from app.content.dependencies.content_token_dep import (
     ensure_content_token_allows_reading_files,
     ensure_content_token_allows_uploading_files,
@@ -26,7 +26,10 @@ router = APIRouterExt(tags=["files"])
     "/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.ResponseSchema,
-    responses=storage_svc.StorageLimitResponses.responses(),
+    responses=Responses.chain(
+        storage_svc.StorageLimitResponses,
+        storage_svc.FileSizeResponses,
+    ),
     summary="Upload a new file",
     dependencies=[Depends(ensure_content_token_allows_uploading_files)],
 )
@@ -36,7 +39,6 @@ async def upload_file(
     upload: UploadFile,
     file_kind: UploadFileKind,
 ) -> File:
-    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=ydoc.owner_id)
     file = await files_svc.create_file_from_upload(
         upload=upload,
         file_kind=file_kind,

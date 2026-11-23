@@ -1,6 +1,7 @@
 import random
 from io import BytesIO
 from pathlib import Path
+from unittest.mock import AsyncMock
 from uuid import UUID
 
 import pytest
@@ -13,8 +14,9 @@ from starlette import status
 from starlette.testclient import TestClient
 
 from app.common.config import content_token_provider
+from app.common.schemas.content_sch import FileKind
 from app.common.utils.datetime import datetime_utc_now
-from app.content.models.files_db import File, FileKind
+from app.content.models.files_db import File
 from app.content.models.ydoc_files_db import YDocFile
 from app.content.models.ydocs_db import YDoc
 from app.content.services import storage_svc
@@ -51,7 +53,7 @@ async def test_file_uploading(
     )
 
     storage_limit_mock = mock_stack.enter_async_mock(
-        storage_svc, "has_owner_reached_storage_limit", return_value=False
+        storage_svc, "ensure_owner_can_store_file"
     )  # limiting is tested in test_storage_svc.py
 
     file_id: UUID = assert_response(
@@ -126,7 +128,11 @@ async def test_file_uploading(
 
         await file.delete()
 
-    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
+    storage_limit_mock.assert_awaited_once_with(
+        owner_id=ydoc.owner_id,
+        file_kind=parametrized_file_input_data.kind,
+        size_bytes=len(parametrized_file_input_data.input_content),
+    )
 
 
 @freeze_time()
@@ -150,7 +156,7 @@ async def test_file_uploading_with_unrecognized_content(
     )
 
     storage_limit_mock = mock_stack.enter_async_mock(
-        storage_svc, "has_owner_reached_storage_limit", return_value=False
+        storage_svc, "ensure_owner_can_store_file"
     )  # limiting is tested in test_storage_svc.py
 
     content_type, file_extension = random.choice(CONTENT_TYPES_AND_FILE_EXTENSIONS)
@@ -186,7 +192,11 @@ async def test_file_uploading_with_unrecognized_content(
         assert file is not None
         await file.delete()
 
-    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
+    storage_limit_mock.assert_awaited_once_with(
+        owner_id=ydoc.owner_id,
+        file_kind=FileKind.UNCATEGORIZED,
+        size_bytes=len(uncategorized_file_content),
+    )
 
 
 @pytest.mark.parametrize(
@@ -257,7 +267,11 @@ async def test_file_uploading_storage_limit_reached(
     )
 
     storage_limit_mock = mock_stack.enter_async_mock(
-        storage_svc, "has_owner_reached_storage_limit", return_value=True
+        storage_svc,
+        "ensure_owner_can_store_file",
+        mock=AsyncMock(
+            side_effect=storage_svc.StorageLimitResponses.STORAGE_LIMIT_REACHED
+        ),
     )  # limiting is tested in test_storage_svc.py
 
     assert_response(
@@ -276,7 +290,11 @@ async def test_file_uploading_storage_limit_reached(
         expected_json={"detail": "Storage limit reached"},
     )
 
-    storage_limit_mock.assert_awaited_once_with(owner_id=ydoc.owner_id)
+    storage_limit_mock.assert_awaited_once_with(
+        owner_id=ydoc.owner_id,
+        file_kind=uncategorized_file_input_data.kind,
+        size_bytes=len(uncategorized_file_input_data.input_content),
+    )
 
 
 @pytest.mark.parametrize(

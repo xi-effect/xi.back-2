@@ -45,7 +45,10 @@ async def list_library_files(
     path="/roles/tutor/files/",
     status_code=status.HTTP_201_CREATED,
     response_model=File.TutorResponseSchema,
-    responses=storage_svc.StorageLimitResponses.responses(),
+    responses=Responses.chain(
+        storage_svc.StorageLimitResponses,
+        storage_svc.FileSizeResponses,
+    ),
     summary="Upload a new library file for the current user",
 )
 async def upload_library_file(
@@ -53,7 +56,6 @@ async def upload_library_file(
     upload: UploadFile,
     file_kind: UploadFileKind,
 ) -> File:
-    await storage_svc.ensure_owner_is_under_storage_limit(owner_id=auth_data.user_id)
     return await files_svc.create_file_from_upload(
         upload=upload,
         file_kind=file_kind,
