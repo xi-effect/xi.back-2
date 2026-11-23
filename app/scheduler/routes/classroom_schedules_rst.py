@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from itertools import batched
 from typing import Annotated, assert_never, cast
 from uuid import UUID
 
@@ -428,6 +429,24 @@ async def build_classroom_schedule_adapter[T: BaseEventInstanceListAdapter](
                 event_ids=event_ids
             )
         }
+
+        if classroom_ids is None:
+            active_classroom_ids: set[int] = set()
+            for classroom_id_batch in batched(
+                {event.classroom_id for event in events_by_id.values()}, n=100
+            ):
+                active_classroom_ids.update(
+                    await classrooms_bridge.filter_classroom_ids(
+                        classroom_ids=classroom_id_batch,
+                        active_only=True,
+                    )
+                )
+
+            events_by_id = {
+                event_id: event
+                for event_id, event in events_by_id.items()
+                if event.classroom_id in active_classroom_ids
+            }
 
     return adapter_type(
         events_by_id=events_by_id,
