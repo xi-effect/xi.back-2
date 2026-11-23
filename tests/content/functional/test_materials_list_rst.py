@@ -7,6 +7,7 @@ from pydantic_marshals.contains import UnorderedLiteralCollection
 from pytest_lazy_fixtures import lf
 from starlette.testclient import TestClient
 
+from app.common.schemas.content_sch import YDocContentKind
 from app.content.models.materials_db import (
     NAMED_MATERIAL_ACCESS_KINDS,
     AnyNamedMaterial,
@@ -16,7 +17,7 @@ from app.content.models.materials_db import (
     MaterialTag,
     PersonalMaterial,
 )
-from app.content.models.ydocs_db import YDoc, YDocContentKind
+from app.content.models.ydocs_db import YDoc
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_response
 from tests.common.id_provider import IDProvider

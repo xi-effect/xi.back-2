@@ -38,7 +38,6 @@ async def test_making_mub_session(
         expected_headers={
             "X-Session-ID": int,
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-Cookie": AUTH_COOKIE_NAME,
             "X-Session-Token": str,
         },
@@ -75,7 +74,6 @@ async def test_upserting_mub_session(
         expected_headers={
             "X-Session-ID": int,
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-Cookie": AUTH_COOKIE_NAME,
             "X-Session-Token": str,
         },
@@ -112,7 +110,6 @@ async def test_upserting_existing_mub_session(
         expected_headers={
             "X-Session-ID": str(mub_session.id),
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-Cookie": AUTH_COOKIE_NAME,
             "X-Session-Token": mub_session.token,
         },
@@ -132,7 +129,6 @@ async def test_upserting_expired_mub_session(
         expected_headers={
             "X-Session-ID": int,
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-Cookie": AUTH_COOKIE_NAME,
             "X-Session-Token": str,
         },
@@ -171,7 +167,6 @@ async def test_upserting_disabled_mub_session(
         expected_headers={
             "X-Session-ID": int,
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-Cookie": AUTH_COOKIE_NAME,
             "X-Session-Token": str,
         },
@@ -240,7 +235,6 @@ async def test_authorized_method_with_mub_session(
         ),
         expected_headers={
             "X-User-ID": str(user.id),
-            "X-Username": user.username,
             "X-Session-ID": str(mub_session.id),
         },
     )

@@ -40,44 +40,6 @@ def convert_tutor_classrooms(tutor_classrooms: list[AnyClassroom]) -> Iterator[A
 @pytest.mark.parametrize(
     ("offset", "limit"),
     [
-        pytest.param(0, CLASSROOMS_LIST_SIZE, id="start_to_end"),
-        pytest.param(0, CLASSROOMS_LIST_SIZE // 2, id="start_to_middle"),
-        pytest.param(
-            CLASSROOMS_LIST_SIZE // 2,
-            CLASSROOMS_LIST_SIZE,
-            id="middle_to_end",
-        ),
-    ],
-)
-async def test_tutor_classrooms_listing_old(
-    tutor_client: TestClient,
-    tutor_classrooms: list[AnyClassroom],
-    offset: int,
-    limit: int,
-) -> None:
-    assert_response(
-        tutor_client.get(
-            "/api/protected/classroom-service/roles/tutor/classrooms/",
-            params=remove_none_values(
-                {
-                    "created_before": (
-                        None
-                        if offset == 0
-                        else tutor_classrooms[offset - 1].created_at.isoformat()
-                    ),
-                    "limit": limit,
-                }
-            ),
-        ),
-        expected_json=list(convert_tutor_classrooms(tutor_classrooms=tutor_classrooms))[
-            offset:limit
-        ],
-    )
-
-
-@pytest.mark.parametrize(
-    ("offset", "limit"),
-    [
         pytest.param(None, CLASSROOMS_LIST_SIZE, id="start_to_end"),
         pytest.param(None, CLASSROOMS_LIST_SIZE // 2, id="start_to_middle"),
         pytest.param(

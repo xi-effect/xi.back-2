@@ -19,16 +19,9 @@ GLOBAL_TEMPLATE_VARIABLES: dict[str, str] = {
 }
 
 KIND_TO_TEMPLATE_ID: dict[EmailMessageKind, str] = {
-    EmailMessageKind.CUSTOM_V1: "228a8576-b802-11f0-bca7-d2544595dc68",
     EmailMessageKind.EMAIL_CONFIRMATION_V2: "05b83984-bd89-11f0-81f1-122da0a24080",
     EmailMessageKind.EMAIL_CHANGE_V2: "a25aced8-bd88-11f0-b8e4-122da0a24080",
     EmailMessageKind.PASSWORD_RESET_V2: "3b5242e2-bd89-11f0-8132-025779db5bd3",
-    EmailMessageKind.INDIVIDUAL_INVITATION_ACCEPTED_V1: "dfe2b0da-b7df-11f0-9a0e-1ecf01eb9d7d",
-    EmailMessageKind.GROUP_INVITATION_ACCEPTED_V1: "5c4927c6-b7fe-11f0-8c0e-d2544595dc68",
-    EmailMessageKind.ENROLLMENT_CREATED_V1: "8ae0674c-b7ff-11f0-a05c-d2544595dc68",
-    EmailMessageKind.CLASSROOM_CONFERENCE_STARTED_V1: "0aef5510-b800-11f0-ad49-d2544595dc68",
-    EmailMessageKind.RECIPIENT_INVOICE_CREATED_V1: "a466ca48-b800-11f0-80a2-d2544595dc68",
-    EmailMessageKind.STUDENT_RECIPIENT_INVOICE_PAYMENT_CONFIRMED_V1: "9c5cd7cc-b7fe-11f0-8d2e-d2544595dc68",
     EmailMessageKind.UNIVERSAL_V3: "e9e631ee-576a-11f1-a286-3e473ca83b89",
 }
 
