@@ -99,7 +99,7 @@ async def list_student_classroom_ids(
     summary="Filter classroom ids to the existing ones",
 )
 async def filter_classroom_ids(
-    classroom_ids: Annotated[list[int], Query(min_length=1, max_length=100)],
+    classroom_ids: Annotated[set[int], Query(min_length=1, max_length=100)],
     active_only: Annotated[bool, Query()] = False,
 ) -> Sequence[int]:
     stmt = select(Classroom.id).filter(Classroom.id.in_(classroom_ids))
