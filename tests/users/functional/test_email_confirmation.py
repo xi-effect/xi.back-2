@@ -108,11 +108,25 @@ async def test_requesting_confirmation_resend_too_many_emails(
     )
 
 
+@pytest.mark.parametrize(
+    ("is_username_blank", "expected_onboarding_stage"),
+    [
+        pytest.param(False, OnboardingStage.USER_INFORMATION, id="normal_username"),
+        pytest.param(True, OnboardingStage.DEFAULT_LAYOUT, id="blank_username"),
+    ],
+)
 async def test_email_confirmation(
     client: TestClient,
     active_session: ActiveSession,
     user: User,
+    is_username_blank: bool,
+    expected_onboarding_stage: OnboardingStage,
 ) -> None:
+    if is_username_blank:
+        async with active_session() as session:
+            session.add(user)
+            user.username = ""
+
     assert_nodata_response(
         client.post(
             "/api/public/user-service/email-confirmation/confirmations/",
@@ -128,7 +142,7 @@ async def test_email_confirmation(
         session.add(user)
         await session.refresh(user)
 
-        assert user.onboarding_stage is OnboardingStage.USER_INFORMATION
+        assert user.onboarding_stage is expected_onboarding_stage
 
 
 async def test_email_confirmation_email_already_confirmed(
