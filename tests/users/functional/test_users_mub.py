@@ -11,6 +11,7 @@ from app.common.utils.datetime import datetime_utc_now
 from app.users.models.users_db import OnboardingStage, User
 from tests.common.active_session import ActiveSession
 from tests.common.assert_contains_ext import assert_nodata_response, assert_response
+from tests.common.polyfactory_ext import BaseModelFactory
 from tests.common.types import AnyJSON
 from tests.users import factories
 
@@ -98,6 +99,58 @@ async def test_user_creation_conflict(
         ),
         expected_code=status.HTTP_409_CONFLICT,
         expected_json={"detail": error},
+    )
+
+
+@freeze_time()
+async def test_user_creation_v2(
+    mub_client: TestClient,
+    active_session: ActiveSession,
+    normalized_email: str,
+    parametrized_email: str,
+) -> None:
+    user_input_data: AnyJSON = factories.UserInputV2Factory.build_json()
+
+    user_id: int = assert_response(
+        mub_client.post(
+            "/mub/user-service/v2/users/",
+            json={**user_input_data, "email": parametrized_email},
+        ),
+        expected_code=status.HTTP_201_CREATED,
+        expected_json={
+            **user_input_data,
+            "email": normalized_email,
+            "password": None,
+            "id": int,
+            "created_at": datetime_utc_now(),
+            "username": "",
+            "default_layout": None,
+            "theme": "system",
+            "language": "ru",
+            "onboarding_stage": OnboardingStage.EMAIL_CONFIRMATION,
+            "password_last_changed_at": datetime_utc_now(),
+            "email_confirmation_resend_allowed_at": datetime_utc_now(),
+        },
+    ).json()["id"]
+
+    async with active_session():
+        user = await User.find_first_by_id(user_id)
+        assert user is not None
+        assert user.is_password_valid(user_input_data["password"])
+        await user.delete()
+
+
+async def test_user_creation_v2_email_already_in_use(
+    mub_client: TestClient,
+    user: User,
+) -> None:
+    assert_response(
+        mub_client.post(
+            "/mub/user-service/v2/users/",
+            json=factories.UserInputV2Factory.build_json(email=user.email),
+        ),
+        expected_code=status.HTTP_409_CONFLICT,
+        expected_json={"detail": "Email already in use"},
     )
 
 
@@ -203,24 +256,30 @@ async def test_user_operations_invalid_mub_key(
 
 
 @pytest.mark.parametrize(
-    ("method", "path"),
+    ("method", "path", "body_factory"),
     [
-        pytest.param("POST", "", id="create"),
-        pytest.param("PATCH", lfc(lambda user: f"{user.id}/"), id="update"),
+        pytest.param("POST", "users/", factories.UserInputFactory, id="create"),
+        pytest.param("POST", "v2/users/", factories.UserInputV2Factory, id="create_v2"),
+        pytest.param(
+            "PATCH",
+            lfc(lambda user: f"users/{user.id}/"),
+            factories.UserFullPatchFactory,
+            id="update",
+        ),
     ],
 )
 async def test_user_operations_invalid_email(
     faker: Faker,
     mub_client: TestClient,
-    user_data: AnyJSON,
     method: str,
     path: str,
+    body_factory: type[BaseModelFactory[Any]],
 ) -> None:
     assert_response(
         mub_client.request(
             method,
-            f"/mub/user-service/users/{path}",
-            json={**user_data, "email": faker.word()},
+            f"/mub/user-service/{path}",
+            json={**body_factory.build_json(), "email": faker.word()},
         ),
         expected_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         expected_json={

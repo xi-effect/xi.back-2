@@ -70,4 +70,8 @@ async def confirm_email(token_payload: EmailConfirmationTokenPayload) -> None:
     if user.onboarding_stage is not OnboardingStage.EMAIL_CONFIRMATION:
         raise EmailConfirmationResponses.ALREADY_CONFIRMED
 
-    user.onboarding_stage = OnboardingStage.USER_INFORMATION
+    user.onboarding_stage = (
+        OnboardingStage.DEFAULT_LAYOUT
+        if user.username == ""
+        else OnboardingStage.USER_INFORMATION
+    )
