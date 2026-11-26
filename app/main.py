@@ -7,6 +7,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.openapi.docs import get_swagger_ui_html
 from faststream import BaseMiddleware, StreamMessage
 from faststream.redis.fastapi import RedisRouter
+from prometheus_client import REGISTRY
 from pydantic import ValidationError
 from sqlalchemy.sql.ddl import CreateSchema
 from starlette import status
@@ -35,6 +36,7 @@ from app import (
 from app.common.config import Base, engine, livekit, sessionmaker, settings, tmex
 from app.common.config_bdg import all_bridges, datalake_bridge
 from app.common.dependencies.authorization_sio_dep import authorize_from_wsgi_environ
+from app.common.metrics import PythonHeapMetricsCollector
 from app.common.schemas.datalake_sch import DatalakeEventInputSchema, DatalakeEventKind
 from app.common.socketio.rooms import user_room
 from app.common.socketio.store import user_id_to_sids
@@ -152,6 +154,8 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan,
 )
+
+REGISTRY.register(PythonHeapMetricsCollector())
 
 app.add_middleware(
     PrometheusMiddleware,
