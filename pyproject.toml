@@ -42,6 +42,7 @@ sentry-sdk = {extras = ["asyncio", "fastapi", "sqlalchemy", "redis", "httpx"], v
 pillow = "^12.2.0"
 starlette-exporter = "^0.23.0"
 email-validator = "^2.3.0"
+prometheus-client = "^0.25.0"
 
 [tool.poetry.group.types.dependencies]
 types-passlib = "^1.7.7.13"
